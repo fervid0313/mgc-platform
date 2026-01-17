@@ -1496,4 +1496,13 @@ export const useAppStore = create<AppState>()((set, get) => ({
       environment: env
     }
   },
+
+  // Force re-render function for debugging UI issues
+  forceRerender: () => {
+    console.log("=== FORCE RE-RENDER ===")
+    // This will trigger a re-render by slightly modifying the state
+    const { connections } = get()
+    set({ connections: [...connections] })
+    console.log("Forced re-render triggered")
+  },
 }))

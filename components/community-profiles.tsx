@@ -19,11 +19,19 @@ export function CommunityProfiles() {
   const [searchQuery, setSearchQuery] = useState("")
   const [filter, setFilter] = useState<"all" | "connected" | "online">("all")
   const [editingRole, setEditingRole] = useState<string | null>(null)
+  const [renderKey, setRenderKey] = useState(0) // Force re-render
 
   const userIsAdmin = isAdmin()
 
   // Debug logging for connections changes
   console.log("[CommunityProfiles] Current connections:", connections.length, connections)
+  console.log("[CommunityProfiles] Render key:", renderKey)
+
+  // Force re-render when connections change
+  useEffect(() => {
+    console.log("[CommunityProfiles] Connections changed, forcing re-render")
+    setRenderKey(prev => prev + 1)
+  }, [connections])
 
   const filteredProfiles = profiles.filter((profile) => {
     if (profile.id === user?.id) return false
@@ -107,7 +115,7 @@ export function CommunityProfiles() {
       </div>
 
       {/* Profile List */}
-      <div className="space-y-2">
+      <div key={`profiles-${renderKey}`} className="space-y-2">
         {filteredProfiles.length === 0 ? (
           <p className="text-center text-muted-foreground/50 py-8 text-sm">No users found.</p>
         ) : (
