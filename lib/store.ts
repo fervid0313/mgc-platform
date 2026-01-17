@@ -613,11 +613,42 @@ const store = create<AppState>()((set, get) => ({
   entries: { "space-global": [] },
 
   loadEntries: async (spaceId: string) => {
-    // Skip database query for global feed - it doesn't have entries
+    // Handle global feed specially - load entries from Global Feed space
     if (spaceId === "space-global") {
-      console.log("[v0] Skipping entries load for global feed space")
+      console.log("[v0] Loading global feed entries from Global Feed space")
+
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("entries")
+        .select("*")
+        .eq("space_id", "00000000-0000-0000-0000-000000000001") // Global Feed space ID
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        console.error("[v0] Load global entries error:", error)
+        set((state) => ({
+          entries: { ...state.entries, [spaceId]: [] },
+        }))
+        return
+      }
+
+      const globalEntries = data.map((e: any) => ({
+        id: e.id,
+        spaceId: "space-global", // Display as global space
+        userId: e.user_id,
+        username: e.username,
+        content: e.content,
+        tags: e.tags || [],
+        tradeType: e.trade_type,
+        profitLoss: e.profit_loss,
+        image: e.image,
+        mentalState: e.mental_state,
+        createdAt: new Date(e.created_at),
+      }))
+
+      console.log(`[v0] Loaded ${globalEntries.length} global entries`)
       set((state) => ({
-        entries: { ...state.entries, [spaceId]: [] },
+        entries: { ...state.entries, [spaceId]: globalEntries },
       }))
       return
     }
@@ -682,10 +713,11 @@ const store = create<AppState>()((set, get) => ({
 
     console.log("[DEBUG] Space validation passed:", { spaceId: currentSpace.id, spaceName: currentSpace.name })
 
-    // Prevent posting to global feed space
+    // Handle global feed space specially - use the Global Feed space ID
+    let actualSpaceId = currentSpaceId
     if (currentSpaceId === "space-global") {
-      console.error("[DEBUG] 🚨 CANNOT POST TO GLOBAL FEED - journal entries not allowed in global space")
-      return
+      console.log("[DEBUG] 📝 Posting to global feed - using Global Feed space ID")
+      actualSpaceId = "00000000-0000-0000-0000-000000000001" // Global Feed space ID
     }
 
     const supabase = createClient()
@@ -737,7 +769,7 @@ const store = create<AppState>()((set, get) => ({
     const { data, error } = await supabase
       .from("entries")
       .insert({
-        space_id: currentSpaceId,
+        space_id: actualSpaceId,
         user_id: user.id,
         username: user.username,
         content,
@@ -873,11 +905,36 @@ const store = create<AppState>()((set, get) => ({
   chatMessages: { "space-global": [] },
 
   loadChatMessages: async (spaceId: string) => {
-    // Skip database query for global feed - it doesn't have chat messages
+    // Handle global feed specially - load chat messages from Global Feed space
     if (spaceId === "space-global") {
-      console.log("[v0] Skipping chat messages load for global feed space")
+      console.log("[v0] Loading global feed chat messages from Global Feed space")
+
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("chat_messages")
+        .select("*")
+        .eq("space_id", "00000000-0000-0000-0000-000000000001") // Global Feed space ID
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        console.error("[v0] Load global chat messages error:", error)
+        set((state) => ({
+          chatMessages: { ...state.chatMessages, [spaceId]: [] },
+        }))
+        return
+      }
+
+      const globalMessages = data.map((m: any) => ({
+        id: m.id,
+        spaceId: "space-global", // Display as global space
+        userId: m.user_id,
+        content: m.content,
+        createdAt: new Date(m.created_at),
+      }))
+
+      console.log(`[v0] Loaded ${globalMessages.length} global chat messages`)
       set((state) => ({
-        chatMessages: { ...state.chatMessages, [spaceId]: [] },
+        chatMessages: { ...state.chatMessages, [spaceId]: globalMessages },
       }))
       return
     }
@@ -913,12 +970,19 @@ const store = create<AppState>()((set, get) => ({
     const { currentSpaceId, user, chatMessages } = get()
     if (!currentSpaceId || !user || !content.trim()) return
 
+    // Handle global feed space specially - use the Global Feed space ID
+    let actualSpaceId = currentSpaceId
+    if (currentSpaceId === "space-global") {
+      console.log("[v0] 📤 Sending message to global feed - using Global Feed space ID")
+      actualSpaceId = "00000000-0000-0000-0000-000000000001" // Global Feed space ID
+    }
+
     const supabase = createClient()
 
     const { data, error } = await supabase
       .from("chat_messages")
       .insert({
-        space_id: currentSpaceId,
+        space_id: actualSpaceId,
         user_id: user.id,
         username: user.username,
         content: content.trim(),
@@ -933,7 +997,7 @@ const store = create<AppState>()((set, get) => ({
 
     const newMessage: ChatMessage = {
       id: data.id,
-      spaceId: data.space_id,
+      spaceId: currentSpaceId, // Use original spaceId for display (including "space-global")
       userId: data.user_id,
       username: data.username,
       content: data.content,
