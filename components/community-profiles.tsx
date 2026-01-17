@@ -60,7 +60,7 @@ export function CommunityProfiles() {
       }
     }
 
-    const searchLower = searchQuery.toLowerCase()
+    const searchLower = searchQuery ? searchQuery.toLowerCase() : ""
     const matchesSearch =
       (profile.username && profile.username.toLowerCase().includes(searchLower)) ||
       (profile.username && profile.tag && `${profile.username}#${profile.tag}`.toLowerCase().includes(searchLower))

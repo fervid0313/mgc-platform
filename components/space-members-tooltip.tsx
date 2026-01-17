@@ -57,7 +57,7 @@ export function SpaceMembersTooltip({ spaceId, memberCount, children }: SpaceMem
               </p>
             ) : (
               <div className="space-y-1">
-                {members.slice(0, 10).map((member) => (
+                {members && members.slice(0, 10).map((member) => (
                   <div key={member.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-secondary/50">
                     <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-xs font-bold">
                       {member.username ? member.username.charAt(0).toUpperCase() : "?"}
