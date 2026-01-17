@@ -12,7 +12,6 @@ import {
   AlertTriangle,
   Heart,
   MessageCircle,
-  UserPlus,
   Send,
   Trash2,
 } from "lucide-react"
@@ -49,13 +48,12 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
 
   const {
     user,
-    toggleLike,
+    addLike,
+    removeLike,
     hasLiked,
     getLikeCount,
     getComments,
     addComment,
-    connections,
-    sendFriendRequest,
     getProfile,
     isAdmin,
     deleteEntry,
@@ -64,7 +62,6 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
   const liked = hasLiked(entry.id)
   const likeCount = getLikeCount(entry.id)
   const comments = getComments(entry.id)
-  const isConnected = connections.includes(entry.userId)
   const isOwnPost = user?.id === entry.userId
   const authorProfile = getProfile(entry.userId)
   const userIsAdmin = isAdmin()
@@ -77,12 +74,11 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
     }
   }
 
-  const handleConnect = () => {
-    if (!isConnected && !isOwnPost) {
-      const profile = getProfile(entry.userId)
-      if (profile) {
-        sendFriendRequest(`${profile.username}#${profile.tag}`)
-      }
+  const handleLike = () => {
+    if (liked) {
+      removeLike(entry.id)
+    } else {
+      addLike(entry.id)
     }
   }
 
@@ -197,7 +193,7 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
         {isGlobal && (
           <div className="flex items-center gap-4 pt-3 border-t border-border">
             <button
-              onClick={() => toggleLike(entry.id)}
+              onClick={handleLike}
               className={`flex items-center gap-1.5 text-xs font-bold transition-colors icon-glow ${
                 liked ? "text-red-500" : "text-muted-foreground hover:text-red-500"
               }`}
@@ -214,18 +210,6 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
               <span>{comments.length}</span>
             </button>
 
-            {!isOwnPost && (
-              <button
-                onClick={handleConnect}
-                disabled={isConnected}
-                className={`flex items-center gap-1.5 text-xs font-bold transition-colors ml-auto icon-glow ${
-                  isConnected ? "text-green-500 cursor-default" : "text-muted-foreground hover:text-primary"
-                }`}
-              >
-                <UserPlus className="h-4 w-4" />
-                <span>{isConnected ? "Connected" : "Connect"}</span>
-              </button>
-            )}
           </div>
         )}
 

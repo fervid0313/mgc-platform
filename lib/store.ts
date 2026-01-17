@@ -115,6 +115,9 @@ interface AppState {
   deleteComment: (commentId: string, entryId: string) => Promise<void>
   addLike: (entryId: string) => Promise<void>
   removeLike: (entryId: string) => Promise<void>
+  hasLiked: (entryId: string) => boolean
+  getLikeCount: (entryId: string) => number
+  getComments: (entryId: string) => Comment[]
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -470,7 +473,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       image,
       mentalState,
       createdAt: new Date(),
-      isOptimistic: true,
     }
 
     // Add optimistic entry
@@ -486,12 +488,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       ? "00000000-0000-0000-0000-000000000001" 
       : currentSpaceId
 
+    console.log("[ENTRY] Adding entry to space:", currentSpaceId, "→", actualSpaceId)
+
     const { data, error } = await supabase
       .from("entries")
       .insert({
         space_id: actualSpaceId,
         content,
-        tags: tags || [],
+        tags,
         trade_type: tradeType,
         profit_loss: profitLoss,
         image,
@@ -502,6 +506,12 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     if (error || !data) {
       console.error("[ENTRY] Add error:", error)
+      console.error("[ENTRY] Error details:", {
+        code: error?.code,
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint
+      })
       // Remove optimistic entry
       set((state) => ({
         entries: {
@@ -1138,6 +1148,25 @@ export const useAppStore = create<AppState>((set, get) => ({
         },
       }
     })
+  },
+
+  // Helper functions for components
+  hasLiked: (entryId: string) => {
+    const { user, likes, currentSpaceId } = get()
+    if (!user || !currentSpaceId) return false
+    return likes[currentSpaceId]?.some(l => l.entryId === entryId && l.userId === user.id) || false
+  },
+
+  getLikeCount: (entryId: string) => {
+    const { likes, currentSpaceId } = get()
+    if (!currentSpaceId) return 0
+    return likes[currentSpaceId]?.filter(l => l.entryId === entryId).length || 0
+  },
+
+  getComments: (entryId: string) => {
+    const { comments, currentSpaceId } = get()
+    if (!currentSpaceId) return []
+    return comments[currentSpaceId]?.filter(c => c.entryId === entryId) || []
   },
 }))
 
