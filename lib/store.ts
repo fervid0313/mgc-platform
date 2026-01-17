@@ -594,11 +594,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     console.log("[ENTRY] Current space ID in store:", get().currentSpaceId)
 
     try {
-      // Test with minimal columns first - INCLUDE pnl AND image
-      console.log("[ENTRY] Testing with minimal columns...")
+      // Test with basic columns only - TEMPORARILY REMOVE pnl AND image
+      console.log("[ENTRY] Testing with basic columns...")
       const { data: testData, error: testError } = await supabase
         .from("entries")
-        .select("id, space_id, user_id, content, image, pnl, created_at")
+        .select("id, space_id, user_id, content, created_at")
         .eq("space_id", actualSpaceId)
         .order("created_at", { ascending: false })
         .limit(10)
@@ -609,10 +609,10 @@ export const useAppStore = create<AppState>((set, get) => ({
         errorMessage: testError?.message,
         sampleData: testData?.map(e => ({
           id: e.id,
-          hasPnl: e.pnl !== null && e.pnl !== undefined,
-          pnlValue: e.pnl,
-          hasImage: !!e.image,
-          imageLength: e.image?.length || 0
+          hasPnl: false,
+          pnlValue: null,
+          hasImage: false,
+          imageLength: 0
         })) || []
       })
 
@@ -627,14 +627,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       // If minimal query works, use it
       const mappedEntries = (testData || []).filter(e => e != null).map((e: any) => {
-        const hasImage = !!e.image;
-        const hasPnl = e.pnl !== null && e.pnl !== undefined;
-        if (hasImage) {
-          console.log("[ENTRY] 📸 Found image:", e.image?.substring(0, 50) + "...");
-        }
-        if (hasPnl) {
-          console.log("[ENTRY] 💰 Found pnl:", e.pnl, "type:", typeof e.pnl);
-        }
         console.log("[ENTRY] 📝 Found entry:", e.id, e.content?.substring(0, 30) + "...");
         return {
           id: e.id,
@@ -644,8 +636,8 @@ export const useAppStore = create<AppState>((set, get) => ({
           content: e.content,
           tags: [],
           tradeType: "general" as any,
-          profitLoss: e.pnl ? parseFloat(e.pnl) : undefined,
-          image: e.image,
+          profitLoss: undefined,
+          image: undefined,
           mentalState: undefined,
           createdAt: new Date(e.created_at),
         };
