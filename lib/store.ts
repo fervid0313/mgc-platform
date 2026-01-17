@@ -149,47 +149,67 @@ const store = create<AppState>()((set, get) => ({
   },
 
   initializeAuth: async () => {
+    console.log("[AUTH] Initializing authentication...")
     const supabase = createClient()
 
     // Load initial session
     const loadSession = async () => {
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
+      console.log("[AUTH] Attempting to load session...")
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        console.log("[AUTH] getSession response:", { session: session?.user?.id, sessionError })
 
-      if (session?.user) {
-        // Fetch profile from database
-        const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
+        if (sessionError) {
+          console.error("[AUTH] Session error:", sessionError)
+          return false
+        }
 
-        if (profile) {
-          const user: User = {
-            id: profile.id,
-            username: profile.username,
-            tag: profile.tag,
-            email: profile.email,
-            avatar: profile.avatar,
-            isAdmin: profile.email === ADMIN_EMAIL,
-            createdAt: new Date(profile.created_at),
+        if (session?.user) {
+          console.log("[AUTH] Session found, fetching profile for user:", session.user.id)
+          // Fetch profile from database
+          const { data: profile, error: profileError } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
+          console.log("[AUTH] Profile fetch response:", { profile, profileError })
+
+          if (profileError) {
+            console.error("[AUTH] Profile fetch error:", profileError)
+            return false
           }
 
-          set({
-            user,
-            isAuthenticated: true,
-            isLoading: false,
-            spaces: [globalFeedSpace],
-            currentSpaceId: "space-global",
-          })
+          if (profile) {
+            const user: User = {
+              id: profile.id,
+              username: profile.username,
+              tag: profile.tag,
+              email: profile.email,
+              avatar: profile.avatar,
+              isAdmin: profile.email === ADMIN_EMAIL,
+              createdAt: new Date(profile.created_at),
+            }
+
+            set({
+              user,
+              isAuthenticated: true,
+              isLoading: false,
+              spaces: [globalFeedSpace],
+              currentSpaceId: "space-global",
+            })
+            console.log("[AUTH] User and initial state set from session.")
 
             // Load user's spaces - with duplicate prevention
-          const { data: spaces } = await supabase
-            .from("spaces")
-            .select("*")
-            .or(`owner_id.eq.${session.user.id},is_private.eq.false`)
+            console.log("[AUTH] Loading user spaces...")
+            const { data: spaces, error: spacesError } = await supabase
+              .from("spaces")
+              .select("*")
+              .or(`owner_id.eq.${session.user.id},is_private.eq.false`)
+            console.log("[AUTH] Spaces fetch response:", { spaces: spaces?.length, spacesError })
+
+            if (spacesError) {
+              console.error("[AUTH] Error loading spaces:", spacesError)
+            }
 
             console.log("[v0] Raw spaces from database:", spaces?.length || 0, spaces)
 
-          if (spaces) {
+            if (spaces) {
               // Filter out any database Global Feed spaces to avoid duplicates
               const filteredSpaces = spaces.filter((s: any) => s.name !== 'Global Feed')
               console.log("[v0] After filtering Global Feed:", filteredSpaces.length, filteredSpaces.map(s => s.name))
@@ -208,31 +228,32 @@ const store = create<AppState>()((set, get) => ({
               console.log("[v0] After deduplication:", deduplicatedSpaces.length, deduplicatedSpaces.map(s => s.name))
 
               const mappedSpaces = deduplicatedSpaces.map((s: any) => ({
-              id: s.id,
-              name: s.name,
-              description: s.description,
-              ownerId: s.owner_id,
-              isPrivate: s.is_private,
-              createdAt: new Date(s.created_at),
-              memberCount: s.member_count || 1,
-            }))
+                id: s.id,
+                name: s.name,
+                description: s.description,
+                ownerId: s.owner_id,
+                isPrivate: s.is_private,
+                createdAt: new Date(s.created_at),
+                memberCount: s.member_count || 1,
+              }))
 
               const finalSpaces = [globalFeedSpace, ...mappedSpaces]
               console.log("[v0] Final spaces array:", finalSpaces.length, finalSpaces.map(s => s.name))
 
               set({ spaces: finalSpaces })
-          }
+            }
 
-          // Load friend requests
-          get().loadFriendRequests()
-          get().loadConnections()
-          get().loadProfiles()
-
+            // Load friend requests
+            console.log("[AUTH] Loading friend requests, connections, profiles...")
+            get().loadFriendRequests()
+            get().loadConnections()
+            get().loadProfiles()
+            console.log("[AUTH] Initial data loading triggered.")
             return true
+          }
         }
-      }
-    } catch (error) {
-      console.error("[v0] Auth initialization error:", error)
+      } catch (error) {
+        console.error("[AUTH] Auth initialization error (loadSession):", error)
       }
       return false
     }
@@ -1854,12 +1875,38 @@ const store = create<AppState>()((set, get) => ({
     })
   },
 
-  adminUpdateUserProfile: (userId: string, updates: Partial<UserProfile>) => {
+  adminUpdateUserProfile: async (userId: string, updates: Partial<UserProfile>) => {
     const { profiles, isAdmin } = get()
     if (!isAdmin()) return
 
-    const updatedProfiles = profiles.map((p) => (p.id === userId ? { ...p, ...updates } : p))
-    set({ profiles: updatedProfiles })
+    console.log("[ADMIN] Admin attempting to update profile for user:", userId, "with updates:", updates)
+
+    const supabase = createClient()
+    const dbUpdates: any = {}
+    if (updates.tradingStyle) dbUpdates.trading_style = updates.tradingStyle
+    // Add other fields an admin might update if necessary
+
+    if (Object.keys(dbUpdates).length === 0) {
+      console.log("[ADMIN] No database-updatable fields found in adminUpdateUserProfile updates.")
+      return
+    }
+
+    try {
+      const { error } = await supabase.from("profiles").update(dbUpdates).eq("id", userId)
+
+      if (error) {
+        console.error("[ADMIN] Error updating profile in database:", error)
+        return
+      }
+
+      console.log("[ADMIN] Profile updated successfully in database for user:", userId)
+
+      const updatedProfiles = profiles.map((p) => (p.id === userId ? { ...p, ...updates } : p))
+      set({ profiles: updatedProfiles })
+      console.log("[ADMIN] Local state updated after successful database update.")
+    } catch (e) {
+      console.error("[ADMIN] Exception during admin profile update:", e)
+    }
   },
 
   viewMode: "journal",
