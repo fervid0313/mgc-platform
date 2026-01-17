@@ -672,22 +672,58 @@ const store = create<AppState>()((set, get) => ({
       return
     }
 
+    // Validate space exists
+    const spaces = get().spaces
+    const currentSpace = spaces.find(s => s.id === currentSpaceId)
+    if (!currentSpace) {
+      console.error("[DEBUG] 🚨 SPACE VALIDATION FAILED - space not found:", { currentSpaceId, availableSpaces: spaces.map(s => ({ id: s.id, name: s.name })) })
+      return
+    }
+
+    console.log("[DEBUG] Space validation passed:", { spaceId: currentSpace.id, spaceName: currentSpace.name })
+
     const supabase = createClient()
     console.log("[DEBUG] Created Supabase client")
 
     // Check authentication
     const { data: authData, error: authError } = await supabase.auth.getUser()
-    console.log("[DEBUG] Auth check:", { user: authData.user, error: authError })
+    console.log("[DEBUG] Auth check:", { user: authData.user?.id, email: authData.user?.email, error: authError })
+
+    if (authError || !authData.user) {
+      console.error("[DEBUG] 🚨 AUTHENTICATION FAILED:", { authError, user: authData.user })
+      console.error("[DEBUG] Cannot insert entry - user not authenticated")
+      return
+    }
+
+    if (authData.user.id !== user.id) {
+      console.error("[DEBUG] 🚨 USER ID MISMATCH:", {
+        authUserId: authData.user.id,
+        storeUserId: user.id
+      })
+      console.error("[DEBUG] Cannot insert entry - user ID mismatch")
+      return
+    }
+
+    // Validate required fields
+    if (!content || content.trim().length === 0) {
+      console.error("[DEBUG] 🚨 CONTENT VALIDATION FAILED - content is empty")
+      return
+    }
+
+    if (!mentalState) {
+      console.error("[DEBUG] 🚨 MENTAL STATE VALIDATION FAILED - mental state is required")
+      return
+    }
 
     console.log("[DEBUG] Attempting to insert entry with data:", {
       space_id: currentSpaceId,
       user_id: user.id,
       username: user.username,
-      content,
+      content: content.substring(0, 100) + (content.length > 100 ? "..." : ""),
       tags,
       trade_type: tradeType,
       profit_loss: profitLoss,
-      image,
+      image: image ? "present" : "null",
       mental_state: mentalState,
     })
 
@@ -711,6 +747,21 @@ const store = create<AppState>()((set, get) => ({
 
     if (error) {
       console.error("[v0] Add entry error:", error)
+      console.error("[v0] Error details:", JSON.stringify(error, null, 2))
+      console.error("[v0] Error code:", error.code)
+      console.error("[v0] Error message:", error.message)
+      console.error("[v0] Error hint:", error.hint)
+
+      // Check if it's an auth issue
+      if (error.code === 'PGRST301' || error.message?.includes('JWT')) {
+        console.error("[v0] 🚨 AUTHENTICATION ISSUE - User may not be logged in")
+      }
+
+      // Check if it's an RLS issue
+      if (error.code === 'PGRST116' || error.message?.includes('policy')) {
+        console.error("[v0] 🚨 RLS POLICY ISSUE - Check database permissions")
+      }
+
       return
     }
 
