@@ -682,6 +682,12 @@ const store = create<AppState>()((set, get) => ({
 
     console.log("[DEBUG] Space validation passed:", { spaceId: currentSpace.id, spaceName: currentSpace.name })
 
+    // Prevent posting to global feed space
+    if (currentSpaceId === "space-global") {
+      console.error("[DEBUG] 🚨 CANNOT POST TO GLOBAL FEED - journal entries not allowed in global space")
+      return
+    }
+
     const supabase = createClient()
     console.log("[DEBUG] Created Supabase client")
 
