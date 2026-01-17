@@ -863,12 +863,14 @@ export const useAppStore = create<AppState>()((set, get) => ({
 
       const connections = data.map((c: any) => (c.user_id === user.id ? c.friend_id : c.user_id))
 
-      console.log(`[v0] Loaded ${connections.length} connections from database`)
+      console.log(`[v0] Loaded ${connections.length} connections from database:`, connections)
 
       // Update localStorage with fresh database data
       localStorage.setItem(cacheKey, JSON.stringify(connections))
 
       set({ connections })
+
+      console.log("[v0] Connections state updated with database data")
 
     } catch (error) {
       console.error("[v0] Load connections exception:", error)
@@ -1138,18 +1140,23 @@ export const useAppStore = create<AppState>()((set, get) => ({
     // Environment-specific localStorage keys
     const env = process.env.NODE_ENV || 'development'
     const cacheKey = `mgs_${env}_connections_${user.id}`
-    const freshKey = `mgs_${env}_connections_${user.id}_fresh`
 
     // Update localStorage immediately for responsive UI
     localStorage.setItem(cacheKey, JSON.stringify(updatedConnections))
 
-    console.log(`[v0] Updated connections in ${env} localStorage`)
+    console.log(`[v0] Updated connections in ${env} localStorage:`, updatedConnections)
 
     set({
       connections: updatedConnections
     })
 
-    console.log("[v0] Friend removed successfully")
+    console.log("[v0] Friend removal complete - UI should update immediately")
+
+    // Force a reload of connections from database to ensure consistency
+    console.log("[v0] Forcing connection reload from database...")
+    setTimeout(() => {
+      get().loadConnections()
+    }, 100)
   },
 
   directMessages: {},
@@ -1458,5 +1465,32 @@ export const useAppStore = create<AppState>()((set, get) => ({
   getComments: (entryId: string) => {
     const { comments } = get()
     return comments[entryId] || []
+  },
+
+  // Debug function for troubleshooting friends list issues
+  debugConnections: () => {
+    const { user, connections } = get()
+    const env = process.env.NODE_ENV || 'development'
+    const cacheKey = `mgs_${env}_connections_${user?.id}`
+
+    console.log("=== CONNECTIONS DEBUG ===")
+    console.log("User:", user?.id)
+    console.log("Environment:", env)
+    console.log("Current connections state:", connections)
+    console.log("localStorage key:", cacheKey)
+    console.log("localStorage value:", localStorage.getItem(cacheKey))
+
+    if (user) {
+      console.log("Reloading connections from database...")
+      get().loadConnections()
+    }
+
+    return {
+      user: user?.id,
+      connections,
+      cacheKey,
+      cached: localStorage.getItem(cacheKey),
+      environment: env
+    }
   },
 }))
