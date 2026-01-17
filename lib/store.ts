@@ -948,18 +948,18 @@ export const useAppStore = create<AppState>((set, get) => ({
     ])
 
     const comments = commentsResult.status === "fulfilled" 
-      ? (commentsResult.value.data || []).map((c: any) => ({
+      ? (commentsResult.value.data || []).filter(c => c != null).map((c: any) => ({
           id: c.id,
           entryId: c.entry_id,
           userId: c.user_id,
-          username: c.username,
+          username: c.username || "Unknown",
           content: c.content,
           createdAt: new Date(c.created_at),
         }))
       : []
 
     const likes = likesResult.status === "fulfilled"
-      ? (likesResult.value.data || []).map((l: any) => ({
+      ? (likesResult.value.data || []).filter(l => l != null).map((l: any) => ({
           id: l.id,
           entryId: l.entry_id,
           userId: l.user_id,
