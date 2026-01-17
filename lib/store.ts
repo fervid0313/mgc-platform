@@ -899,12 +899,13 @@ const store = create<AppState>()((set, get) => ({
     const { user } = get()
     if (!user) return
 
-    // 🚨🚨🚨 TEMPORARY TEST: DISABLE ALL DATABASE LOADS
-    const DISABLE_DB_LOADS = true
-    if (DISABLE_DB_LOADS) {
-      console.log("[TEST] 🚨🚨🚨 DATABASE LOADS DISABLED - Testing friend removal without DB interference")
-      return // Skip all database operations to test if friend removal works
+    // 🚨🚨🚨 CHECK GLOBAL FRIEND REMOVAL PROTECTION
+    if (FRIEND_REMOVAL_IN_PROGRESS) {
+      console.log("[v5] 🚨🚨🚨🚨🚨 GLOBAL PROTECTION ACTIVE - BLOCKING loadConnections during friend removal")
+      return // ABSOLUTE BLOCK - no database loads during friend removal
     }
+
+    // Database loads re-enabled - testing lock system
 
     // Environment-specific localStorage keys
     const env = process.env.NODE_ENV || 'development'
@@ -1282,7 +1283,9 @@ const store = create<AppState>()((set, get) => ({
 
   removeFriend: async (friendId: string) => {
     try {
-      console.log("[v5] 🚨🚨🚨🚨🚨 FRIEND REMOVAL FUNCTION ENTERED")
+      // 🚨🚨🚨 SET GLOBAL PROTECTION FLAG
+      FRIEND_REMOVAL_IN_PROGRESS = true
+      console.log("[v5] 🚨🚨🚨🚨🚨 FRIEND REMOVAL FUNCTION ENTERED - GLOBAL PROTECTION ACTIVATED")
       console.log("[v5] friendId parameter:", friendId)
       console.log("[v5] friendId type:", typeof friendId)
       console.log("[v5] friendId length:", friendId?.length)
@@ -1426,10 +1429,19 @@ const store = create<AppState>()((set, get) => ({
 
     console.log("[v1] 🚨 FRIEND REMOVAL PROCESS COMPLETE - UI should stay updated")
 
+    // 🚨🚨🚨 CLEAR GLOBAL PROTECTION FLAG
+    FRIEND_REMOVAL_IN_PROGRESS = false
+    console.log("[v5] 🚨🚨🚨🚨🚨 GLOBAL PROTECTION CLEARED - loadConnections can resume")
+
     } catch (globalError) {
       console.error("[v5] 🚨🚨🚨🚨🚨 CRITICAL ERROR IN FRIEND REMOVAL FUNCTION:", globalError)
       console.error("[v5] 🚨🚨🚨🚨🚨 Error stack:", globalError.stack)
       console.error("[v5] 🚨🚨🚨🚨🚨 This is why friends reappear - function crashed!")
+
+      // 🚨🚨🚨 CLEAR FLAG EVEN ON ERROR
+      FRIEND_REMOVAL_IN_PROGRESS = false
+      console.log("[v5] 🚨🚨🚨🚨🚨 GLOBAL PROTECTION CLEARED DUE TO ERROR")
+
       // Re-throw to let React error boundary catch it
       throw globalError
     }
@@ -1997,6 +2009,9 @@ ORDER BY count DESC;
 
 // Export the store for console debugging
 export const appStore = store
+
+// Global friend removal protection flag
+let FRIEND_REMOVAL_IN_PROGRESS = false
 
 // Attach to window for development debugging
 if (typeof window !== 'undefined') {
