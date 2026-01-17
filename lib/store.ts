@@ -440,14 +440,13 @@ export const useAppStore = create<AppState>()((set, get) => ({
 
     // Clear localStorage data for this user (all environments)
     if (user) {
+      // Clear current environment
       const env = process.env.NODE_ENV || 'development'
       localStorage.removeItem(`mgs_${env}_connections_${user.id}`)
-      localStorage.removeItem(`mgs_${env}_connections_${user.id}_fresh`)
+
       // Also clear other environments to prevent conflicts
       localStorage.removeItem(`mgs_development_connections_${user.id}`)
-      localStorage.removeItem(`mgs_development_connections_${user.id}_fresh`)
       localStorage.removeItem(`mgs_production_connections_${user.id}`)
-      localStorage.removeItem(`mgs_production_connections_${user.id}_fresh`)
     }
 
     set({
