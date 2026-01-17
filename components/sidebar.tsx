@@ -44,7 +44,6 @@ export function Sidebar() {
         </div>
 
         <div className="space-y-2 flex-1 overflow-y-auto max-h-[calc(100vh-420px)] scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent overscroll-contain">
-          {console.log("[Sidebar] Rendering spaces:", spaces.length, spaces.map(s => ({ id: s.id, name: s.name })))}
           {spaces.map((space) => (
             <div key={space.id} className="relative group">
               <button

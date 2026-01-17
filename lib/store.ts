@@ -151,6 +151,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       email: data.user.email!,
       username: profile?.username || email.split("@")[0],
       tag: profile?.tag || generateTag(),
+      createdAt: new Date(),
     }
 
     set({
@@ -205,6 +206,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       email: data.user.email!,
       username,
       tag,
+      createdAt: new Date(),
     }
 
     // Join Global Feed space

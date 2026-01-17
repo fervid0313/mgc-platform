@@ -30,7 +30,7 @@ export async function GET() {
     // Test 4: Check if we can insert (without actually inserting)
     const testInsertData = {
       space_id: '00000000-0000-0000-0000-000000000000', // Dummy UUID
-      user_id: authData.user?.id || '00000000-0000-0000-0000-000000000000',
+      user_id: authData?.user?.id || '00000000-0000-0000-0000-000000000000',
       username: 'test_user',
       content: 'test entry',
       tags: [],
@@ -47,7 +47,7 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       auth: {
-        user: authData.user?.email || null,
+        user: authData?.user?.email ?? null,
         error: authError?.message || null
       },
       profiles: {

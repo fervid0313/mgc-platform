@@ -62,7 +62,9 @@ export function createClient() {
 
   const client = createBrowserClient(url, key)
 
-  // Add request interceptor for debugging
+  // Note: Debugging interceptor temporarily disabled due to TypeScript errors
+  // TODO: Fix this with proper type-safe approach if needed
+  /*
   const originalFetch = client.rest.fetch
   client.rest.fetch = async (...args) => {
     console.log("[DEBUG] Supabase API call:", args[0])
@@ -72,20 +74,17 @@ export function createClient() {
 
       // Check if response is HTML instead of JSON
       const contentType = result.headers.get('content-type')
-      console.log("[DEBUG] Response content-type:", contentType)
-
       if (contentType && contentType.includes('text/html')) {
-        console.error("[DEBUG] 🚨 RESPONSE IS HTML INSTEAD OF JSON!")
-        const text = await result.text()
-        console.error("[DEBUG] HTML response preview:", text.substring(0, 200) + "...")
+        console.warn("[DEBUG] Received HTML response instead of JSON - possible routing issue")
       }
 
       return result
     } catch (error) {
-      console.error("[DEBUG] Supabase fetch error:", error)
+      console.error("[DEBUG] Supabase API error:", error)
       throw error
     }
   }
+  */
 
   return client
 }
