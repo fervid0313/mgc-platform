@@ -10,6 +10,11 @@ export function createClient() {
     fullUrl: url
   })
 
+  // Expose config for browser debugging
+  if (typeof window !== 'undefined') {
+    (window as any).supabaseConfig = { url, key: key ? "present" : "MISSING", fullUrl: url }
+  }
+
   if (!url || !key) {
     console.error("[DEBUG] 🚨 SUPABASE CONFIG MISSING:", { url: !!url, key: !!key })
     throw new Error("Supabase configuration missing")
