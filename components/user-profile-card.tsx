@@ -2,10 +2,9 @@
 
 import { useAppStore } from "@/lib/store"
 import type { UserProfile } from "@/lib/types"
-import { UserPlus, UserMinus, Check, MessageCircle, Twitter, Hash, Copy } from "lucide-react"
+import { Twitter, Hash, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
-import { DirectMessageChat } from "./direct-message-chat"
 
 interface UserProfileCardProps {
   profile: UserProfile
@@ -20,34 +19,14 @@ const tradingStyleLabels = {
 }
 
 export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
-  const { connections, sendFriendRequest, removeFriend, user } = useAppStore()
-
-  // Debug: Check if functions are available
-  console.log("[UI] UserProfileCard rendered for:", profile.username, {
-    isConnected: connections.includes(profile.id),
-    hasRemoveFriend: typeof removeFriend === 'function',
-    removeFriendRef: removeFriend,
-    userId: user?.id,
-    profileId: profile.id
-  })
-
-  const isConnected = connections.includes(profile.id)
+  const { user } = useAppStore()
   const isOwnProfile = user?.id === profile.id
   const [copied, setCopied] = useState(false)
-  const [requestSent, setRequestSent] = useState(false)
-  const [showDMChat, setShowDMChat] = useState(false)
 
   const copyTag = () => {
     navigator.clipboard.writeText(`${profile.username}#${profile.tag}`)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
-  }
-
-  const handleSendRequest = async () => {
-    const result = await sendFriendRequest(`${profile.username}#${profile.tag}`)
-    if (result.success) {
-      setRequestSent(true)
-    }
   }
 
   return (
@@ -76,7 +55,7 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
             <span className="text-xs text-muted-foreground font-mono">#{profile.tag}</span>
             <button onClick={copyTag} className="p-0.5 rounded hover:bg-secondary transition-colors" title="Copy tag">
               {copied ? (
-                <Check className="h-3 w-3 text-green-500" />
+                <div className="h-3 w-3 text-green-500">✓</div>
               ) : (
                 <Copy className="h-3 w-3 text-muted-foreground" />
               )}
@@ -130,74 +109,6 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
         </div>
       )}
 
-      {/* Actions */}
-      {!isOwnProfile && (
-        <div className="flex flex-col sm:flex-row gap-2">
-          {isConnected ? (
-            <>
-              <Button variant="secondary" className="flex-1 min-h-[44px]" disabled>
-              <Check className="h-4 w-4 mr-2" />
-              Connected
-            </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="min-h-[44px] min-w-[44px]"
-                onClick={() => {
-                  console.log("[UI] 🚨🚨🚨🚨 REMOVE FRIEND BUTTON CLICKED for user:", profile.username, profile.id)
-                  const confirmed = confirm(`Remove ${profile.username} from friends?`)
-                  console.log("[UI] Confirm dialog result:", confirmed)
-
-                  if (confirmed) {
-                    console.log("[UI] ✅ User confirmed removal, about to call removeFriend()")
-                    console.log("[UI] removeFriend function:", removeFriend)
-                    console.log("[UI] profile.id:", profile.id)
-                    try {
-                      console.log("[UI] 🚨🚨🚨 CALLING removeFriend NOW 🚨🚨🚨")
-                      const result = removeFriend(profile.id)
-                      console.log("[UI] removeFriend returned:", result)
-                      console.log("[UI] ✅ removeFriend() called successfully, scheduling modal close")
-                      // Delay closing to allow state update to propagate
-                      setTimeout(() => {
-                        console.log("[UI] Closing modal now")
-                        onClose?.()
-                      }, 100)
-                    } catch (uiError) {
-                      console.error("[UI] 🚨🚨🚨🚨🚨 CRITICAL ERROR in UI removeFriend call:", uiError)
-                      console.error("[UI] 🚨🚨🚨🚨🚨 Error stack:", uiError.stack)
-                      console.error("[UI] 🚨🚨🚨🚨🚨 This might cause the red error text you see!")
-                    }
-                  } else {
-                    console.log("[UI] ❌ User cancelled removal")
-                  }
-                }}
-                title="Remove friend"
-              >
-                <UserMinus className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="min-h-[44px] min-w-[44px]"
-                onClick={() => setShowDMChat(true)}
-              >
-                <MessageCircle className="h-4 w-4" />
-              </Button>
-            </>
-          ) : requestSent ? (
-            <Button variant="secondary" className="flex-1 min-h-[44px]" disabled>
-              <Check className="h-4 w-4 mr-2" />
-              Request Sent
-            </Button>
-          ) : (
-            <Button onClick={handleSendRequest} className="flex-1 min-h-[44px]">
-              <UserPlus className="h-4 w-4 mr-2" />
-              Add Friend
-            </Button>
-          )}
-        </div>
-      )}
-
       {onClose && (
         <button
           onClick={onClose}
@@ -205,14 +116,6 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
         >
           &times;
         </button>
-      )}
-
-      {/* DM Chat */}
-      {showDMChat && (
-        <DirectMessageChat
-          friend={profile}
-          onClose={() => setShowDMChat(false)}
-        />
       )}
     </div>
   )

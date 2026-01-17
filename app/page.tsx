@@ -7,18 +7,16 @@ import { Navbar } from "@/components/navbar"
 import { JournalFeed } from "@/components/journal-feed"
 import { EntryComposer } from "@/components/entry-composer"
 import { AuthScreen } from "@/components/auth-screen"
-import { SpaceChat } from "@/components/space-chat"
 import { CommunityProfiles } from "@/components/community-profiles"
 import { ViewToggle } from "@/components/view-toggle"
 import { Loader2 } from "lucide-react"
 
 export default function Home() {
-  const { isAuthenticated, isLoading, initializeAuth, sidebarOpen, viewMode, spaces, currentSpaceId, loadEntries } =
+  const { isAuthenticated, isLoading, initializeAuth, sidebarOpen, spaces, currentSpaceId, loadEntries } =
     useAppStore()
   const [showCommunity, setShowCommunity] = useState(false)
 
   const currentSpace = spaces.find((s) => s.id === currentSpaceId)
-  const isPrivate = currentSpace?.isPrivate
 
   useEffect(() => {
     initializeAuth()
@@ -64,8 +62,6 @@ export default function Home() {
 
             {showCommunity ? (
               <CommunityProfiles />
-            ) : viewMode === "chat" && isPrivate ? (
-              <SpaceChat />
             ) : (
               <>
                 <EntryComposer />

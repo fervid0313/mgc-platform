@@ -2,7 +2,11 @@ import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Plus_Jakarta_Sans } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
+import { ErrorBoundary } from "@/components/error-boundary"
 import "./globals.css"
+
+// Force cache busting
+console.log("[LAYOUT] Loading layout with timestamp:", Date.now())
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -60,7 +64,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${plusJakarta.variable} font-sans antialiased`}>
-        {children}
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
         <Analytics />
       </body>
     </html>

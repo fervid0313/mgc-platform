@@ -6,7 +6,6 @@ import { LogOut, User, Shield } from "lucide-react"
 import { VibeIndicator } from "./vibe-indicator"
 import { ProfileSettings } from "./profile-settings"
 import { JoinPublicGroup } from "./join-public-group"
-import { AddFriend } from "./add-friend"
 import { useEffect } from "react"
 
 export function Navbar() {
@@ -47,7 +46,6 @@ export function Navbar() {
 
         <div className="flex items-center gap-4">
           <div className="hidden sm:flex items-center gap-3">
-            <AddFriend />
             <JoinPublicGroup />
             <div className="w-px h-6 bg-border" />
             <VibeIndicator />

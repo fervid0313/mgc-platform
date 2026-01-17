@@ -14,10 +14,10 @@ const SPECIALTY_OPTIONS = [
 ] as const
 
 export function CommunityProfiles() {
-  const { profiles, connections, user, isAdmin, adminUpdateUserProfile, spaces, currentSpaceId, getSpaceMembers } = useAppStore()
+  const { profiles, user, isAdmin, adminUpdateUserProfile, spaces, currentSpaceId, getSpaceMembers } = useAppStore()
   const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const [filter, setFilter] = useState<"all" | "connected" | "online">("all")
+  const [filter, setFilter] = useState<"all" | "online">("all")
   const [editingRole, setEditingRole] = useState<string | null>(null)
   const [spaceMembers, setSpaceMembers] = useState<UserProfile[]>([])
   const userIsAdmin = isAdmin()
@@ -32,11 +32,6 @@ export function CommunityProfiles() {
     }
   }, [currentSpaceId, getSpaceMembers])
 
-  // Debug logging for connections changes
-  console.log("[CommunityProfiles] 🔄 RENDERING with connections:", connections.length, connections)
-  console.log("[CommunityProfiles] Current filter:", filter, "search:", searchQuery)
-  console.log("[CommunityProfiles] selectedProfile:", selectedProfile?.username || null)
-
   const isGlobalFeed = currentSpaceId === "space-global"
 
   // Determine the base list of profiles to filter
@@ -46,18 +41,11 @@ export function CommunityProfiles() {
   const filteredProfiles = baseProfiles.filter((profile) => {
     if (profile.id === user?.id) return false
 
-    const isFriend = connections.includes(profile.id)
-    const isMember = spaceMembers.some(member => member.id === profile.id)
-
     // Adjust filtering based on whether it's global feed or a specific space
     if (isGlobalFeed) {
       // In global feed, "all" shows all registered users (excluding self)
       if (filter === "all") {
         return true // All users visible by default in global feed
-      }
-      // For "connected" filter in global feed, show all profiles that are friends
-      if (filter === "connected") {
-        if (!isFriend) return false
       }
       // For "online" filter, show only online profiles
       if (filter === "online") {
@@ -65,14 +53,9 @@ export function CommunityProfiles() {
       }
     } else {
       // In a specific space, always show members. Filters apply to members.
-      if (!isMember) return false // Only show actual members of this space
+      if (!spaceMembers.some(member => member.id === profile.id)) return false // Only show actual members of this space
 
       if (filter === "online" && !profile.isOnline) {
-        return false
-      }
-
-      // "connected" filter should only show friends within the space
-      if (filter === "connected" && !isFriend) {
         return false
       }
     }
@@ -88,7 +71,6 @@ export function CommunityProfiles() {
     return true
   })
 
-
   console.log("[CommunityProfiles] Final filtered profiles:", filteredProfiles.map(p => p.username))
 
   const handleAssignSpecialty = (userId: string, specialty: UserProfile["tradingStyle"]) => {
@@ -101,8 +83,8 @@ export function CommunityProfiles() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         <Users className="h-5 w-5 text-primary" />
-        <h2 className="font-semibold">{isGlobalFeed ? "Friends" : "Space Members"}</h2>
-        <span className="text-xs text-muted-foreground">{filteredProfiles.length} {isGlobalFeed ? "friends" : "members"}</span>
+        <h2 className="font-semibold">{isGlobalFeed ? "Members" : "Space Members"}</h2>
+        <span className="text-xs text-muted-foreground">{filteredProfiles.length} members</span>
         {userIsAdmin && (
           <span className="flex items-center gap-1 text-[9px] text-amber-500 font-bold ml-auto">
             <Shield className="h-3 w-3" />
@@ -127,7 +109,7 @@ export function CommunityProfiles() {
 
       {/* Filter tabs */}
       <div className="flex gap-2 mb-4">
-        {(["all", "connected", "online"] as const).map((f) => (
+        {(["all", "online"] as const).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
