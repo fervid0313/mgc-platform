@@ -595,7 +595,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       console.log("[ENTRY] Testing with minimal columns...")
       const { data: testData, error: testError } = await supabase
         .from("entries")
-        .select("id, space_id, user_id, content, image, profit_loss, pnl, created_at")
+        .select("id, space_id, user_id, content, image, pnl, created_at")
         .eq("space_id", actualSpaceId)
         .order("created_at", { ascending: false })
         .limit(10)
@@ -618,12 +618,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       // If minimal query works, use it
       const mappedEntries = (testData || []).filter(e => e != null).map((e: any) => {
         const hasImage = !!e.image;
-        const hasProfitLoss = e.profit_loss !== null || e.pnl !== null;
+        const hasProfitLoss = e.pnl !== null && e.pnl !== undefined;
         if (hasImage) {
           console.log("[ENTRY] 📸 Found image:", e.image?.substring(0, 50) + "...");
         }
         if (hasProfitLoss) {
-          console.log("[ENTRY] 💰 Found profit/loss:", e.profit_loss || e.pnl);
+          console.log("[ENTRY] 💰 Found pnl:", e.pnl);
         }
         return {
           id: e.id,
@@ -633,7 +633,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           content: e.content,
           tags: [],
           tradeType: "general" as any,
-          profitLoss: e.profit_loss ?? e.pnl ?? undefined,
+          profitLoss: e.pnl,
           image: e.image,
           mentalState: undefined,
           createdAt: new Date(e.created_at),
@@ -675,7 +675,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       : spaceId
 
     const pageSize = 20
-    const entrySelectFull = "id, space_id, user_id, username, content, tags, trade_type, profit_loss, pnl, image, mental_state, created_at"
+    const entrySelectFull = "id, space_id, user_id, username, content, tags, trade_type, pnl, image, mental_state, created_at"
     const entrySelectFallback = "id, space_id, user_id, username, content, tags, trade_type, pnl, image, mental_state, created_at"
 
     const baseQuery = (select: string) =>
@@ -721,7 +721,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       content: e.content,
       tags: e.tags || [],
       tradeType: e.trade_type,
-      profitLoss: e.profit_loss ?? e.pnl ?? undefined,
+      profitLoss: e.pnl,
       image: e.image,
       mentalState: e.mental_state,
       createdAt: new Date(e.created_at),
