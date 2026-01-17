@@ -28,6 +28,8 @@ export default function Home() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       (window as any).store = appStore
+      console.log("[PAGE] Store attached to window:", typeof (window as any).store)
+      console.log("[PAGE] Store methods:", Object.keys(appStore.getState()))
     }
   }, [])
 

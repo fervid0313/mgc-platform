@@ -1748,6 +1748,25 @@ export const appStore = store
 // Attach to window for development debugging
 if (typeof window !== 'undefined') {
   (window as any).store = store
+  console.log("[DEBUG] Store attached to window:", typeof (window as any).store)
+  console.log("[DEBUG] Available store methods:", Object.keys(store.getState()))
+}
+
+// Global debug access (immediate)
+declare global {
+  interface Window {
+    store: typeof store
+    debugSpaces: () => any
+    fixDuplicateSpaces: () => any
+    generateCleanupSQL: () => string
+  }
+}
+
+// Expose debug functions globally
+if (typeof window !== 'undefined') {
+  window.debugSpaces = store.getState().debugSpaces
+  window.fixDuplicateSpaces = store.getState().fixDuplicateSpaces
+  window.generateCleanupSQL = store.getState().generateCleanupSQL
 }
 
 export const useAppStore = store
