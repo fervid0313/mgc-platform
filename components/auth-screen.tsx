@@ -9,13 +9,14 @@ import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
 
 export function AuthScreen() {
-  const { login, signup } = useAppStore()
+  const { login, signup, resetPassword } = useAppStore()
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [username, setUsername] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [resetEmailSent, setResetEmailSent] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,6 +35,30 @@ export function AuthScreen() {
         if (!success) {
           setError("Email already exists or invalid details. Please try again.")
         }
+      }
+    } catch {
+      setError("An error occurred. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      setError("Please enter your email address first.")
+      return
+    }
+
+    setError("")
+    setLoading(true)
+
+    try {
+      const result = await resetPassword(email.trim())
+      if (result.success) {
+        setResetEmailSent(true)
+        setError("")
+      } else {
+        setError(result.error || "Failed to send reset email.")
       }
     } catch {
       setError("An error occurred. Please try again.")
@@ -116,10 +141,27 @@ export function AuthScreen() {
 
             {error && <p className="text-destructive text-sm text-center">{error}</p>}
 
+            {resetEmailSent && (
+              <p className="text-green-500 text-sm text-center">
+                Password reset email sent! Check your inbox.
+              </p>
+            )}
+
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isLogin ? "Sign In" : "Create Account"}
             </Button>
+
+            {isLogin && (
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={loading}
+                className="w-full text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 mt-2"
+              >
+                Forgot your password?
+              </button>
+            )}
           </form>
 
           <p className="text-center text-muted-foreground text-xs mt-6">

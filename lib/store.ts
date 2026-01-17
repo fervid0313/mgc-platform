@@ -49,6 +49,7 @@ interface AppState {
   isAdmin: () => boolean
   login: (email: string, password: string) => Promise<boolean>
   signup: (email: string, password: string, username: string) => Promise<boolean>
+  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>
   logout: () => void
   initializeAuth: () => Promise<void>
 
@@ -429,6 +430,28 @@ export const useAppStore = create<AppState>()((set, get) => ({
     } catch (error) {
       console.error("[v0] Signup error:", error)
       return false
+    }
+  },
+
+  resetPassword: async (email: string) => {
+    const supabase = createClient()
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || window.location.origin,
+      })
+
+      if (error) {
+        console.error("[v0] Password reset error:", error)
+        return { success: false, error: error.message }
+      }
+
+      console.log("[v0] Password reset email sent successfully")
+      return { success: true }
+
+    } catch (error: any) {
+      console.error("[v0] Password reset exception:", error)
+      return { success: false, error: error.message || "Failed to send reset email" }
     }
   },
 
