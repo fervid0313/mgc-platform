@@ -26,6 +26,7 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
   console.log("[UI] UserProfileCard rendered for:", profile.username, {
     isConnected: connections.includes(profile.id),
     hasRemoveFriend: typeof removeFriend === 'function',
+    removeFriendRef: removeFriend,
     userId: user?.id,
     profileId: profile.id
   })
@@ -149,8 +150,12 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
 
                   if (confirmed) {
                     console.log("[UI] ✅ User confirmed removal, about to call removeFriend()")
+                    console.log("[UI] removeFriend function:", removeFriend)
+                    console.log("[UI] profile.id:", profile.id)
                     try {
-                      removeFriend(profile.id)
+                      console.log("[UI] 🚨🚨🚨 CALLING removeFriend NOW 🚨🚨🚨")
+                      const result = removeFriend(profile.id)
+                      console.log("[UI] removeFriend returned:", result)
                       console.log("[UI] ✅ removeFriend() called successfully, scheduling modal close")
                       // Delay closing to allow state update to propagate
                       setTimeout(() => {

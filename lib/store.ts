@@ -1256,7 +1256,10 @@ const store = create<AppState>()((set, get) => ({
   },
 
   removeFriend: async (friendId: string) => {
-    console.log("[v4] 🚨🚨🚨🚨 FRIEND REMOVAL FUNCTION CALLED with friendId:", friendId)
+    console.log("[v5] 🚨🚨🚨🚨🚨 FRIEND REMOVAL FUNCTION ENTERED")
+    console.log("[v5] friendId parameter:", friendId)
+    console.log("[v5] friendId type:", typeof friendId)
+    console.log("[v5] friendId length:", friendId?.length)
 
     const { user } = get()
     console.log("[v4] Current user:", user)
