@@ -1,12 +1,19 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/client'
 import { NextResponse } from 'next/server'
 
 export async function GET() {
   try {
     const supabase = createClient()
 
-    // Test 1: Check auth
-    const { data: authData, error: authError } = await supabase.auth.getUser()
+    // Test 1: Check auth (client-side - may not work in API routes)
+    let authData, authError
+    try {
+      const authResult = await supabase.auth.getUser()
+      authData = authResult.data
+      authError = authResult.error
+    } catch (authErr) {
+      authError = { message: "Auth not available in API routes" }
+    }
 
     // Test 2: Check profiles table
     const { data: profilesData, error: profilesError } = await supabase
