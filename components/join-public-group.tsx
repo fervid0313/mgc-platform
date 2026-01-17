@@ -53,10 +53,15 @@ export function JoinPublicGroup() {
   }, [])
 
   const handleJoinGroup = (group: (typeof PUBLIC_GROUPS)[0]) => {
+    console.log("[JoinGroup] Attempting to join:", group.name)
+    console.log("[JoinGroup] Current spaces:", spaces.map(s => s.name))
+
     const existingSpace = spaces.find((s) => s.name === group.name)
     if (existingSpace) {
+      console.log("[JoinGroup] Space already exists, switching to:", existingSpace.id)
       setCurrentSpace(existingSpace.id)
     } else {
+      console.log("[JoinGroup] Creating new space:", group.name)
       createSpace(group.name, group.description, false)
     }
     setIsOpen(false)

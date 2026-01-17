@@ -136,7 +136,8 @@ interface AppState {
   loadCommentsAndLikes: (spaceId: string) => Promise<void>
 }
 
-export const useAppStore = create<AppState>()((set, get) => ({
+// Create the store
+const store = create<AppState>()((set, get) => ({
   // Auth
   user: null,
   isAuthenticated: false,
@@ -180,16 +181,33 @@ export const useAppStore = create<AppState>()((set, get) => ({
               currentSpaceId: "space-global",
             })
 
-            // Load user's spaces
+            // Load user's spaces - with duplicate prevention
             const { data: spaces } = await supabase
               .from("spaces")
               .select("*")
               .or(`owner_id.eq.${session.user.id},is_private.eq.false`)
 
+            console.log("[v0] Raw spaces from database:", spaces?.length || 0, spaces)
+
             if (spaces) {
               // Filter out any database Global Feed spaces to avoid duplicates
               const filteredSpaces = spaces.filter((s: any) => s.name !== 'Global Feed')
-              const mappedSpaces = filteredSpaces.map((s: any) => ({
+              console.log("[v0] After filtering Global Feed:", filteredSpaces.length, filteredSpaces.map(s => s.name))
+
+              // Remove duplicates by ID (keep first occurrence)
+              const seenIds = new Set()
+              const deduplicatedSpaces = filteredSpaces.filter((space: any) => {
+                if (seenIds.has(space.id)) {
+                  console.log("[v0] Removing database duplicate:", space.name, space.id)
+                  return false
+                }
+                seenIds.add(space.id)
+                return true
+              })
+
+              console.log("[v0] After deduplication:", deduplicatedSpaces.length, deduplicatedSpaces.map(s => s.name))
+
+              const mappedSpaces = deduplicatedSpaces.map((s: any) => ({
                 id: s.id,
                 name: s.name,
                 description: s.description,
@@ -198,7 +216,11 @@ export const useAppStore = create<AppState>()((set, get) => ({
                 createdAt: new Date(s.created_at),
                 memberCount: s.member_count || 1,
               }))
-              set({ spaces: [globalFeedSpace, ...mappedSpaces] })
+
+              const finalSpaces = [globalFeedSpace, ...mappedSpaces]
+              console.log("[v0] Final spaces array:", finalSpaces.length, finalSpaces.map(s => s.name))
+
+              set({ spaces: finalSpaces })
             }
 
             // Load friend requests
@@ -496,6 +518,14 @@ export const useAppStore = create<AppState>()((set, get) => ({
   createSpace: async (name: string, description?: string, isPrivate = false) => {
     const { spaces, user } = get()
     if (!user) return
+
+    // Prevent creating duplicate spaces
+    const existingSpace = spaces.find(s => s.name === name)
+    if (existingSpace) {
+      console.log("[v0] Space with name already exists, switching to:", existingSpace.id)
+      set({ currentSpaceId: existingSpace.id, sidebarOpen: false })
+      return
+    }
 
     const supabase = createClient()
 
@@ -855,20 +885,32 @@ export const useAppStore = create<AppState>()((set, get) => ({
     const env = process.env.NODE_ENV || 'development'
     const cacheKey = `mgs_${env}_connections_${user.id}`
 
-    // Check for recent local changes first (within last 30 seconds)
+    // Check for recent local changes first (within last 5 minutes - extended from 30 seconds)
     const cachedData = localStorage.getItem(cacheKey)
+    console.log("[v0] Checking for cached connections data:", cachedData ? "found" : "not found")
+
     if (cachedData) {
       try {
         const parsed = JSON.parse(cachedData)
+        console.log("[v0] Parsed cached data:", parsed)
+
         // If there's a recent local change, use it instead of database
-        if (parsed.isRecentChange && parsed.timestamp && (Date.now() - parsed.timestamp < 30000)) {
+        // Extended to 5 minutes to handle slower database operations
+        const isRecentChange = parsed.isRecentChange && parsed.timestamp && (Date.now() - parsed.timestamp < 300000)
+        console.log("[v0] Is recent change?", isRecentChange, "Timestamp:", parsed.timestamp, "Age:", Date.now() - parsed.timestamp)
+
+        if (isRecentChange) {
           console.log("[v0] Using recent local change instead of database:", parsed.connections)
           set({ connections: parsed.connections })
           return
+        } else {
+          console.log("[v0] Cached data is old, loading from database")
         }
       } catch (error) {
         console.warn("[v0] Failed to parse cached data:", error)
       }
+    } else {
+      console.log("[v0] No cached data found, loading from database")
     }
 
     // Load from database
@@ -1564,4 +1606,148 @@ export const useAppStore = create<AppState>()((set, get) => ({
     set({ connections: [...connections] })
     console.log("Forced re-render triggered")
   },
+
+  // Force reload connections from database for debugging
+  forceReloadConnections: async () => {
+    console.log("=== FORCE RELOAD CONNECTIONS ===")
+    await get().loadConnections()
+    console.log("Connections reloaded from database")
+  },
+
+  // Debug: Force use localStorage data regardless of timestamp
+  forceUseLocalStorage: () => {
+    console.log("=== FORCE USE LOCALSTORAGE ===")
+    const { user } = get()
+    if (!user) {
+      console.log("No user logged in")
+      return
+    }
+
+    const env = process.env.NODE_ENV || 'development'
+    const cacheKey = `mgs_${env}_connections_${user.id}`
+    const cachedData = localStorage.getItem(cacheKey)
+
+    if (cachedData) {
+      try {
+        const parsed = JSON.parse(cachedData)
+        console.log("Forcing use of localStorage data:", parsed.connections)
+        set({ connections: parsed.connections })
+      } catch (error) {
+        console.warn("Failed to parse localStorage data:", error)
+      }
+    } else {
+      console.log("No localStorage data found")
+    }
+  },
+
+  // Debug: Check spaces for duplicates
+  debugSpaces: () => {
+    console.log("=== SPACES DEBUG ===")
+    const { spaces, currentSpaceId } = get()
+
+    console.log("Total spaces:", spaces.length)
+    console.log("Current space ID:", currentSpaceId)
+    console.log("Space names:", spaces.map(s => s.name))
+    console.log("Space IDs:", spaces.map(s => s.id))
+
+    // Check for duplicates
+    const nameCounts: Record<string, number> = {}
+    const idCounts: Record<string, number> = {}
+
+    spaces.forEach(space => {
+      nameCounts[space.name] = (nameCounts[space.name] || 0) + 1
+      idCounts[space.id] = (idCounts[space.id] || 0) + 1
+    })
+
+    const nameDuplicates = Object.entries(nameCounts).filter(([name, count]) => count > 1)
+    const idDuplicates = Object.entries(idCounts).filter(([id, count]) => count > 1)
+
+    if (nameDuplicates.length > 0) {
+      console.log("DUPLICATE SPACE NAMES FOUND:", nameDuplicates)
+    }
+    if (idDuplicates.length > 0) {
+      console.log("DUPLICATE SPACE IDS FOUND:", idDuplicates)
+    }
+
+    if (nameDuplicates.length === 0 && idDuplicates.length === 0) {
+      console.log("No duplicate spaces found")
+    }
+
+    return { spaces, nameDuplicates, idDuplicates, nameCounts, idCounts }
+  },
+
+  // Fix: Remove duplicate spaces from UI
+  fixDuplicateSpaces: () => {
+    console.log("=== FIXING UI DUPLICATE SPACES ===")
+    const { spaces } = get()
+
+    // Remove duplicates by ID, keeping the first occurrence
+    const seenIds = new Set()
+    const uniqueSpaces = spaces.filter(space => {
+      if (seenIds.has(space.id)) {
+        console.log("Removing UI duplicate space:", space.name, space.id)
+        return false
+      }
+      seenIds.add(space.id)
+      return true
+    })
+
+    if (uniqueSpaces.length !== spaces.length) {
+      console.log(`Removed ${spaces.length - uniqueSpaces.length} UI duplicate spaces`)
+      set({ spaces: uniqueSpaces })
+      console.log("UI spaces fixed:", uniqueSpaces.map(s => ({ id: s.id, name: s.name })))
+    } else {
+      console.log("No UI duplicates found to fix")
+    }
+
+    return uniqueSpaces
+  },
+
+  // Fix: Clean up database duplicates (run SQL in Supabase)
+  generateCleanupSQL: () => {
+    console.log("=== DATABASE DUPLICATE CLEANUP SQL ===")
+    console.log("Run this SQL in Supabase SQL Editor:")
+    console.log("")
+
+    const cleanupSQL = `
+-- Find and delete duplicate spaces (keep the oldest by creation date)
+WITH duplicates AS (
+  SELECT id, name,
+         ROW_NUMBER() OVER (PARTITION BY name ORDER BY created_at ASC) as rn
+  FROM spaces
+  WHERE name != 'Global Feed'
+)
+DELETE FROM spaces
+WHERE id IN (
+  SELECT id FROM duplicates WHERE rn > 1
+);
+
+-- Update member counts after cleanup
+UPDATE spaces
+SET member_count = (
+  SELECT COUNT(*) FROM space_members WHERE space_id = spaces.id
+) + 1 -- +1 for owner
+WHERE member_count IS NULL OR member_count < 1;
+
+-- Verify cleanup
+SELECT name, COUNT(*) as count
+FROM spaces
+GROUP BY name
+HAVING COUNT(*) > 1
+ORDER BY count DESC;
+`
+
+    console.log(cleanupSQL)
+    return cleanupSQL
+  },
 }))
+
+// Export the store for console debugging
+export const appStore = store
+
+// Attach to window for development debugging
+if (typeof window !== 'undefined') {
+  (window as any).store = store
+}
+
+export const useAppStore = store

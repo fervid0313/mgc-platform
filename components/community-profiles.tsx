@@ -23,6 +23,7 @@ export function CommunityProfiles() {
 
   // Debug logging for connections changes
   console.log("[CommunityProfiles] Rendering with connections:", connections.length, connections)
+  console.log("[CommunityProfiles] Current filter:", filter, "search:", searchQuery)
 
   // Simple filtering - Zustand should handle reactivity
   const filteredProfiles = profiles.filter((profile) => {
@@ -30,26 +31,39 @@ export function CommunityProfiles() {
 
     // Only show FRIENDS (connected users)
     const isFriend = connections.includes(profile.id)
+    console.log(`[CommunityProfiles] ${profile.username}: id=${profile.id}, isFriend=${isFriend}`)
 
     // For "all" filter, show all friends
     // For "connected" filter, show only friends (same as all)
     // For "online" filter, show only online friends
     if (filter === "all" || filter === "connected") {
-      if (!isFriend) return false
+      if (!isFriend) {
+        console.log(`[CommunityProfiles] Filtering out ${profile.username} - not a friend`)
+        return false
+      }
     }
 
     if (filter === "online") {
-      if (!isFriend || !profile.isOnline) return false
+      if (!isFriend || !profile.isOnline) {
+        console.log(`[CommunityProfiles] Filtering out ${profile.username} - not friend or offline`)
+        return false
+      }
     }
 
     const searchLower = searchQuery.toLowerCase()
     const matchesSearch =
       profile.username.toLowerCase().includes(searchLower) ||
       `${profile.username}#${profile.tag}`.toLowerCase().includes(searchLower)
-    if (searchQuery && !matchesSearch) return false
+    if (searchQuery && !matchesSearch) {
+      console.log(`[CommunityProfiles] Filtering out ${profile.username} - doesn't match search`)
+      return false
+    }
 
+    console.log(`[CommunityProfiles] Including ${profile.username} in filtered list`)
     return true
   })
+
+  console.log("[CommunityProfiles] Final filtered profiles:", filteredProfiles.map(p => p.username))
 
   const handleAssignSpecialty = (userId: string, specialty: UserProfile["tradingStyle"]) => {
     adminUpdateUserProfile(userId, { tradingStyle: specialty })
