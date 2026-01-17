@@ -63,7 +63,7 @@ export function SpaceMembersTooltip({ spaceId, memberCount, children }: SpaceMem
                       {member.username ? member.username.charAt(0).toUpperCase() : "?"}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate">{member.username}</p>
+                      <p className="text-xs font-medium truncate">{member.username || "Unknown"}</p>
                       <p className="text-[10px] text-muted-foreground truncate">
                         {member.tradingStyle ? member.tradingStyle.replace("-", " ") : "Member"}
                       </p>

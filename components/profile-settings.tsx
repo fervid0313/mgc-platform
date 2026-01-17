@@ -124,7 +124,7 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
             <div className="flex items-center justify-center gap-2 p-3 bg-secondary/30 rounded-xl border border-border/50">
               <span className="text-sm text-muted-foreground">Your tag:</span>
               <span className="font-mono font-bold text-foreground">
-                {user.username}#{user.tag}
+                {user.username || "user"}#{user.tag || "0000"}
               </span>
               <button
                 onClick={copyTag}

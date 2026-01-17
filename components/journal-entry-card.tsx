@@ -113,7 +113,7 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
                 )}
               </div>
             )}
-            <span className="text-[10px] font-black text-primary uppercase tracking-widest">@{entry.username}</span>
+            <span className="text-[10px] font-black text-primary uppercase tracking-widest">@{entry.username || "unknown"}</span>
             {entry.tradeType && entry.tradeType !== "general" && (
               <span
                 className={`text-[10px] font-bold uppercase tracking-wider ${tradeTypeColors[entry.tradeType] || "text-muted-foreground"}`}
@@ -235,7 +235,7 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
                       )}
                     </div>
                     <div className="flex-1">
-                      <span className="font-bold text-primary">@{comment.username}</span>
+                      <span className="font-bold text-primary">@{comment.username || "unknown"}</span>
                       <span className="text-muted-foreground ml-2">{comment.content}</span>
                     </div>
                   </div>

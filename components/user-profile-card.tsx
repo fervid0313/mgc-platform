@@ -24,9 +24,11 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
   const [copied, setCopied] = useState(false)
 
   const copyTag = () => {
-    navigator.clipboard.writeText(`${profile.username}#${profile.tag}`)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    if (profile?.username && profile?.tag) {
+      navigator.clipboard.writeText(`${profile.username}#${profile.tag}`)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
   }
 
   return (
@@ -38,7 +40,7 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
             {profile.avatar ? (
               <img
                 src={profile.avatar || "/placeholder.svg"}
-                alt={profile.username}
+                alt={profile?.username || "Profile"}
                 className="w-full h-full rounded-full object-cover"
               />
             ) : (
@@ -50,9 +52,9 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
           )}
         </div>
         <div className="flex-1">
-          <h3 className="font-bold text-lg">{profile.username}</h3>
+          <h3 className="font-bold text-lg">{profile?.username || "Unknown"}</h3>
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground font-mono">#{profile.tag}</span>
+            <span className="text-xs text-muted-foreground font-mono">#{profile?.tag || "0000"}</span>
             <button onClick={copyTag} className="p-0.5 rounded hover:bg-secondary transition-colors" title="Copy tag">
               {copied ? (
                 <div className="h-3 w-3 text-green-500">✓</div>

@@ -148,8 +148,8 @@ export function CommunityProfiles() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">
-                    {profile.username}
-                    <span className="text-muted-foreground font-mono text-xs ml-1">#{profile.tag}</span>
+                    {profile.username || "Unknown"}
+                    <span className="text-muted-foreground font-mono text-xs ml-1">#{profile.tag || "0000"}</span>
                   </p>
                   <p className="text-[10px] text-muted-foreground truncate">
                     {profile.tradingStyle ? profile.tradingStyle.replace("-", " ") : "Member"}
