@@ -885,37 +885,69 @@ const store = create<AppState>()((set, get) => ({
     const env = process.env.NODE_ENV || 'development'
     const cacheKey = `mgs_${env}_connections_${user.id}`
 
+    // 🚨 ABSOLUTE PRIORITY SYSTEM: Check for friend removal lock (prevents ALL database loads)
+    const friendRemovalLockKey = `mgs_${env}_friend_removal_lock_${user.id}`
+    const removalLock = localStorage.getItem(friendRemovalLockKey)
+
+    if (removalLock) {
+      try {
+        const lockData = JSON.parse(removalLock)
+        const lockAge = Date.now() - lockData.timestamp
+        const isLockActive = lockAge < 120000 // 2 minutes
+
+        if (isLockActive) {
+          console.log("[v2] 🚨🚨 FRIEND REMOVAL LOCK ACTIVE - BLOCKING DATABASE LOAD")
+          console.log("[v2] Lock age:", lockAge, "ms, Friend removed:", lockData.friendId)
+          console.log("[v2] Using cached connections to prevent reappearance")
+
+          // Use the cached data from the lock
+          const cachedData = localStorage.getItem(cacheKey)
+          if (cachedData) {
+            const parsed = JSON.parse(cachedData)
+            set({ connections: parsed.connections })
+          }
+          return
+        } else {
+          console.log("[v2] Friend removal lock expired, clearing it")
+          localStorage.removeItem(friendRemovalLockKey)
+        }
+      } catch (error) {
+        console.warn("[v2] Failed to parse removal lock:", error)
+        localStorage.removeItem(friendRemovalLockKey)
+      }
+    }
+
     // PRIORITY SYSTEM: Always check for recent local changes first (within last 2 minutes)
     const cachedData = localStorage.getItem(cacheKey)
-    console.log("[v1] Checking for cached connections data:", cachedData ? "found" : "not found")
+    console.log("[v2] Checking for cached connections data:", cachedData ? "found" : "not found")
 
     if (cachedData) {
       try {
         const parsed = JSON.parse(cachedData)
-        console.log("[v1] Parsed cached data:", parsed)
+        console.log("[v2] Parsed cached data:", parsed)
 
         // CRITICAL: If there's a recent local change (removal), ALWAYS use it
         // Reduced to 2 minutes to be more responsive but still handle slow operations
         const isRecentChange = parsed.isRecentChange && parsed.timestamp && (Date.now() - parsed.timestamp < 120000)
-        console.log("[v1] Is recent change?", isRecentChange, "Timestamp:", parsed.timestamp, "Age:", Date.now() - parsed.timestamp)
+        console.log("[v2] Is recent change?", isRecentChange, "Timestamp:", parsed.timestamp, "Age:", Date.now() - parsed.timestamp)
 
         if (isRecentChange) {
-          console.log("[v1] 🚨 PRIORITY OVERRIDE: Using recent local change instead of database:", parsed.connections)
-          console.log("[v1] 🚨 This prevents friend reappearance after removal")
+          console.log("[v2] 🚨 PRIORITY OVERRIDE: Using recent local change instead of database:", parsed.connections)
+          console.log("[v2] 🚨 This prevents friend reappearance after removal")
           set({ connections: parsed.connections })
           return
         } else if (parsed.isRecentChange === false) {
-          console.log("[v1] Cached data is confirmed synced with database, safe to load fresh data")
+          console.log("[v2] Cached data is confirmed synced with database, safe to load fresh data")
         } else {
-          console.log("[v1] Cached data timestamp expired, loading from database")
+          console.log("[v2] Cached data timestamp expired, loading from database")
         }
       } catch (error) {
-        console.warn("[v1] Failed to parse cached data:", error)
+        console.warn("[v2] Failed to parse cached data:", error)
         // Clear corrupted cache
         localStorage.removeItem(cacheKey)
       }
     } else {
-      console.log("[v1] No cached data found, loading from database")
+      console.log("[v2] No cached data found, loading from database")
     }
 
     // Load from database
@@ -1227,8 +1259,19 @@ const store = create<AppState>()((set, get) => ({
     // Update Zustand state immediately
     set({ connections: updatedConnections })
 
-    // CRITICAL: Update localStorage with PRIORITY FLAG to prevent database override
+    // 🚨🚨 ABSOLUTE LOCK: Create friend removal lock to block ALL database loads
     const env = process.env.NODE_ENV || 'development'
+    const friendRemovalLockKey = `mgs_${env}_friend_removal_lock_${user.id}`
+    const removalLockData = {
+      timestamp: Date.now(),
+      friendId: friendId,
+      action: 'friend_removed',
+      expiresAt: Date.now() + 120000 // 2 minutes from now
+    }
+    localStorage.setItem(friendRemovalLockKey, JSON.stringify(removalLockData))
+    console.log("[v2] 🚨🚨 FRIEND REMOVAL LOCK CREATED - Database loads blocked for 2 minutes")
+
+    // CRITICAL: Update localStorage with PRIORITY FLAG to prevent database override
     const cacheKey = `mgs_${env}_connections_${user.id}`
     const cacheData = {
       connections: updatedConnections,
@@ -1239,8 +1282,8 @@ const store = create<AppState>()((set, get) => ({
     }
     localStorage.setItem(cacheKey, JSON.stringify(cacheData))
 
-    console.log("[v1] 🚨 PRIORITY SAVED: localStorage updated with recent change flag")
-    console.log("[v1] 🚨 Cache data:", cacheData)
+    console.log("[v2] 🚨 PRIORITY SAVED: localStorage updated with recent change flag")
+    console.log("[v2] 🚨 Cache data:", cacheData)
 
     // DATABASE UPDATE - Handle asynchronously in background
     try {
@@ -1257,7 +1300,12 @@ const store = create<AppState>()((set, get) => ({
         console.log("[v1] Keeping localStorage priority flag to preserve UI state")
         // Keep the priority flag so UI state is preserved
       } else {
-        console.log("[v1] ✅ Database deletion successful")
+        console.log("[v2] ✅ Database deletion successful")
+
+        // 🚨🚨 CLEAR THE LOCK: Database operation succeeded
+        const friendRemovalLockKey = `mgs_${env}_friend_removal_lock_${user.id}`
+        localStorage.removeItem(friendRemovalLockKey)
+        console.log("[v2] 🚨🚨 Friend removal lock CLEARED - database now authoritative")
 
         // After successful DB deletion, update localStorage to mark as synced
         // But keep the removed friend out of the connections list
@@ -1270,7 +1318,7 @@ const store = create<AppState>()((set, get) => ({
           synced: true
         }
         localStorage.setItem(cacheKey, JSON.stringify(syncedData))
-        console.log("[v1] ✅ localStorage marked as synced, friend permanently removed")
+        console.log("[v2] ✅ localStorage marked as synced, friend permanently removed")
       }
     } catch (error) {
       console.error("[v1] 🚨 ERROR in database operation:", error)
@@ -1675,6 +1723,33 @@ const store = create<AppState>()((set, get) => ({
     console.log("Current connections in state:", connections)
     console.log("Environment:", env)
     console.log("Cache key:", cacheKey)
+
+    // 🚨🚨 Check for friend removal lock
+    const friendRemovalLockKey = `mgs_${env}_friend_removal_lock_${user.id}`
+    const removalLock = localStorage.getItem(friendRemovalLockKey)
+
+    if (removalLock) {
+      try {
+        const lockData = JSON.parse(removalLock)
+        const lockAge = Date.now() - lockData.timestamp
+        const isActive = lockAge < 120000
+        console.log("🚨🚨 FRIEND REMOVAL LOCK STATUS:")
+        console.log("  - Lock exists:", true)
+        console.log("  - Lock active:", isActive)
+        console.log("  - Lock age:", lockAge, "ms")
+        console.log("  - Friend ID:", lockData.friendId)
+        console.log("  - Expires at:", new Date(lockData.expiresAt))
+        if (isActive) {
+          console.log("  - STATUS: Database loads BLOCKED ✅")
+        } else {
+          console.log("  - STATUS: Lock expired, will be cleared on next load")
+        }
+      } catch (error) {
+        console.error("❌ Failed to parse removal lock:", error)
+      }
+    } else {
+      console.log("🚨🚨 No friend removal lock found")
+    }
 
     if (cachedData) {
       try {
