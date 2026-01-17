@@ -52,7 +52,7 @@ export function EntryComposer() {
   }
 
   const handleSubmit = () => {
-    if (!content.trim()) return
+    if (!content || !content.trim()) return
     if (!mentalState) {
       alert("Please select your current mental state before posting")
       setShowOptions(true)
@@ -87,7 +87,7 @@ export function EntryComposer() {
         placeholder={
           tradeType === "general"
             ? `What's on your mind today? Emotions, habits, reflections...`
-            : `Log your ${tradeType?.replace("-", " ") || "trade"} in ${currentSpace?.name || "this space"}...`
+            : `Log your ${tradeType ? tradeType.replace("-", " ") : "trade"} in ${currentSpace?.name || "this space"}...`
         }
         className="w-full bg-transparent border-none outline-none text-base font-medium placeholder:text-muted-foreground resize-none h-24 mb-4"
       />
@@ -226,7 +226,7 @@ export function EntryComposer() {
           )}
           <button
             onClick={handleSubmit}
-            disabled={!content.trim()}
+            disabled={!content || !content.trim()}
             className="bg-foreground text-background px-6 py-2.5 rounded-2xl text-xs font-black shadow-xl active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Post Entry

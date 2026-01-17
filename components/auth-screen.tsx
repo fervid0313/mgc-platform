@@ -52,7 +52,7 @@ export function AuthScreen() {
   }
 
   const handleForgotPassword = async () => {
-    if (!email.trim()) {
+    if (!email || !email.trim()) {
       setError("Please enter your email address first.")
       return
     }

@@ -68,7 +68,7 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
 
   const handleSubmitComment = (e: React.FormEvent) => {
     e.preventDefault()
-    if (newComment.trim()) {
+    if (newComment && newComment.trim()) {
       addComment(entry.id, newComment)
       setNewComment("")
     }
@@ -108,7 +108,7 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-xs font-bold text-muted-foreground">
-                    {entry.username.charAt(0).toUpperCase()}
+                    {entry.username ? entry.username.charAt(0).toUpperCase() : "?"}
                   </div>
                 )}
               </div>
@@ -118,7 +118,7 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
               <span
                 className={`text-[10px] font-bold uppercase tracking-wider ${tradeTypeColors[entry.tradeType] || "text-muted-foreground"}`}
               >
-                {entry.tradeType.replace("-", " ")}
+                {entry.tradeType ? entry.tradeType.replace("-", " ") : entry.tradeType}
               </span>
             )}
             {entry.mentalState && (
@@ -230,7 +230,7 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
                         />
                       ) : (
                         <span className="text-[10px] font-bold text-muted-foreground">
-                          {comment.username.charAt(0).toUpperCase()}
+                          {comment.username ? comment.username.charAt(0).toUpperCase() : "?"}
                         </span>
                       )}
                     </div>
@@ -253,7 +253,7 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
               />
               <button
                 type="submit"
-                disabled={!newComment.trim()}
+                disabled={!newComment || !newComment.trim()}
                 className="p-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed icon-glow"
               >
                 <Send className="h-4 w-4" />

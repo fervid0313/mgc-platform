@@ -25,7 +25,7 @@ export function CreateSpaceModal({ open, onClose }: CreateSpaceModalProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) return
+    if (!name || !name.trim()) return
     createSpace(name, description, isPrivate)
     setName("")
     setDescription("")
@@ -100,7 +100,7 @@ export function CreateSpaceModal({ open, onClose }: CreateSpaceModalProps) {
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={!name.trim()}>
+          <Button type="submit" className="w-full" disabled={!name || !name.trim()}>
             Create Space
           </Button>
         </form>

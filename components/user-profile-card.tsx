@@ -42,7 +42,7 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
                 className="w-full h-full rounded-full object-cover"
               />
             ) : (
-              profile.username.charAt(0).toUpperCase()
+              <span>{profile.username ? profile.username.charAt(0).toUpperCase() : "?"}</span>
             )}
           </div>
           {profile.isOnline && (

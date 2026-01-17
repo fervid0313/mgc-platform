@@ -41,7 +41,7 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file || !file.name.trim()) return
 
     if (file.size > 5 * 1024 * 1024) {
       alert("Image must be less than 5MB")
@@ -60,8 +60,8 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
     await new Promise((resolve) => setTimeout(resolve, 500))
 
     updateProfile({
-      username: formData.username,
-      bio: formData.bio,
+      username: formData.username.trim(),
+      bio: formData.bio.trim(),
       tradingStyle: formData.tradingStyle as UserProfile["tradingStyle"],
       avatar: formData.avatar,
       socialLinks: formData.socialLinks,
@@ -72,7 +72,7 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
   }
 
   const copyTag = () => {
-    if (user) {
+    if (user && user.username && user.username.trim()) {
       navigator.clipboard.writeText(`${user.username}#${user.tag}`)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
@@ -275,7 +275,7 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
           {/* Save Button */}
           <Button
             onClick={handleSave}
-            disabled={saving || !formData.username.trim()}
+            disabled={saving || !formData.username || !formData.username.trim()}
             className="w-full bg-primary text-primary-foreground hover:bg-primary/80"
           >
             {saving ? (

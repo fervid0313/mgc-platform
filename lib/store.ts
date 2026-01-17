@@ -486,7 +486,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({
       entries: {
         ...entries,
-        [currentSpaceId]: [optimisticEntry, ...(entries[currentSpaceId] || [])],
+        [currentSpaceId]: currentSpaceId ? [optimisticEntry, ...(entries[currentSpaceId] || [])] : [],
       },
     })
 
@@ -518,9 +518,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       set((state) => ({
         entries: {
           ...state.entries,
-          [currentSpaceId]: state.entries[currentSpaceId]?.filter(
+          [currentSpaceId]: currentSpaceId ? state.entries[currentSpaceId]?.filter(
             (e) => e.id !== optimisticId
-          ) || [],
+          ) || [] : [],
         },
       }))
       return
@@ -544,9 +544,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({
       entries: {
         ...state.entries,
-        [currentSpaceId]: [realEntry, ...state.entries[currentSpaceId]?.filter(
+        [currentSpaceId]: currentSpaceId ? [realEntry, ...(state.entries[currentSpaceId] || []).filter(
           (e) => e.id !== optimisticId
-        ) || []],
+        )] : [],
       },
     }))
   },
@@ -742,7 +742,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   getCollectiveVibe: () => {
     const { entries, currentSpaceId } = get()
-    const spaceEntries = entries[currentSpaceId] || []
+    const spaceEntries = (currentSpaceId && entries[currentSpaceId]) || []
     return calculateCollectiveVibe(spaceEntries)
   },
 
@@ -763,7 +763,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Milestone state
   getSpaceStats: () => {
     const { entries, currentSpaceId } = get()
-    return calculateSpaceStats(entries[currentSpaceId] || [])
+    return calculateSpaceStats(currentSpaceId ? entries[currentSpaceId] || [] : [])
   },
 
   getCurrentLevel: () => {

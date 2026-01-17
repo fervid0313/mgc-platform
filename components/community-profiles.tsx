@@ -62,8 +62,8 @@ export function CommunityProfiles() {
 
     const searchLower = searchQuery.toLowerCase()
     const matchesSearch =
-      profile.username.toLowerCase().includes(searchLower) ||
-      `${profile.username}#${profile.tag}`.toLowerCase().includes(searchLower)
+      (profile.username && profile.username.toLowerCase().includes(searchLower)) ||
+      (profile.username && profile.tag && `${profile.username}#${profile.tag}`.toLowerCase().includes(searchLower))
     if (searchQuery && !matchesSearch) {
       return false
     }
@@ -119,7 +119,7 @@ export function CommunityProfiles() {
                 : "bg-secondary/30 text-muted-foreground hover:text-foreground"
             }`}
           >
-            {f.charAt(0).toUpperCase() + f.slice(1)}
+            {f ? f.charAt(0).toUpperCase() + f.slice(1) : f}
           </button>
         ))}
       </div>
@@ -140,7 +140,7 @@ export function CommunityProfiles() {
               }} className="flex items-center gap-3 flex-1 text-left">
                 <div className="relative">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-sm font-bold">
-                    {profile.username.charAt(0).toUpperCase()}
+                    {profile.username ? profile.username.charAt(0).toUpperCase() : "?"}
                   </div>
                   {profile.isOnline && (
                     <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background" />
