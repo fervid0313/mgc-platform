@@ -126,7 +126,10 @@ export function CommunityProfiles() {
               key={profile.id}
               className="w-full flex items-center gap-3 p-3 rounded-xl bg-secondary/20 hover:bg-secondary/40 transition-colors"
             >
-              <button onClick={() => setSelectedProfile(profile)} className="flex items-center gap-3 flex-1 text-left">
+              <button onClick={() => {
+                console.log("[UI] 🚨🚨🚨🚨 COMMUNITY PROFILE CLICKED:", profile.username, profile.id)
+                setSelectedProfile(profile)
+              }} className="flex items-center gap-3 flex-1 text-left">
                 <div className="relative">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-sm font-bold">
                     {profile.username.charAt(0).toUpperCase()}
