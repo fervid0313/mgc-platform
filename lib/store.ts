@@ -905,6 +905,14 @@ const store = create<AppState>()((set, get) => ({
       return // ABSOLUTE BLOCK - no database loads during friend removal
     }
 
+    // 🚨🚨🚨 CHECK FOR LOCKED CONNECTIONS STATE
+    if (FRIEND_REMOVAL_LOCKED_CONNECTIONS !== null) {
+      console.log("[v6] 🚨🚨🚨🚨🚨 LOCKED CONNECTIONS DETECTED - USING LOCKED STATE INSTEAD OF DATABASE")
+      console.log("[v6] Locked connections:", FRIEND_REMOVAL_LOCKED_CONNECTIONS)
+      set({ connections: FRIEND_REMOVAL_LOCKED_CONNECTIONS })
+      return // Use locked state - no database load allowed
+    }
+
     // Database loads re-enabled - testing lock system
 
     // Environment-specific localStorage keys
@@ -1314,6 +1322,11 @@ const store = create<AppState>()((set, get) => ({
     // Update Zustand state immediately
     console.log("[v4] 🚨🚨🚨🚨 CALLING set() to update Zustand state")
     set({ connections: updatedConnections })
+
+    // 🚨🚨🚨 LOCK THE CONNECTIONS STATE - No database can override this
+    FRIEND_REMOVAL_LOCKED_CONNECTIONS = [...updatedConnections]
+    console.log("[v6] 🚨🚨🚨🚨🚨 CONNECTIONS STATE LOCKED:", FRIEND_REMOVAL_LOCKED_CONNECTIONS)
+
     console.log("[v4] ✅✅✅✅ Zustand state updated")
 
     // Verify the state update
@@ -1421,10 +1434,15 @@ const store = create<AppState>()((set, get) => ({
         }
         localStorage.setItem(cacheKey, JSON.stringify(syncedData))
         console.log("[v2] ✅ localStorage marked as synced, friend permanently removed")
+
+        // 🚨🚨🚨 CLEAR LOCKED CONNECTIONS AFTER SUCCESSFUL DB OPERATION
+        FRIEND_REMOVAL_LOCKED_CONNECTIONS = null
+        console.log("[v6] 🚨🚨🚨🚨🚨 LOCKED CONNECTIONS CLEARED - database now authoritative")
       }
     } catch (error) {
       console.error("[v1] 🚨 ERROR in database operation:", error)
       console.log("[v1] Keeping UI state due to database error")
+      // Keep locked connections on error to preserve UI state
     }
 
     console.log("[v1] 🚨 FRIEND REMOVAL PROCESS COMPLETE - UI should stay updated")
@@ -2010,8 +2028,9 @@ ORDER BY count DESC;
 // Export the store for console debugging
 export const appStore = store
 
-// Global friend removal protection flag
+// Global friend removal protection
 let FRIEND_REMOVAL_IN_PROGRESS = false
+let FRIEND_REMOVAL_LOCKED_CONNECTIONS: string[] | null = null
 
 // Attach to window for development debugging
 if (typeof window !== 'undefined') {
