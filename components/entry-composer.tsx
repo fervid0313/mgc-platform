@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import type { JournalEntry, MentalState } from "@/types" // Declare JournalEntry and MentalState types
+import type { JournalEntry, MentalState } from "../lib/types"
 
 import { useState, useRef } from "react"
 import { useAppStore } from "@/lib/store"
@@ -102,7 +102,7 @@ export function EntryComposer() {
         placeholder={
           tradeType === "general"
             ? `What's on your mind today? Emotions, habits, reflections...`
-            : `Log your ${tradeType.replace("-", " ")} in ${currentSpace?.name || "this space"}...`
+            : `Log your ${tradeType?.replace("-", " ") || "trade"} in ${currentSpace?.name || "this space"}...`
         }
         className="w-full bg-transparent border-none outline-none text-base font-medium placeholder:text-muted-foreground resize-none h-24 mb-4"
       />

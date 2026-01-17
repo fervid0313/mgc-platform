@@ -55,7 +55,7 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
     getComments,
     addComment,
     connections,
-    sendConnectionRequest,
+    sendFriendRequest,
     getProfile,
     isAdmin,
     deleteEntry,
@@ -79,7 +79,10 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
 
   const handleConnect = () => {
     if (!isConnected && !isOwnPost) {
-      sendConnectionRequest(entry.userId)
+      const profile = getProfile(entry.userId)
+      if (profile) {
+        sendFriendRequest(`${profile.username}#${profile.tag}`)
+      }
     }
   }
 

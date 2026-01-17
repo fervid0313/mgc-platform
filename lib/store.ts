@@ -138,66 +138,115 @@ export const useAppStore = create<AppState>()((set, get) => ({
   initializeAuth: async () => {
     const supabase = createClient()
 
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
+    // Load initial session
+    const loadSession = async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
 
-      if (session?.user) {
-        // Fetch profile from database
-        const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
+        if (session?.user) {
+          // Fetch profile from database
+          const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
 
-        if (profile) {
-          const user: User = {
-            id: profile.id,
-            username: profile.username,
-            tag: profile.tag,
-            email: profile.email,
-            avatar: profile.avatar,
-            isAdmin: profile.email === ADMIN_EMAIL,
-            createdAt: new Date(profile.created_at),
+          if (profile) {
+            const user: User = {
+              id: profile.id,
+              username: profile.username,
+              tag: profile.tag,
+              email: profile.email,
+              avatar: profile.avatar,
+              isAdmin: profile.email === ADMIN_EMAIL,
+              createdAt: new Date(profile.created_at),
+            }
+
+            set({
+              user,
+              isAuthenticated: true,
+              isLoading: false,
+              spaces: [globalFeedSpace],
+              currentSpaceId: "space-global",
+            })
+
+            // Load user's spaces
+            const { data: spaces } = await supabase
+              .from("spaces")
+              .select("*")
+              .or(`owner_id.eq.${session.user.id},is_private.eq.false`)
+
+            if (spaces) {
+              const mappedSpaces = spaces.map((s: any) => ({
+                id: s.id,
+                name: s.name,
+                description: s.description,
+                ownerId: s.owner_id,
+                isPrivate: s.is_private,
+                createdAt: new Date(s.created_at),
+                memberCount: s.member_count || 1,
+              }))
+              set({ spaces: [globalFeedSpace, ...mappedSpaces] })
+            }
+
+            // Load friend requests
+            get().loadFriendRequests()
+            get().loadConnections()
+            get().loadProfiles()
+
+            return true
           }
-
-          set({
-            user,
-            isAuthenticated: true,
-            isLoading: false,
-            spaces: [globalFeedSpace],
-            currentSpaceId: "space-global",
-          })
-
-          // Load user's spaces
-          const { data: spaces } = await supabase
-            .from("spaces")
-            .select("*")
-            .or(`owner_id.eq.${session.user.id},is_private.eq.false`)
-
-          if (spaces) {
-            const mappedSpaces = spaces.map((s: any) => ({
-              id: s.id,
-              name: s.name,
-              description: s.description,
-              ownerId: s.owner_id,
-              isPrivate: s.is_private,
-              createdAt: new Date(s.created_at),
-              memberCount: s.member_count || 1,
-            }))
-            set({ spaces: [globalFeedSpace, ...mappedSpaces] })
-          }
-
-          // Load friend requests
-          get().loadFriendRequests()
-          get().loadConnections()
-          get().loadProfiles()
-
-          return
         }
+      } catch (error) {
+        console.error("[v0] Auth initialization error:", error)
       }
-    } catch (error) {
-      console.error("[v0] Auth initialization error:", error)
+      return false
     }
 
-    set({ isLoading: false })
+    // Load initial session
+    const hasSession = await loadSession()
+    if (!hasSession) {
+      set({ isLoading: false })
+    }
+
+    // Set up auth state change listener to keep session in sync
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        if (session?.user) {
+          // Fetch profile from database
+          const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
+
+          if (profile) {
+            const user: User = {
+              id: profile.id,
+              username: profile.username,
+              tag: profile.tag,
+              email: profile.email,
+              avatar: profile.avatar,
+              isAdmin: profile.email === ADMIN_EMAIL,
+              createdAt: new Date(profile.created_at),
+            }
+
+            set({
+              user,
+              isAuthenticated: true,
+              isLoading: false,
+            })
+
+            // Reload data
+            get().loadFriendRequests()
+            get().loadConnections()
+            get().loadProfiles()
+          }
+        }
+      } else if (event === "SIGNED_OUT") {
+        set({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+          spaces: [globalFeedSpace],
+          currentSpaceId: "space-global",
+        })
+      }
+    })
   },
 
   login: async (email: string, password: string) => {
@@ -232,6 +281,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
           set({
             user,
             isAuthenticated: true,
+            isLoading: false,
             spaces: [globalFeedSpace],
             currentSpaceId: "space-global",
             connections: [],
@@ -281,53 +331,85 @@ export const useAppStore = create<AppState>()((set, get) => ({
       }
 
       if (data.user) {
-        // Create profile in database
-        const { error: profileError } = await supabase.from("profiles").insert({
-          id: data.user.id,
-          username,
-          tag,
-          email,
-          bio: "",
-          created_at: new Date().toISOString(),
-        })
+        // Create profile in database with better error handling
+        let profileCreated = false
+        try {
+          const { error: profileError } = await supabase.from("profiles").insert({
+            id: data.user.id,
+            username,
+            tag,
+            email,
+            bio: "",
+            created_at: new Date().toISOString(),
+          })
 
-        if (profileError) {
-          console.error("[v0] Profile creation error:", profileError)
+          if (profileError) {
+            console.error("[v0] Profile creation error:", profileError)
+
+            // If it's a duplicate key error, the profile might already exist
+            if (profileError.code === '23505') { // unique_violation
+              console.log("[v0] Profile already exists, continuing...")
+              profileCreated = true // Consider it successful
+            } else {
+              console.error("[v0] Profile creation failed with error:", profileError.message)
+              // Don't return false here - let the user continue with auth even if profile fails
+            }
+          } else {
+            console.log("[v0] Profile created successfully")
+            profileCreated = true
+          }
+        } catch (error) {
+          console.error("[v0] Profile creation exception:", error)
+          // Continue anyway - auth user exists even if profile creation fails
         }
 
-        const user: User = {
-          id: data.user.id,
-          username,
-          tag,
-          email,
-          isAdmin: email === ADMIN_EMAIL,
-          createdAt: new Date(),
+        // Wait a bit for the session to be fully established
+        await new Promise((resolve) => setTimeout(resolve, 100))
+
+        // Get the refreshed session to ensure it's persisted
+        const { data: sessionData } = await supabase.auth.getSession()
+
+        if (sessionData?.session) {
+          const user: User = {
+            id: data.user.id,
+            username,
+            tag,
+            email,
+            isAdmin: email === ADMIN_EMAIL,
+            createdAt: new Date(),
+          }
+
+          const newProfile: UserProfile = {
+            id: user.id,
+            username,
+            tag,
+            email,
+            bio: "",
+            tradingStyle: undefined,
+            winRate: 0,
+            totalTrades: 0,
+            socialLinks: {},
+            isOnline: true,
+            createdAt: new Date(),
+          }
+
+          set({
+            user,
+            isAuthenticated: true,
+            isLoading: false,
+            spaces: [globalFeedSpace],
+            currentSpaceId: "space-global",
+            connections: [],
+            profiles: [newProfile],
+          })
+
+          // Load data
+          get().loadFriendRequests()
+          get().loadConnections()
+          get().loadProfiles()
+
+          return true
         }
-
-        const newProfile: UserProfile = {
-          id: user.id,
-          username,
-          tag,
-          email,
-          bio: "",
-          tradingStyle: undefined,
-          winRate: 0,
-          totalTrades: 0,
-          socialLinks: {},
-          isOnline: true,
-          createdAt: new Date(),
-        }
-
-        set({
-          user,
-          isAuthenticated: true,
-          spaces: [globalFeedSpace],
-          currentSpaceId: "space-global",
-          connections: [],
-          profiles: [newProfile],
-        })
-
-        return true
       }
 
       return false

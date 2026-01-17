@@ -108,6 +108,32 @@ export interface FriendRequest {
   createdAt: Date
 }
 
+export interface Comment {
+  id: string
+  entryId: string
+  userId: string
+  username: string
+  avatar?: string
+  content: string
+  createdAt: Date
+}
+
+export interface Like {
+  id: string
+  entryId: string
+  userId: string
+  createdAt: Date
+}
+
+export interface Invitation {
+  id: string
+  spaceId: string
+  inviterId: string
+  inviteeEmail: string
+  status: "pending" | "accepted" | "declined"
+  createdAt: Date
+}
+
 // Helper functions for collective vibe calculation
 export function calculateCollectiveVibe(entries: JournalEntry[]): MentalState | null {
   const recentEntries = entries.slice(0, 10).filter((e) => e.mentalState)

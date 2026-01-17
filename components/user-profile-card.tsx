@@ -31,8 +31,8 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const handleSendRequest = () => {
-    const result = sendFriendRequest(`${profile.username}#${profile.tag}`)
+  const handleSendRequest = async () => {
+    const result = await sendFriendRequest(`${profile.username}#${profile.tag}`)
     if (result.success) {
       setRequestSent(true)
     }

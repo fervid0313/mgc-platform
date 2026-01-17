@@ -43,7 +43,7 @@ export function AuthScreen() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
+    <div className="min-h-screen flex items-center justify-center p-6 bg-blue-900">
       <div className="w-full max-w-md">
         <div className="text-center mb-12">
           <h1 className="font-extrabold tracking-tight text-6xl text-foreground italic mb-2">MGS</h1>
