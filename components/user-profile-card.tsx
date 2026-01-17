@@ -21,6 +21,15 @@ const tradingStyleLabels = {
 
 export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
   const { connections, sendFriendRequest, removeFriend, user } = useAppStore()
+
+  // Debug: Check if functions are available
+  console.log("[UI] UserProfileCard rendered for:", profile.username, {
+    isConnected: connections.includes(profile.id),
+    hasRemoveFriend: typeof removeFriend === 'function',
+    userId: user?.id,
+    profileId: profile.id
+  })
+
   const isConnected = connections.includes(profile.id)
   const isOwnProfile = user?.id === profile.id
   const [copied, setCopied] = useState(false)
@@ -134,10 +143,15 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
                 size="icon"
                 className="min-h-[44px] min-w-[44px]"
                 onClick={() => {
+                  console.log("[UI] 🚨🚨🚨🚨 REMOVE FRIEND BUTTON CLICKED for user:", profile.username, profile.id)
                   if (confirm(`Remove ${profile.username} from friends?`)) {
+                    console.log("[UI] ✅ User confirmed removal, calling removeFriend()")
                     removeFriend(profile.id)
+                    console.log("[UI] ✅ removeFriend() called, scheduling modal close")
                     // Delay closing to allow state update to propagate
                     setTimeout(() => onClose?.(), 100)
+                  } else {
+                    console.log("[UI] ❌ User cancelled removal")
                   }
                 }}
                 title="Remove friend"
