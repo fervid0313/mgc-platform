@@ -22,11 +22,18 @@ export function CommunityProfiles() {
 
   const userIsAdmin = isAdmin()
 
+  // Debug logging for connections changes
+  console.log("[CommunityProfiles] Current connections:", connections.length, connections)
+
   const filteredProfiles = profiles.filter((profile) => {
     if (profile.id === user?.id) return false
 
     // Only show FRIENDS (connected users) - space sharing is secondary
     const isFriend = connections.includes(profile.id)
+
+    if (profile.username) { // Only log for real profiles
+      console.log(`[CommunityProfiles] ${profile.username}: isFriend=${isFriend}`)
+    }
 
     // For "all" filter, show all friends
     // For "connected" filter, show only friends (same as all)

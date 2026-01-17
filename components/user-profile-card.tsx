@@ -136,7 +136,8 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
                 onClick={() => {
                   if (confirm(`Remove ${profile.username} from friends?`)) {
                     removeFriend(profile.id)
-                    onClose?.()
+                    // Delay closing to allow state update to propagate
+                    setTimeout(() => onClose?.(), 100)
                   }
                 }}
                 title="Remove friend"

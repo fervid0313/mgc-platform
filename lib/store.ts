@@ -1146,11 +1146,14 @@ export const useAppStore = create<AppState>()((set, get) => ({
 
     console.log(`[v0] Updated connections in ${env} localStorage:`, updatedConnections)
 
-    set({
+    // Force immediate state update to trigger UI re-render
+    set((state) => ({
+      ...state,
       connections: updatedConnections
-    })
+    }))
 
     console.log("[v0] Friend removal complete - UI should update immediately")
+    console.log("[v0] New connections state:", get().connections)
 
     // Force a reload of connections from database to ensure consistency
     console.log("[v0] Forcing connection reload from database...")
