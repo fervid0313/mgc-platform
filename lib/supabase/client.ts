@@ -10,9 +10,49 @@ export function createClient() {
     fullUrl: url
   })
 
-  // Expose config for browser debugging
+  // Expose config and test function for browser debugging
   if (typeof window !== 'undefined') {
     (window as any).supabaseConfig = { url, key: key ? "present" : "MISSING", fullUrl: url }
+
+    // Add test function
+    ;(window as any).testSupabaseConnection = async () => {
+      console.log("🧪 Testing Supabase connection...")
+
+      try {
+        // Test 1: Basic query
+        const { data: profilesData, error: profilesError } = await client
+          .from('profiles')
+          .select('count')
+          .limit(1)
+
+        console.log("✅ Profiles query:", { data: profilesData, error: profilesError })
+
+        // Test 2: Check if entries table exists
+        const { data: entriesData, error: entriesError } = await client
+          .from('entries')
+          .select('*')
+          .limit(1)
+
+        console.log("✅ Entries table check:", {
+          data: entriesData,
+          error: entriesError,
+          tableExists: !entriesError || entriesError.code !== '42P01'
+        })
+
+        // Test 3: Auth status
+        const { data: authData } = await client.auth.getUser()
+        console.log("✅ Auth status:", {
+          user: authData.user?.id || 'Not logged in',
+          email: authData.user?.email
+        })
+
+        return { profiles: { data: profilesData, error: profilesError }, entries: { data: entriesData, error: entriesError }, auth: authData }
+
+      } catch (error) {
+        console.error("❌ Connection test failed:", error)
+        return { error }
+      }
+    }
   }
 
   if (!url || !key) {
@@ -28,7 +68,18 @@ export function createClient() {
     console.log("[DEBUG] Supabase API call:", args[0])
     try {
       const result = await originalFetch.apply(client.rest, args)
-      console.log("[DEBUG] Supabase response status:", result.status)
+      console.log("[DEBUG] Supabase response status:", result.status, result.statusText)
+
+      // Check if response is HTML instead of JSON
+      const contentType = result.headers.get('content-type')
+      console.log("[DEBUG] Response content-type:", contentType)
+
+      if (contentType && contentType.includes('text/html')) {
+        console.error("[DEBUG] 🚨 RESPONSE IS HTML INSTEAD OF JSON!")
+        const text = await result.text()
+        console.error("[DEBUG] HTML response preview:", text.substring(0, 200) + "...")
+      }
+
       return result
     } catch (error) {
       console.error("[DEBUG] Supabase fetch error:", error)
