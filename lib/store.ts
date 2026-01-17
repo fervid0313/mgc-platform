@@ -822,6 +822,22 @@ export const useAppStore = create<AppState>()((set, get) => ({
     const { user } = get()
     if (!user) return
 
+    // Check if we have a fresh localStorage update (from removeFriend/addFriend)
+    const freshConnections = localStorage.getItem(`mgs_connections_${user.id}_fresh`)
+    if (freshConnections) {
+      try {
+        const parsedConnections = JSON.parse(freshConnections)
+        console.log("[v0] Loading fresh connections from localStorage:", parsedConnections)
+        set({ connections: parsedConnections })
+        // Clean up the fresh marker
+        localStorage.removeItem(`mgs_connections_${user.id}_fresh`)
+        return
+      } catch (error) {
+        console.warn("[v0] Failed to parse fresh connections:", error)
+        localStorage.removeItem(`mgs_connections_${user.id}_fresh`)
+      }
+    }
+
     // First, try to load from localStorage for immediate UI update
     const cachedConnections = localStorage.getItem(`mgs_connections_${user.id}`)
     if (cachedConnections) {
@@ -847,8 +863,10 @@ export const useAppStore = create<AppState>()((set, get) => ({
 
     const connections = data.map((c: any) => (c.user_id === user.id ? c.friend_id : c.user_id))
 
-    // Save to localStorage for persistence
-    localStorage.setItem(`mgs_connections_${user.id}`, JSON.stringify(connections))
+    // Only update localStorage if we don't have a fresh version
+    if (!freshConnections) {
+      localStorage.setItem(`mgs_connections_${user.id}`, JSON.stringify(connections))
+    }
 
     set({ connections })
   },
@@ -999,8 +1017,9 @@ export const useAppStore = create<AppState>()((set, get) => ({
     // Update local state
     const updatedConnections = [...connections, request.fromUserId]
 
-    // Save to localStorage
+    // Save to localStorage with fresh marker
     localStorage.setItem(`mgs_connections_${user.id}`, JSON.stringify(updatedConnections))
+    localStorage.setItem(`mgs_connections_${user.id}_fresh`, JSON.stringify(updatedConnections))
 
     set({
       connections: updatedConnections,
@@ -1040,8 +1059,13 @@ export const useAppStore = create<AppState>()((set, get) => ({
     // Update local state
     const updatedConnections = connections.filter(id => id !== friendId)
 
-    // Save to localStorage
+    console.log("[v0] Updated connections after removal:", updatedConnections)
+
+    // Save to localStorage with fresh marker (takes precedence over database)
     localStorage.setItem(`mgs_connections_${user.id}`, JSON.stringify(updatedConnections))
+    localStorage.setItem(`mgs_connections_${user.id}_fresh`, JSON.stringify(updatedConnections))
+
+    console.log("[v0] Saved fresh connections to localStorage")
 
     set({
       connections: updatedConnections
