@@ -20,7 +20,7 @@ const tradingStyleLabels = {
 
 export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
   const { user } = useAppStore()
-  const isOwnProfile = user?.id === profile.id
+  const isOwnProfile = user?.id === profile?.id
   const [copied, setCopied] = useState(false)
 
   const copyTag = () => {

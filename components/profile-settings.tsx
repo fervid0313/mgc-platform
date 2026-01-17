@@ -72,7 +72,7 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
   }
 
   const copyTag = () => {
-    if (user && user.username && user.username.trim()) {
+    if (user && user.username && user.username.trim() && user.tag) {
       navigator.clipboard.writeText(`${user.username}#${user.tag}`)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)

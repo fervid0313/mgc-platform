@@ -614,7 +614,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
 
       // If minimal query works, use it
-      const mappedEntries = (testData || []).map((e: any) => ({
+      const mappedEntries = (testData || []).filter(e => e != null).map((e: any) => ({
         id: e.id,
         spaceId,
         userId: e.user_id,
@@ -701,7 +701,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     // Map entries with schema tolerance
-    const mappedEntries = newEntries.map((e: any) => ({
+    const mappedEntries = newEntries.filter(e => e != null).map((e: any) => ({
       id: e.id,
       spaceId,
       userId: e.user_id,
@@ -817,7 +817,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         return
       }
 
-      const mappedProfiles = (fallbackData || []).map((p: any) => ({
+      const mappedProfiles = (fallbackData || []).filter(p => p != null).map((p: any) => ({
         id: p.id,
         username: p.username || "Unknown",
         tag: p.tag || "0000",
@@ -835,7 +835,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       return
     }
 
-    const mappedProfiles = (profilesData || []).map((p: any) => ({
+    const mappedProfiles = (profilesData || []).filter(p => p != null).map((p: any) => ({
       id: p.id,
       username: p.username || "Unknown",
       tag: p.tag || "0000",
