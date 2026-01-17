@@ -14,39 +14,61 @@ const SPECIALTY_OPTIONS = [
 ] as const
 
 export function CommunityProfiles() {
-  const { profiles, connections, user, isAdmin, adminUpdateUserProfile, spaces, currentSpaceId } = useAppStore()
+  const { profiles, connections, user, isAdmin, adminUpdateUserProfile, spaces, currentSpaceId, getSpaceMembers } = useAppStore()
   const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [filter, setFilter] = useState<"all" | "connected" | "online">("all")
   const [editingRole, setEditingRole] = useState<string | null>(null)
+  const [spaceMembers, setSpaceMembers] = useState<UserProfile[]>([])
   const userIsAdmin = isAdmin()
+
+  useEffect(() => {
+    if (currentSpaceId && currentSpaceId !== "space-global") {
+      const members = getSpaceMembers(currentSpaceId)
+      setSpaceMembers(members)
+      console.log("[CommunityProfiles] Loaded space members:", members.map(m => m.username))
+    } else {
+      setSpaceMembers([])
+    }
+  }, [currentSpaceId, getSpaceMembers])
 
   // Debug logging for connections changes
   console.log("[CommunityProfiles] 🔄 RENDERING with connections:", connections.length, connections)
   console.log("[CommunityProfiles] Current filter:", filter, "search:", searchQuery)
   console.log("[CommunityProfiles] selectedProfile:", selectedProfile?.username || null)
 
+  const isGlobalFeed = currentSpaceId === "space-global"
+
+  // Determine the base list of profiles to filter
+  const baseProfiles = isGlobalFeed ? profiles : spaceMembers
+
   // Simple filtering - Zustand should handle reactivity
-  const filteredProfiles = profiles.filter((profile) => {
+  const filteredProfiles = baseProfiles.filter((profile) => {
     if (profile.id === user?.id) return false
 
-    // Only show FRIENDS (connected users)
     const isFriend = connections.includes(profile.id)
-    console.log(`[CommunityProfiles] ${profile.username}: id=${profile.id}, isFriend=${isFriend}`)
+    const isMember = spaceMembers.some(member => member.id === profile.id)
 
-    // For "all" filter, show all friends
-    // For "connected" filter, show only friends (same as all)
-    // For "online" filter, show only online friends
-    if (filter === "all" || filter === "connected") {
-      if (!isFriend) {
-        console.log(`[CommunityProfiles] Filtering out ${profile.username} - not a friend`)
+    // Adjust filtering based on whether it's global feed or a specific space
+    if (isGlobalFeed) {
+      // For "all" or "connected" filter in global feed, show all profiles that are friends
+      // For "online" filter, show only online friends
+      if (filter === "all" || filter === "connected") {
+        if (!isFriend) return false
+      }
+      if (filter === "online") {
+        if (!isFriend || !profile.isOnline) return false
+      }
+    } else {
+      // In a specific space, always show members. Filters apply to members.
+      if (!isMember) return false // Only show actual members of this space
+
+      if (filter === "online" && !profile.isOnline) {
         return false
       }
-    }
 
-    if (filter === "online") {
-      if (!isFriend || !profile.isOnline) {
-        console.log(`[CommunityProfiles] Filtering out ${profile.username} - not friend or offline`)
+      // "connected" filter should only show friends within the space
+      if (filter === "connected" && !isFriend) {
         return false
       }
     }
@@ -56,13 +78,12 @@ export function CommunityProfiles() {
       profile.username.toLowerCase().includes(searchLower) ||
       `${profile.username}#${profile.tag}`.toLowerCase().includes(searchLower)
     if (searchQuery && !matchesSearch) {
-      console.log(`[CommunityProfiles] Filtering out ${profile.username} - doesn't match search`)
       return false
     }
 
-    console.log(`[CommunityProfiles] Including ${profile.username} in filtered list`)
     return true
   })
+
 
   console.log("[CommunityProfiles] Final filtered profiles:", filteredProfiles.map(p => p.username))
 
@@ -76,8 +97,8 @@ export function CommunityProfiles() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         <Users className="h-5 w-5 text-primary" />
-        <h2 className="font-semibold">Friends</h2>
-        <span className="text-xs text-muted-foreground">{filteredProfiles.length} friends</span>
+        <h2 className="font-semibold">{isGlobalFeed ? "Friends" : "Space Members"}</h2>
+        <span className="text-xs text-muted-foreground">{filteredProfiles.length} {isGlobalFeed ? "friends" : "members"}</span>
         {userIsAdmin && (
           <span className="flex items-center gap-1 text-[9px] text-amber-500 font-bold ml-auto">
             <Shield className="h-3 w-3" />
@@ -177,11 +198,11 @@ export function CommunityProfiles() {
                   )}
                 </div>
               ) : (
-                connections.includes(profile.id) && (
+                !isGlobalFeed && connections.includes(profile.id) ? (
                   <span className="text-[9px] text-primary font-medium px-2 py-0.5 bg-primary/10 rounded-full">
                     Connected
                   </span>
-                )
+                ) : null
               )}
             </div>
           ))

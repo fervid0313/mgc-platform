@@ -6,7 +6,6 @@ import { useState } from "react"
 import { CreateSpaceModal } from "./create-space-modal"
 import { MilestoneProgress } from "./milestone-progress"
 import { MarketTicker } from "./market-ticker"
-import { SpaceMembersTooltip } from "./space-members-tooltip"
 
 export function Sidebar() {
   const { sidebarOpen, setSidebarOpen, spaces, currentSpaceId, setCurrentSpace, leaveSpace } = useAppStore()
@@ -58,22 +57,20 @@ export function Sidebar() {
               >
                 <div className="flex items-center justify-between">
                   <span className="text-sm truncate">{space.name}</span>
-                  <SpaceMembersTooltip spaceId={space.id} memberCount={space.memberCount}>
-                    <div className="flex items-center gap-2 pr-8">
-                      {space.id === "space-global" ? (
-                        <Globe className="h-3 w-3 text-primary" />
-                      ) : space.isPrivate ? (
-                        <Lock className="h-3 w-3 text-foreground" />
-                      ) : (
-                        <Users className="h-3 w-3 text-muted-foreground" />
-                      )}
-                      {space.id !== "space-global" && (
-                        <span className="text-[10px] text-muted-foreground">
-                          {space.memberCount}
-                        </span>
-                      )}
-                    </div>
-                  </SpaceMembersTooltip>
+                  <div className="flex items-center gap-2 pr-8">
+                    {space.id === "space-global" ? (
+                      <Globe className="h-3 w-3 text-primary" />
+                    ) : space.isPrivate ? (
+                      <Lock className="h-3 w-3 text-foreground" />
+                    ) : (
+                      <Users className="h-3 w-3 text-muted-foreground" />
+                    )}
+                    {space.id !== "space-global" && (
+                      <span className="text-[10px] text-muted-foreground">
+                        {space.memberCount}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </button>
 
