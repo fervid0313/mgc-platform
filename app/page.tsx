@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useAppStore } from "@/lib/store"
+import { useAppStore, appStore } from "@/lib/store"
 import { Sidebar } from "@/components/sidebar"
 import { Navbar } from "@/components/navbar"
 import { JournalFeed } from "@/components/journal-feed"
@@ -23,6 +23,13 @@ export default function Home() {
   useEffect(() => {
     initializeAuth()
   }, [initializeAuth])
+
+  // Attach store to window for debugging
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).store = appStore
+    }
+  }, [])
 
   useEffect(() => {
     if (isAuthenticated && currentSpaceId) {
