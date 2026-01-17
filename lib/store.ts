@@ -613,6 +613,15 @@ const store = create<AppState>()((set, get) => ({
   entries: { "space-global": [] },
 
   loadEntries: async (spaceId: string) => {
+    // Skip database query for global feed - it doesn't have entries
+    if (spaceId === "space-global") {
+      console.log("[v0] Skipping entries load for global feed space")
+      set((state) => ({
+        entries: { ...state.entries, [spaceId]: [] },
+      }))
+      return
+    }
+
     const supabase = createClient()
 
     const { data, error } = await supabase
@@ -778,6 +787,15 @@ const store = create<AppState>()((set, get) => ({
   chatMessages: { "space-global": [] },
 
   loadChatMessages: async (spaceId: string) => {
+    // Skip database query for global feed - it doesn't have chat messages
+    if (spaceId === "space-global") {
+      console.log("[v0] Skipping chat messages load for global feed space")
+      set((state) => ({
+        chatMessages: { ...state.chatMessages, [spaceId]: [] },
+      }))
+      return
+    }
+
     const supabase = createClient()
 
     const { data, error } = await supabase
