@@ -828,16 +828,27 @@ export const useAppStore = create<AppState>()((set, get) => ({
     const { user } = get()
     if (!user) return
 
-    // Environment-specific localStorage keys to prevent cross-environment conflicts
+    // Environment-specific localStorage keys
     const env = process.env.NODE_ENV || 'development'
     const cacheKey = `mgs_${env}_connections_${user.id}`
-    const freshKey = `mgs_${env}_connections_${user.id}_fresh`
 
-    // Clean up any leftover fresh keys from old system
-    localStorage.removeItem(freshKey)
+    // Check for recent local changes first (within last 30 seconds)
+    const cachedData = localStorage.getItem(cacheKey)
+    if (cachedData) {
+      try {
+        const parsed = JSON.parse(cachedData)
+        // If there's a recent local change, use it instead of database
+        if (parsed.isRecentChange && parsed.timestamp && (Date.now() - parsed.timestamp < 30000)) {
+          console.log("[v0] Using recent local change instead of database:", parsed.connections)
+          set({ connections: parsed.connections })
+          return
+        }
+      } catch (error) {
+        console.warn("[v0] Failed to parse cached data:", error)
+      }
+    }
 
-    // Always load from database first to ensure accuracy
-    // Use cached data only for immediate UI update if database is slow
+    // Load from database
     const supabase = createClient()
 
     try {
@@ -849,11 +860,11 @@ export const useAppStore = create<AppState>()((set, get) => ({
       if (error) {
         console.error("[v0] Load connections error:", error)
         // Fallback to cached data if database fails
-        const cachedConnections = localStorage.getItem(cacheKey)
-        if (cachedConnections) {
+        if (cachedData) {
           try {
-            const parsedConnections = JSON.parse(cachedConnections)
-            set({ connections: parsedConnections })
+            const parsed = JSON.parse(cachedData)
+            const connections = parsed.connections || parsed // Handle both old and new formats
+            set({ connections: connections })
           } catch (cacheError) {
             console.warn("[v0] Failed to parse cached connections:", cacheError)
           }
@@ -866,20 +877,23 @@ export const useAppStore = create<AppState>()((set, get) => ({
       console.log(`[v0] Loaded ${connections.length} connections from database:`, connections)
 
       // Update localStorage with fresh database data
-      localStorage.setItem(cacheKey, JSON.stringify(connections))
+      const dbData = {
+        connections,
+        timestamp: Date.now(),
+        isRecentChange: false
+      }
+      localStorage.setItem(cacheKey, JSON.stringify(dbData))
 
       set({ connections })
-
-      console.log("[v0] Connections state updated with database data")
 
     } catch (error) {
       console.error("[v0] Load connections exception:", error)
       // Fallback to cached data
-      const cachedConnections = localStorage.getItem(cacheKey)
-      if (cachedConnections) {
+      if (cachedData) {
         try {
-          const parsedConnections = JSON.parse(cachedConnections)
-          set({ connections: parsedConnections })
+          const parsed = JSON.parse(cachedData)
+          const connections = parsed.connections || parsed // Handle both old and new formats
+          set({ connections: connections })
         } catch (cacheError) {
           console.warn("[v0] Failed to parse cached connections:", cacheError)
         }
@@ -1061,13 +1075,26 @@ export const useAppStore = create<AppState>()((set, get) => ({
       const env = process.env.NODE_ENV || 'development'
       const cacheKey = `mgs_${env}_connections_${user.id}`
 
-      // Update localStorage immediately for responsive UI
-      localStorage.setItem(cacheKey, JSON.stringify(updatedConnections))
+      // Update localStorage with timestamp
+      const cacheData = {
+        connections: updatedConnections,
+        timestamp: Date.now(),
+        isRecentChange: true
+      }
+      localStorage.setItem(cacheKey, JSON.stringify(cacheData))
 
       set({
         connections: updatedConnections,
         friendRequests: updatedFriendRequests,
       })
+
+      // Mark as synced after successful database operation
+      const syncedData = {
+        connections: updatedConnections,
+        timestamp: Date.now(),
+        isRecentChange: false
+      }
+      localStorage.setItem(cacheKey, JSON.stringify(syncedData))
 
       console.log("[v0] Friend request accepted successfully")
       console.log("[v0] Remaining friend requests:", updatedFriendRequests.length)
@@ -1130,12 +1157,17 @@ export const useAppStore = create<AppState>()((set, get) => ({
     // Update Zustand state immediately
     set({ connections: updatedConnections })
 
-    // Update localStorage immediately
+    // Update localStorage with timestamp to prevent database override
     const env = process.env.NODE_ENV || 'development'
     const cacheKey = `mgs_${env}_connections_${user.id}`
-    localStorage.setItem(cacheKey, JSON.stringify(updatedConnections))
+    const cacheData = {
+      connections: updatedConnections,
+      timestamp: Date.now(),
+      isRecentChange: true
+    }
+    localStorage.setItem(cacheKey, JSON.stringify(cacheData))
 
-    console.log("[v0] UI updated instantly, localStorage saved")
+    console.log("[v0] UI updated instantly, localStorage saved with timestamp")
 
     // DATABASE UPDATE - Handle asynchronously in background
     try {
@@ -1151,6 +1183,13 @@ export const useAppStore = create<AppState>()((set, get) => ({
         // On next loadConnections(), it will sync with database
       } else {
         console.log("[v0] Database deletion successful")
+        // Mark as synced after successful database operation
+        const syncedData = {
+          connections: updatedConnections,
+          timestamp: Date.now(),
+          isRecentChange: false // No longer recent, synced with DB
+        }
+        localStorage.setItem(cacheKey, JSON.stringify(syncedData))
       }
     } catch (error) {
       console.error("[v0] Error in database operation:", error)
