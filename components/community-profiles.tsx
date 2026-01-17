@@ -22,8 +22,9 @@ export function CommunityProfiles() {
   const userIsAdmin = isAdmin()
 
   // Debug logging for connections changes
-  console.log("[CommunityProfiles] Rendering with connections:", connections.length, connections)
+  console.log("[CommunityProfiles] 🔄 RENDERING with connections:", connections.length, connections)
   console.log("[CommunityProfiles] Current filter:", filter, "search:", searchQuery)
+  console.log("[CommunityProfiles] selectedProfile:", selectedProfile?.username || null)
 
   // Simple filtering - Zustand should handle reactivity
   const filteredProfiles = profiles.filter((profile) => {

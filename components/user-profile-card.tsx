@@ -144,12 +144,22 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
                 className="min-h-[44px] min-w-[44px]"
                 onClick={() => {
                   console.log("[UI] 🚨🚨🚨🚨 REMOVE FRIEND BUTTON CLICKED for user:", profile.username, profile.id)
-                  if (confirm(`Remove ${profile.username} from friends?`)) {
-                    console.log("[UI] ✅ User confirmed removal, calling removeFriend()")
-                    removeFriend(profile.id)
-                    console.log("[UI] ✅ removeFriend() called, scheduling modal close")
-                    // Delay closing to allow state update to propagate
-                    setTimeout(() => onClose?.(), 100)
+                  const confirmed = confirm(`Remove ${profile.username} from friends?`)
+                  console.log("[UI] Confirm dialog result:", confirmed)
+
+                  if (confirmed) {
+                    console.log("[UI] ✅ User confirmed removal, about to call removeFriend()")
+                    try {
+                      removeFriend(profile.id)
+                      console.log("[UI] ✅ removeFriend() called successfully, scheduling modal close")
+                      // Delay closing to allow state update to propagate
+                      setTimeout(() => {
+                        console.log("[UI] Closing modal now")
+                        onClose?.()
+                      }, 100)
+                    } catch (error) {
+                      console.error("[UI] ❌ ERROR calling removeFriend():", error)
+                    }
                   } else {
                     console.log("[UI] ❌ User cancelled removal")
                   }
