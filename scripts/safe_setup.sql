@@ -11,13 +11,22 @@ BEGIN
         SELECT schemaname, tablename, policyname
         FROM pg_policies
         WHERE schemaname = 'public'
-        AND tablename IN ('profiles', 'friend_requests', 'connections', 'spaces', 'space_members', 'entries', 'comments', 'likes', 'chat_messages')
+        AND tablename IN ('profiles', 'friend_requests', 'connections', 'spaces', 'space_members', 'entries', 'comments', 'likes', 'chat_messages', 'direct_messages')
     LOOP
         EXECUTE 'DROP POLICY IF EXISTS ' || quote_ident(policy_record.policyname) || ' ON ' || quote_ident(policy_record.schemaname) || '.' || quote_ident(policy_record.tablename);
         RAISE NOTICE 'Dropped policy: %.%', policy_record.tablename, policy_record.policyname;
     END LOOP;
 END;
 $$;
+
+-- Create tables if they don't exist (safe to run multiple times)
+CREATE TABLE IF NOT EXISTS public.direct_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sender_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  receiver_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
 -- Ensure RLS is enabled (safe to run multiple times)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -29,6 +38,7 @@ ALTER TABLE public.entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.likes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.direct_messages ENABLE ROW LEVEL SECURITY;
 
 -- Recreate all policies
 CREATE POLICY "profiles_select_all" ON public.profiles FOR SELECT USING (true);
@@ -88,6 +98,11 @@ CREATE POLICY "chat_messages_select" ON public.chat_messages FOR SELECT USING (
   space_id IN (SELECT space_id FROM public.space_members WHERE user_id = auth.uid())
 );
 CREATE POLICY "chat_messages_insert_own" ON public.chat_messages FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "direct_messages_select_own_chat" ON public.direct_messages FOR SELECT USING (
+  sender_id = auth.uid() OR receiver_id = auth.uid()
+);
+CREATE POLICY "direct_messages_insert_own" ON public.direct_messages FOR INSERT WITH CHECK (auth.uid() = sender_id);
 
 -- Add any missing columns (safe to run multiple times)
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS email TEXT;
