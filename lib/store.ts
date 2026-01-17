@@ -906,18 +906,18 @@ const store = create<AppState>()((set, get) => ({
     }
 
     // 🚨🚨🚨 CHECK FOR LOCKED CONNECTIONS STATE
-    console.log("[v6] Checking for locked connections state...")
-    console.log("[v6] FRIEND_REMOVAL_LOCKED_CONNECTIONS:", FRIEND_REMOVAL_LOCKED_CONNECTIONS)
+    console.log("[v7] Checking for locked connections state...")
+    console.log("[v7] FRIEND_REMOVAL_LOCKED_CONNECTIONS:", FRIEND_REMOVAL_LOCKED_CONNECTIONS)
 
     if (FRIEND_REMOVAL_LOCKED_CONNECTIONS !== null) {
-      console.log("[v6] 🚨🚨🚨🚨🚨 LOCKED CONNECTIONS DETECTED - USING LOCKED STATE INSTEAD OF DATABASE")
-      console.log("[v6] Locked connections:", FRIEND_REMOVAL_LOCKED_CONNECTIONS)
-      console.log("[v6] Setting connections to locked state...")
+      console.log("[v7] 🚨🚨🚨🚨🚨 LOCKED CONNECTIONS DETECTED - USING LOCKED STATE INSTEAD OF DATABASE")
+      console.log("[v7] Locked connections:", FRIEND_REMOVAL_LOCKED_CONNECTIONS)
+      console.log("[v7] Setting connections to locked state...")
       set({ connections: FRIEND_REMOVAL_LOCKED_CONNECTIONS })
-      console.log("[v6] ✅ Locked connections applied to state")
+      console.log("[v7] ✅ Locked connections applied to state")
       return // Use locked state - no database load allowed
     } else {
-      console.log("[v6] No locked connections found, proceeding with database load")
+      console.log("[v7] No locked connections found, proceeding with database load")
     }
 
     // Database loads re-enabled - testing lock system
@@ -1331,11 +1331,18 @@ const store = create<AppState>()((set, get) => ({
     set({ connections: updatedConnections })
 
     // 🚨🚨🚨 LOCK THE CONNECTIONS STATE - No database can override this
-    console.log("[v6] About to lock connections state...")
-    console.log("[v6] updatedConnections:", updatedConnections)
+    console.log("[v7] About to lock connections state...")
+    console.log("[v7] updatedConnections:", updatedConnections)
     FRIEND_REMOVAL_LOCKED_CONNECTIONS = [...updatedConnections]
-    console.log("[v6] 🚨🚨🚨🚨🚨 CONNECTIONS STATE LOCKED:", FRIEND_REMOVAL_LOCKED_CONNECTIONS)
-    console.log("[v6] FRIEND_REMOVAL_LOCKED_CONNECTIONS is now:", FRIEND_REMOVAL_LOCKED_CONNECTIONS)
+    console.log("[v7] 🚨🚨🚨🚨🚨 CONNECTIONS STATE LOCKED:", FRIEND_REMOVAL_LOCKED_CONNECTIONS)
+
+    // Persist to localStorage so it survives page refreshes
+    try {
+      localStorage.setItem('mgs_friend_removal_locked_connections', JSON.stringify(FRIEND_REMOVAL_LOCKED_CONNECTIONS))
+      console.log("[v7] ✅ Locked connections persisted to localStorage")
+    } catch (error) {
+      console.error("[v7] ❌ Failed to persist locked connections:", error)
+    }
 
     console.log("[v4] ✅✅✅✅ Zustand state updated")
 
@@ -1447,11 +1454,18 @@ const store = create<AppState>()((set, get) => ({
         console.log("[v2] ✅ localStorage marked as synced, friend permanently removed")
 
         // 🚨🚨🚨 CLEAR LOCKED CONNECTIONS AFTER SUCCESSFUL DB OPERATION
-        console.log("[v6] About to clear locked connections...")
-        console.log("[v6] FRIEND_REMOVAL_LOCKED_CONNECTIONS before clearing:", FRIEND_REMOVAL_LOCKED_CONNECTIONS)
+        console.log("[v7] About to clear locked connections...")
+        console.log("[v7] FRIEND_REMOVAL_LOCKED_CONNECTIONS before clearing:", FRIEND_REMOVAL_LOCKED_CONNECTIONS)
         FRIEND_REMOVAL_LOCKED_CONNECTIONS = null
-        console.log("[v6] 🚨🚨🚨🚨🚨 LOCKED CONNECTIONS CLEARED - database now authoritative")
-        console.log("[v6] FRIEND_REMOVAL_LOCKED_CONNECTIONS after clearing:", FRIEND_REMOVAL_LOCKED_CONNECTIONS)
+        console.log("[v7] 🚨🚨🚨🚨🚨 LOCKED CONNECTIONS CLEARED - database now authoritative")
+
+        // Clear from localStorage
+        try {
+          localStorage.removeItem('mgs_friend_removal_locked_connections')
+          console.log("[v7] ✅ Locked connections cleared from localStorage")
+        } catch (error) {
+          console.error("[v7] ❌ Failed to clear locked connections from localStorage:", error)
+        }
       }
     } catch (error) {
       console.error("[v1] 🚨 ERROR in database operation:", error)
@@ -2042,9 +2056,23 @@ ORDER BY count DESC;
 // Export the store for console debugging
 export const appStore = store
 
-// Global friend removal protection
+// Global friend removal protection (persisted in localStorage)
 let FRIEND_REMOVAL_IN_PROGRESS = false
 let FRIEND_REMOVAL_LOCKED_CONNECTIONS: string[] | null = null
+
+// Initialize locked connections from localStorage on module load
+if (typeof window !== 'undefined') {
+  try {
+    const persistedLock = localStorage.getItem('mgs_friend_removal_locked_connections')
+    if (persistedLock) {
+      FRIEND_REMOVAL_LOCKED_CONNECTIONS = JSON.parse(persistedLock)
+      console.log("[v7] 🔄 RESTORED LOCKED CONNECTIONS FROM localStorage:", FRIEND_REMOVAL_LOCKED_CONNECTIONS)
+    }
+  } catch (error) {
+    console.warn("[v7] Failed to restore locked connections from localStorage:", error)
+    localStorage.removeItem('mgs_friend_removal_locked_connections')
+  }
+}
 
 // Attach to window for development debugging
 if (typeof window !== 'undefined') {
