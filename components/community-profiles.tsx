@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAppStore } from "@/lib/store"
 import { UserProfileCard } from "./user-profile-card"
 import { Users, Search, Shield } from "lucide-react"
