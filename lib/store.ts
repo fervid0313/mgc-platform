@@ -676,6 +676,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     console.log("[ENTRY] 🔄 Force loading entries (bypassing cache)")
     const { lastLoadedEntriesAt, entries } = get()
     
+    console.log("[ENTRY] 📊 Before force load:", {
+      spaceId,
+      currentEntriesCount: entries[spaceId]?.length || 0,
+      lastLoadedAt: lastLoadedEntriesAt[spaceId] || 0,
+      timeSinceLoad: Date.now() - (lastLoadedEntriesAt[spaceId] || 0)
+    })
+    
     // Clear the cache timestamp to force reload
     set({
       lastLoadedEntriesAt: { ...lastLoadedEntriesAt, [spaceId]: 0 }
@@ -683,6 +690,19 @@ export const useAppStore = create<AppState>((set, get) => ({
     
     // Call loadEntries which will now reload from database
     await get().loadEntries(spaceId)
+    
+    // Log after load
+    const { entries: newEntries } = get()
+    console.log("[ENTRY] 📊 After force load:", {
+      spaceId,
+      newEntriesCount: newEntries[spaceId]?.length || 0,
+      sampleEntry: newEntries[spaceId]?.[0] ? {
+        id: newEntries[spaceId][0].id,
+        hasPnl: newEntries[spaceId][0].profitLoss !== undefined,
+        pnlValue: newEntries[spaceId][0].profitLoss,
+        hasImage: !!newEntries[spaceId][0].image
+      } : 'No entries'
+    })
   },
 
   loadMoreEntries: async (spaceId: string) => {
