@@ -25,19 +25,26 @@ export function CommunityProfiles() {
   const filteredProfiles = profiles.filter((profile) => {
     if (profile.id === user?.id) return false
 
-    // Only show users who share at least one space with the current user
-    const userSpaces = spaces.map(s => s.id)
-    const profileSharesSpace = userSpaces.includes(currentSpaceId) // At minimum, they share the current space
+    // Only show FRIENDS (connected users) - space sharing is secondary
+    const isFriend = connections.includes(profile.id)
 
-    if (!profileSharesSpace) return false
+    // For "all" filter, show all friends
+    // For "connected" filter, show only friends (same as all)
+    // For "online" filter, show only online friends
+    if (filter === "all" || filter === "connected") {
+      if (!isFriend) return false
+    }
+
+    if (filter === "online") {
+      if (!isFriend || !profile.isOnline) return false
+    }
 
     const searchLower = searchQuery.toLowerCase()
     const matchesSearch =
       profile.username.toLowerCase().includes(searchLower) ||
       `${profile.username}#${profile.tag}`.toLowerCase().includes(searchLower)
     if (searchQuery && !matchesSearch) return false
-    if (filter === "connected" && !connections.includes(profile.id)) return false
-    if (filter === "online" && !profile.isOnline) return false
+
     return true
   })
 
@@ -51,8 +58,8 @@ export function CommunityProfiles() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         <Users className="h-5 w-5 text-primary" />
-        <h2 className="font-semibold">Community</h2>
-        <span className="text-xs text-muted-foreground">{filteredProfiles.length} members in this space</span>
+        <h2 className="font-semibold">Friends</h2>
+        <span className="text-xs text-muted-foreground">{filteredProfiles.length} friends</span>
         {userIsAdmin && (
           <span className="flex items-center gap-1 text-[9px] text-amber-500 font-bold ml-auto">
             <Shield className="h-3 w-3" />
