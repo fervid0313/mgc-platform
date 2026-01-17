@@ -109,6 +109,9 @@ interface AppState {
   sendDirectMessage: (friendId: string, content: string) => Promise<void>
   loadDirectMessages: (friendId: string) => Promise<void>
   directMessages: Record<string, DirectMessage[]>
+
+  // Space Members
+  getSpaceMembers: (spaceId: string) => UserProfile[]
   loadFriendRequests: () => Promise<void>
   getIncomingRequests: () => FriendRequest[]
   getOutgoingRequests: () => FriendRequest[]
@@ -1091,6 +1094,27 @@ export const useAppStore = create<AppState>()((set, get) => ({
         [conversationKey]: messages
       }
     })
+  },
+
+  getSpaceMembers: (spaceId: string) => {
+    const { profiles, user, spaces } = get()
+    const space = spaces.find(s => s.id === spaceId)
+
+    if (!space) return []
+
+    // For now, return all profiles since space membership tracking needs improvement
+    // In the future, this should check actual space membership
+    // For Global Feed, show all users
+    // For public groups, show users who have joined
+    // For private spaces, show only invited members
+
+    if (spaceId === "space-global") {
+      return profiles.filter(p => p.id !== user?.id)
+    }
+
+    // For other spaces, return a subset (this is a placeholder implementation)
+    // TODO: Implement proper space membership tracking
+    return profiles.filter(p => p.id !== user?.id).slice(0, Math.min(5, profiles.length - 1))
   },
 
   getIncomingRequests: () => {

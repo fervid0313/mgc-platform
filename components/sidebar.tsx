@@ -6,6 +6,7 @@ import { useState } from "react"
 import { CreateSpaceModal } from "./create-space-modal"
 import { MilestoneProgress } from "./milestone-progress"
 import { MarketTicker } from "./market-ticker"
+import { SpaceMembersTooltip } from "./space-members-tooltip"
 
 export function Sidebar() {
   const { sidebarOpen, setSidebarOpen, spaces, currentSpaceId, setCurrentSpace, leaveSpace } = useAppStore()
@@ -56,18 +57,22 @@ export function Sidebar() {
               >
                 <div className="flex items-center justify-between">
                   <span className="text-sm truncate">{space.name}</span>
-                  <div className="flex items-center gap-2">
-                    {space.id === "space-global" ? (
-                      <Globe className="h-3 w-3 text-primary" />
-                    ) : space.isPrivate ? (
-                      <Lock className="h-3 w-3 text-foreground" />
-                    ) : (
-                      <Users className="h-3 w-3 text-muted-foreground" />
-                    )}
-                    {space.id !== "space-global" && (
-                      <span className="text-[10px] text-muted-foreground">{space.memberCount}</span>
-                    )}
-                  </div>
+                  <SpaceMembersTooltip spaceId={space.id} memberCount={space.memberCount}>
+                    <div className="flex items-center gap-2 pr-8">
+                      {space.id === "space-global" ? (
+                        <Globe className="h-3 w-3 text-primary" />
+                      ) : space.isPrivate ? (
+                        <Lock className="h-3 w-3 text-foreground" />
+                      ) : (
+                        <Users className="h-3 w-3 text-muted-foreground" />
+                      )}
+                      {space.id !== "space-global" && (
+                        <span className="text-[10px] text-muted-foreground">
+                          {space.memberCount}
+                        </span>
+                      )}
+                    </div>
+                  </SpaceMembersTooltip>
                 </div>
               </button>
 
@@ -80,7 +85,7 @@ export function Sidebar() {
                       leaveSpace(space.id);
                     }
                   }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all opacity-100"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all opacity-100"
                   title="Leave space"
                 >
                   <LogOut className="h-3 w-3" />
