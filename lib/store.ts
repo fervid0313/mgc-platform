@@ -176,7 +176,9 @@ export const useAppStore = create<AppState>()((set, get) => ({
               .or(`owner_id.eq.${session.user.id},is_private.eq.false`)
 
             if (spaces) {
-              const mappedSpaces = spaces.map((s: any) => ({
+              // Filter out any database Global Feed spaces to avoid duplicates
+              const filteredSpaces = spaces.filter((s: any) => s.name !== 'Global Feed')
+              const mappedSpaces = filteredSpaces.map((s: any) => ({
                 id: s.id,
                 name: s.name,
                 description: s.description,
