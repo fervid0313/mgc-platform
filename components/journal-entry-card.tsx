@@ -143,24 +143,31 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
 
         {entry.image && (
           <div
-            className="relative rounded-xl overflow-hidden border border-border cursor-pointer hover:border-primary/50 transition-colors"
+            className="relative rounded-xl overflow-hidden border border-border cursor-pointer hover:border-primary/50 transition-all duration-300 group"
             onClick={() => setShowLightbox(true)}
           >
-            <Image
-              src={entry.image || "/placeholder.svg"}
-              alt="Trade proof"
-              width={400}
-              height={300}
-              className="max-h-64 w-full object-contain bg-black/20"
-            />
-            <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center">
-              <span className="text-[10px] font-bold text-white/0 hover:text-white/80 uppercase tracking-widest">
-                Click to expand
-              </span>
+            <div className="relative aspect-video bg-gradient-to-br from-muted/20 to-muted/10">
+              <Image
+                src={entry.image}
+                alt="Trade proof"
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                placeholder="blur"
+                blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAAAX/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwA/8A8A"
+              />
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="absolute top-2 right-2 bg-black/50 backdrop-blur-sm rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0h-3" />
+              </svg>
+            </div>
+            <div className="absolute bottom-2 left-2 bg-black/50 backdrop-blur-sm rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-all duration-300">
+              <span className="text-[10px] font-medium text-white">Click to expand</span>
             </div>
           </div>
         )}
-
         <div className="flex items-center justify-between pt-2">
           <div className="flex flex-wrap gap-2">
             {entry.tags.map((tag) => (
@@ -175,10 +182,14 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
 
           {entry.profitLoss !== undefined && (
             <div
-              className={`flex items-center gap-1 text-sm font-bold ${entry.profitLoss >= 0 ? "text-green-500" : "text-red-500"}`}
+              className={`flex items-center gap-1 text-sm font-bold px-3 py-1.5 rounded-lg ${
+                entry.profitLoss >= 0 
+                  ? "bg-green-500/10 text-green-500 border border-green-500/20" 
+                  : "bg-red-500/10 text-red-500 border border-red-500/20"
+              }`}
             >
               {entry.profitLoss >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-              <span>
+              <span className="font-mono">
                 {entry.profitLoss >= 0 ? "+" : ""}${Math.abs(entry.profitLoss).toLocaleString()}
               </span>
             </div>
@@ -254,23 +265,47 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
 
       {showLightbox && entry.image && (
         <div
-          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 cursor-pointer animate-in fade-in duration-200"
+          className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 cursor-pointer animate-in fade-in duration-200"
           onClick={() => setShowLightbox(false)}
         >
-          <div className="relative max-w-4xl max-h-[90vh]">
-            <Image
-              src={entry.image || "/placeholder.svg"}
-              alt="Trade proof - full size"
-              width={1200}
-              height={800}
-              className="max-h-[90vh] w-auto object-contain rounded-xl"
-            />
-            <button
-              onClick={() => setShowLightbox(false)}
-              className="absolute top-4 right-4 text-white/80 hover:text-white bg-black/50 rounded-full p-2 transition-colors icon-glow"
-            >
-              <span className="text-xs font-bold">ESC</span>
-            </button>
+          <div className="relative max-w-6xl max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-black/20 backdrop-blur-sm rounded-2xl p-1">
+              <Image
+                src={entry.image}
+                alt="Trade proof - full size"
+                width={1200}
+                height={800}
+                className="max-h-[90vh] w-auto object-contain rounded-xl"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 60vw"
+                priority
+              />
+            </div>
+            <div className="absolute top-4 right-4 flex gap-2">
+              <button
+                onClick={() => setShowLightbox(false)}
+                className="bg-black/50 backdrop-blur-sm text-white/80 hover:text-white rounded-full p-3 transition-all duration-200 hover:scale-110"
+                title="Close (ESC)"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  window.open(entry.image, '_blank')
+                }}
+                className="bg-black/50 backdrop-blur-sm text-white/80 hover:text-white rounded-full p-3 transition-all duration-200 hover:scale-110"
+                title="Open in new tab"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6V4a2 2 0 00-2-2h-6m6 0V10a2 2 0 002 2h-2m-2-6h4" />
+                </svg>
+              </button>
+            </div>
+            <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2">
+              <p className="text-xs text-white/80">Press ESC to close • Click outside to dismiss</p>
+            </div>
           </div>
         </div>
       )}
