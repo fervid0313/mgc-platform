@@ -45,7 +45,7 @@ export function DirectMessageChat({ friend, onClose }: DirectMessageChatProps) {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 w-80 h-96 glass rounded-2xl border border-border shadow-2xl z-50 flex flex-col">
+    <div className="fixed bottom-4 right-4 w-80 h-96 glass-chat rounded-2xl border border-border shadow-2xl z-50 flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center gap-3">

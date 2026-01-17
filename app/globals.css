@@ -125,6 +125,12 @@
     border: 1px solid rgba(var(--theme-accent-rgb), 0.1);
   }
 
+  .glass-chat {
+    background: rgba(10, 10, 10, 0.9);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(var(--theme-accent-rgb), 0.2);
+  }
+
   /* Icon glow effect on hover */
   .icon-glow {
     transition: all 0.2s ease;
