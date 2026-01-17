@@ -458,7 +458,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     mentalState?: MentalState,
   ) => {
     const { currentSpaceId, user, entries } = get()
-    if (!currentSpaceId || !user) return
+    if (!currentSpaceId || !user || !user.id) {
+      console.error("[ENTRY] 🚨 MISSING REQUIRED DATA:", { 
+        hasCurrentSpaceId: !!currentSpaceId, 
+        hasUser: !!user, 
+        hasUserId: !!user?.id 
+      })
+      return
+    }
 
     const optimisticId = `optimistic-${Date.now()}`
     const optimisticEntry: JournalEntry = {
@@ -488,30 +495,25 @@ export const useAppStore = create<AppState>((set, get) => ({
       ? "00000000-0000-0000-0000-000000000001" 
       : currentSpaceId
 
-    console.log("[ENTRY] Adding entry to space:", currentSpaceId, "→", actualSpaceId)
+    const insertData = {
+      space_id: actualSpaceId,
+      content,
+      tags: tags || [],
+      trade_type: tradeType,
+      profit_loss: profitLoss,
+      image,
+      mental_state: mentalState,
+      user_id: user.id,
+    }
 
     const { data, error } = await supabase
       .from("entries")
-      .insert({
-        space_id: actualSpaceId,
-        content,
-        tags,
-        trade_type: tradeType,
-        profit_loss: profitLoss,
-        image,
-        mental_state: mentalState,
-      })
+      .insert(insertData)
       .select()
       .single()
 
     if (error || !data) {
       console.error("[ENTRY] Add error:", error)
-      console.error("[ENTRY] Error details:", {
-        code: error?.code,
-        message: error?.message,
-        details: error?.details,
-        hint: error?.hint
-      })
       // Remove optimistic entry
       set((state) => ({
         entries: {
@@ -586,57 +588,24 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     console.log("[ENTRY] Loading entries for:", spaceId, "→", actualSpaceId)
 
-    // For Global Feed, use a simpler approach that bypasses RLS issues
-    if (spaceId === "space-global") {
-      try {
-        // Try to get entries without space filter first (more permissive)
-        const { data: allEntries, error: allError } = await supabase
-          .from("entries")
-          .select("id, space_id, user_id, username, content, tags, trade_type, profit_loss, pnl, image, mental_state, created_at")
-          .order("created_at", { ascending: false })
-          .limit(50)
-
-        if (!allError && allEntries) {
-          // Filter for Global Feed entries
-          const globalFeedEntries = allEntries.filter(e => e.space_id === actualSpaceId)
-          
-          const mappedEntries = globalFeedEntries.map((e: any) => ({
-            id: e.id,
-            spaceId,
-            userId: e.user_id,
-            username: e.username || "Unknown",
-            content: e.content,
-            tags: e.tags || [],
-            tradeType: e.trade_type,
-            profitLoss: e.profit_loss ?? e.pnl ?? undefined,
-            image: e.image,
-            mentalState: e.mental_state,
-            createdAt: new Date(e.created_at),
-          }))
-
-          console.log("[ENTRY] ✅ Loaded", mappedEntries.length, "Global Feed entries")
-          set({
-            entries: { ...entries, [spaceId]: mappedEntries },
-            lastLoadedEntriesAt: { ...lastLoadedEntriesAt, [spaceId]: Date.now() },
-          })
-          return
-        }
-      } catch (err) {
-        console.log("[ENTRY] ⚠️ Global Feed approach failed:", err)
-      }
-    }
-
-    // Standard approach for other spaces
     try {
-      const { data: entriesData, error: entriesError } = await supabase
+      // Test with minimal columns first
+      console.log("[ENTRY] Testing with minimal columns...")
+      const { data: testData, error: testError } = await supabase
         .from("entries")
-        .select("id, space_id, user_id, username, content, tags, trade_type, profit_loss, pnl, image, mental_state, created_at")
+        .select("id, space_id, user_id, content, created_at")
         .eq("space_id", actualSpaceId)
         .order("created_at", { ascending: false })
-        .limit(50)
+        .limit(10)
 
-      if (entriesError) {
-        console.log("[ENTRY] ❌ Query failed:", entriesError.message)
+      console.log("[ENTRY] Test result:", { 
+        count: testData?.length || 0, 
+        error: testError,
+        errorMessage: testError?.message
+      })
+
+      if (testError) {
+        console.error("[ENTRY] ❌ Even minimal query failed:", testError.message)
         set({
           entries: { ...entries, [spaceId]: [] },
           lastLoadedEntriesAt: { ...lastLoadedEntriesAt, [spaceId]: Date.now() },
@@ -644,21 +613,22 @@ export const useAppStore = create<AppState>((set, get) => ({
         return
       }
 
-      const mappedEntries = (entriesData || []).map((e: any) => ({
+      // If minimal query works, use it
+      const mappedEntries = (testData || []).map((e: any) => ({
         id: e.id,
         spaceId,
         userId: e.user_id,
-        username: e.username || "Unknown",
+        username: "Unknown",
         content: e.content,
-        tags: e.tags || [],
-        tradeType: e.trade_type,
-        profitLoss: e.profit_loss ?? e.pnl ?? undefined,
-        image: e.image,
-        mentalState: e.mental_state,
+        tags: [],
+        tradeType: "general" as any,
+        profitLoss: undefined,
+        image: undefined,
+        mentalState: undefined,
         createdAt: new Date(e.created_at),
       }))
 
-      console.log("[ENTRY] ✅ Loaded", mappedEntries.length, "entries for", spaceId)
+      console.log("[ENTRY] ✅ Loaded", mappedEntries.length, "entries (minimal)")
       set({
         entries: { ...entries, [spaceId]: mappedEntries },
         lastLoadedEntriesAt: { ...lastLoadedEntriesAt, [spaceId]: Date.now() },
