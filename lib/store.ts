@@ -899,6 +899,13 @@ const store = create<AppState>()((set, get) => ({
     const { user } = get()
     if (!user) return
 
+    // 🚨🚨🚨 TEMPORARY TEST: DISABLE ALL DATABASE LOADS
+    const DISABLE_DB_LOADS = true
+    if (DISABLE_DB_LOADS) {
+      console.log("[TEST] 🚨🚨🚨 DATABASE LOADS DISABLED - Testing friend removal without DB interference")
+      return // Skip all database operations to test if friend removal works
+    }
+
     // Environment-specific localStorage keys
     const env = process.env.NODE_ENV || 'development'
     const cacheKey = `mgs_${env}_connections_${user.id}`
