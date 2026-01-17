@@ -727,6 +727,7 @@ const store = create<AppState>()((set, get) => ({
       mental_state: mentalState,
     })
 
+    console.log("[DEBUG] Making Supabase entries insert call...")
     const { data, error } = await supabase
       .from("entries")
       .insert({
