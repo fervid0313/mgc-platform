@@ -98,10 +98,10 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
           <div className="flex items-center gap-3 flex-wrap">
             {isGlobal && authorProfile && (
               <div className="w-8 h-8 rounded-full bg-muted overflow-hidden">
-                {authorProfile.avatar ? (
+                {authorProfile?.avatar ? (
                   <Image
                     src={authorProfile.avatar || "/placeholder.svg"}
-                    alt={entry.username}
+                    alt={entry.username || "Entry"}
                     width={32}
                     height={32}
                     className="object-cover"
@@ -223,7 +223,7 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
                       {comment.avatar ? (
                         <Image
                           src={comment.avatar || "/placeholder.svg"}
-                          alt={comment.username}
+                          alt={comment.username || "Comment"}
                           width={24}
                           height={24}
                           className="rounded-full object-cover"
