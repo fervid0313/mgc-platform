@@ -885,36 +885,47 @@ const store = create<AppState>()((set, get) => ({
     const env = process.env.NODE_ENV || 'development'
     const cacheKey = `mgs_${env}_connections_${user.id}`
 
-    // 🚨 ABSOLUTE PRIORITY SYSTEM: Check for friend removal lock (prevents ALL database loads)
+    // 🚨🚨🚨 ABSOLUTE PRIORITY: Check for friend removal lock FIRST (blocks ALL database loads)
     const friendRemovalLockKey = `mgs_${env}_friend_removal_lock_${user.id}`
+    console.log("[v3] Checking for friend removal lock:", friendRemovalLockKey)
+
     const removalLock = localStorage.getItem(friendRemovalLockKey)
+    console.log("[v3] Lock data from localStorage:", removalLock)
 
     if (removalLock) {
       try {
         const lockData = JSON.parse(removalLock)
+        console.log("[v3] Parsed lock data:", lockData)
+
         const lockAge = Date.now() - lockData.timestamp
         const isLockActive = lockAge < 120000 // 2 minutes
+        console.log("[v3] Lock age:", lockAge, "ms, Is active:", isLockActive)
 
         if (isLockActive) {
-          console.log("[v2] 🚨🚨 FRIEND REMOVAL LOCK ACTIVE - BLOCKING DATABASE LOAD")
-          console.log("[v2] Lock age:", lockAge, "ms, Friend removed:", lockData.friendId)
-          console.log("[v2] Using cached connections to prevent reappearance")
+          console.log("[v3] 🚨🚨🚨 FRIEND REMOVAL LOCK ACTIVE - BLOCKING ALL DATABASE LOADS")
+          console.log("[v3] 🚨🚨🚨 Friend removed:", lockData.friendId, "Lock version:", lockData.lockVersion)
+          console.log("[v3] 🚨🚨🚨 Using cached connections - friend will stay removed")
 
-          // Use the cached data from the lock
+          // Use the cached data - this is ABSOLUTE PRIORITY
           const cachedData = localStorage.getItem(cacheKey)
           if (cachedData) {
             const parsed = JSON.parse(cachedData)
+            console.log("[v3] 🚨🚨🚨 Setting connections from cache:", parsed.connections)
             set({ connections: parsed.connections })
+          } else {
+            console.warn("[v3] 🚨🚨🚨 No cached data found, but lock exists - using current state")
           }
-          return
+          return // ABSOLUTE BLOCK - no database load allowed
         } else {
-          console.log("[v2] Friend removal lock expired, clearing it")
+          console.log("[v3] Friend removal lock expired, clearing it")
           localStorage.removeItem(friendRemovalLockKey)
         }
       } catch (error) {
-        console.warn("[v2] Failed to parse removal lock:", error)
+        console.warn("[v3] 🚨🚨🚨 Failed to parse removal lock, clearing it:", error)
         localStorage.removeItem(friendRemovalLockKey)
       }
+    } else {
+      console.log("[v3] No friend removal lock found - proceeding with normal logic")
     }
 
     // PRIORITY SYSTEM: Always check for recent local changes first (within last 2 minutes)
@@ -1259,17 +1270,32 @@ const store = create<AppState>()((set, get) => ({
     // Update Zustand state immediately
     set({ connections: updatedConnections })
 
-    // 🚨🚨 ABSOLUTE LOCK: Create friend removal lock to block ALL database loads
+    // 🚨🚨🚨 ABSOLUTE LOCK: Create friend removal lock FIRST - before any other operations
     const env = process.env.NODE_ENV || 'development'
     const friendRemovalLockKey = `mgs_${env}_friend_removal_lock_${user.id}`
     const removalLockData = {
       timestamp: Date.now(),
       friendId: friendId,
       action: 'friend_removed',
-      expiresAt: Date.now() + 120000 // 2 minutes from now
+      expiresAt: Date.now() + 120000, // 2 minutes from now
+      userId: user.id,
+      lockVersion: 'v3_final'
     }
-    localStorage.setItem(friendRemovalLockKey, JSON.stringify(removalLockData))
-    console.log("[v2] 🚨🚨 FRIEND REMOVAL LOCK CREATED - Database loads blocked for 2 minutes")
+
+    try {
+      localStorage.setItem(friendRemovalLockKey, JSON.stringify(removalLockData))
+      console.log("[v3] 🚨🚨🚨 FRIEND REMOVAL LOCK CREATED:", removalLockData)
+
+      // Verify lock was created
+      const verifyLock = localStorage.getItem(friendRemovalLockKey)
+      if (!verifyLock) {
+        throw new Error("Lock creation failed - localStorage.setItem returned null")
+      }
+      console.log("[v3] 🚨🚨🚨 LOCK VERIFIED - Database loads blocked for 2 minutes")
+    } catch (error) {
+      console.error("[v3] 🚨🚨🚨 CRITICAL: FAILED TO CREATE FRIEND REMOVAL LOCK:", error)
+      // Continue anyway, but this is bad
+    }
 
     // CRITICAL: Update localStorage with PRIORITY FLAG to prevent database override
     const cacheKey = `mgs_${env}_connections_${user.id}`
@@ -1724,31 +1750,37 @@ const store = create<AppState>()((set, get) => ({
     console.log("Environment:", env)
     console.log("Cache key:", cacheKey)
 
-    // 🚨🚨 Check for friend removal lock
+    // 🚨🚨🚨 Check for friend removal lock
     const friendRemovalLockKey = `mgs_${env}_friend_removal_lock_${user.id}`
+    console.log("🚨🚨🚨 Checking friend removal lock key:", friendRemovalLockKey)
+
     const removalLock = localStorage.getItem(friendRemovalLockKey)
+    console.log("🚨🚨🚨 Raw lock data from localStorage:", removalLock)
 
     if (removalLock) {
       try {
         const lockData = JSON.parse(removalLock)
         const lockAge = Date.now() - lockData.timestamp
         const isActive = lockAge < 120000
-        console.log("🚨🚨 FRIEND REMOVAL LOCK STATUS:")
+        console.log("🚨🚨🚨 FRIEND REMOVAL LOCK STATUS:")
         console.log("  - Lock exists:", true)
         console.log("  - Lock active:", isActive)
         console.log("  - Lock age:", lockAge, "ms")
         console.log("  - Friend ID:", lockData.friendId)
+        console.log("  - Lock version:", lockData.lockVersion)
         console.log("  - Expires at:", new Date(lockData.expiresAt))
+        console.log("  - User ID:", lockData.userId)
         if (isActive) {
-          console.log("  - STATUS: Database loads BLOCKED ✅")
+          console.log("  - STATUS: 🚨🚨🚨 DATABASE LOADS BLOCKED - FRIEND WILL STAY REMOVED ✅")
         } else {
-          console.log("  - STATUS: Lock expired, will be cleared on next load")
+          console.log("  - STATUS: Lock expired, will be cleared on next loadConnections")
         }
       } catch (error) {
         console.error("❌ Failed to parse removal lock:", error)
       }
     } else {
-      console.log("🚨🚨 No friend removal lock found")
+      console.log("🚨🚨🚨 No friend removal lock found - THIS IS WHY FRIENDS REAPPEAR!")
+      console.log("🚨🚨🚨 Lock should be created when removeFriend() is called")
     }
 
     if (cachedData) {
