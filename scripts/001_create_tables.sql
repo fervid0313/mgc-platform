@@ -96,6 +96,15 @@ CREATE TABLE IF NOT EXISTS public.chat_messages (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create direct_messages table for friend-to-friend chat
+CREATE TABLE IF NOT EXISTS public.direct_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sender_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  receiver_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Enable RLS on all tables
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.friend_requests ENABLE ROW LEVEL SECURITY;
@@ -106,6 +115,7 @@ ALTER TABLE public.entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.likes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.direct_messages ENABLE ROW LEVEL SECURITY;
 
 -- Profiles policies
 CREATE POLICY "profiles_select_all" ON public.profiles FOR SELECT USING (true);
@@ -173,6 +183,12 @@ CREATE POLICY "chat_messages_select" ON public.chat_messages FOR SELECT USING (
   space_id IN (SELECT space_id FROM public.space_members WHERE user_id = auth.uid())
 );
 CREATE POLICY "chat_messages_insert_own" ON public.chat_messages FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "direct_messages_select" ON public.direct_messages FOR SELECT USING (
+  auth.uid() = sender_id OR auth.uid() = receiver_id
+);
+CREATE POLICY "direct_messages_insert_own" ON public.direct_messages FOR INSERT WITH CHECK (auth.uid() = sender_id);
+CREATE POLICY "direct_messages_delete_own" ON public.direct_messages FOR DELETE USING (auth.uid() = sender_id);
 
 -- Insert default public spaces (Global Feed and public groups)
 INSERT INTO public.spaces (id, name, description, icon, is_private, is_public_group) VALUES

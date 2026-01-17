@@ -75,6 +75,16 @@ export interface ChatMessage {
   createdAt: Date
 }
 
+export interface DirectMessage {
+  id: string
+  senderId: string
+  receiverId: string
+  content: string
+  createdAt: Date
+  senderUsername?: string
+  receiverUsername?: string
+}
+
 export interface UserProfile {
   id: string
   username: string

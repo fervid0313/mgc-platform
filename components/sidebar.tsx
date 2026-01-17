@@ -80,7 +80,7 @@ export function Sidebar() {
                       leaveSpace(space.id);
                     }
                   }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-400 transition-all lg:opacity-100 lg:group-hover:opacity-100"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all opacity-100"
                   title="Leave space"
                 >
                   <LogOut className="h-3 w-3" />

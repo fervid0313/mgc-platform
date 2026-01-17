@@ -13,6 +13,7 @@ import type {
   FriendRequest,
   Comment,
   Like,
+  DirectMessage,
 } from "./types"
 import {
   calculateCollectiveVibe,
@@ -102,6 +103,12 @@ interface AppState {
   sendFriendRequest: (usernameWithTag: string) => Promise<{ success: boolean; error?: string }>
   acceptFriendRequest: (requestId: string) => Promise<void>
   rejectFriendRequest: (requestId: string) => Promise<void>
+  removeFriend: (friendId: string) => Promise<void>
+
+  // Direct Messages
+  sendDirectMessage: (friendId: string, content: string) => Promise<void>
+  loadDirectMessages: (friendId: string) => Promise<void>
+  directMessages: Record<string, DirectMessage[]>
   loadFriendRequests: () => Promise<void>
   getIncomingRequests: () => FriendRequest[]
   getOutgoingRequests: () => FriendRequest[]
@@ -980,6 +987,109 @@ export const useAppStore = create<AppState>()((set, get) => ({
 
     set({
       friendRequests: friendRequests.filter((r) => r.id !== requestId),
+    })
+  },
+
+  removeFriend: async (friendId: string) => {
+    const { user, connections } = get()
+    if (!user) return
+
+    const supabase = createClient()
+
+    // Remove the connection from database (works for both directions due to table structure)
+    const { error } = await supabase
+      .from("connections")
+      .delete()
+      .or(`and(user_id.eq.${user.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${user.id})`)
+
+    if (error) {
+      console.error("[v0] Remove friend error:", error)
+      return
+    }
+
+    // Update local state
+    set({
+      connections: connections.filter(id => id !== friendId)
+    })
+
+    console.log("[v0] Friend removed successfully")
+  },
+
+  directMessages: {},
+
+  sendDirectMessage: async (friendId: string, content: string) => {
+    const { user, directMessages } = get()
+    if (!user || !content.trim()) return
+
+    const supabase = createClient()
+
+    const { data, error } = await supabase
+      .from("direct_messages")
+      .insert({
+        sender_id: user.id,
+        receiver_id: friendId,
+        content: content.trim(),
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error("[v0] Send DM error:", error)
+      return
+    }
+
+    const newMessage: DirectMessage = {
+      id: data.id,
+      senderId: data.sender_id,
+      receiverId: data.receiver_id,
+      content: data.content,
+      createdAt: new Date(data.created_at),
+    }
+
+    // Add to local state
+    const conversationKey = [user.id, friendId].sort().join('-')
+    const existingMessages = directMessages[conversationKey] || []
+
+    set({
+      directMessages: {
+        ...directMessages,
+        [conversationKey]: [...existingMessages, newMessage]
+      }
+    })
+  },
+
+  loadDirectMessages: async (friendId: string) => {
+    const { user, directMessages } = get()
+    if (!user) return
+
+    const supabase = createClient()
+
+    const { data, error } = await supabase
+      .from("direct_messages")
+      .select("*")
+      .or(`and(sender_id.eq.${user.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${user.id})`)
+      .order("created_at", { ascending: true })
+
+    if (error) {
+      console.error("[v0] Load DMs error:", error)
+      return
+    }
+
+    const messages = data.map((msg: any) => ({
+      id: msg.id,
+      senderId: msg.sender_id,
+      receiverId: msg.receiver_id,
+      content: msg.content,
+      createdAt: new Date(msg.created_at),
+    }))
+
+    const conversationKey = [user.id, friendId].sort().join('-')
+
+    set({
+      directMessages: {
+        ...directMessages,
+        [conversationKey]: messages
+      }
     })
   },
 

@@ -2,9 +2,10 @@
 
 import { useAppStore } from "@/lib/store"
 import type { UserProfile } from "@/lib/types"
-import { UserPlus, Check, MessageCircle, Twitter, Hash, Copy } from "lucide-react"
+import { UserPlus, UserMinus, Check, MessageCircle, Twitter, Hash, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
+import { DirectMessageChat } from "./direct-message-chat"
 
 interface UserProfileCardProps {
   profile: UserProfile
@@ -19,11 +20,12 @@ const tradingStyleLabels = {
 }
 
 export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
-  const { connections, sendFriendRequest, user } = useAppStore()
+  const { connections, sendFriendRequest, removeFriend, user } = useAppStore()
   const isConnected = connections.includes(profile.id)
   const isOwnProfile = user?.id === profile.id
   const [copied, setCopied] = useState(false)
   const [requestSent, setRequestSent] = useState(false)
+  const [showDMChat, setShowDMChat] = useState(false)
 
   const copyTag = () => {
     navigator.clipboard.writeText(`${profile.username}#${profile.tag}`)
@@ -122,10 +124,34 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
       {!isOwnProfile && (
         <div className="flex flex-col sm:flex-row gap-2">
           {isConnected ? (
-            <Button variant="secondary" className="flex-1 min-h-[44px]" disabled>
-              <Check className="h-4 w-4 mr-2" />
-              Connected
-            </Button>
+            <>
+              <Button variant="secondary" className="flex-1 min-h-[44px]" disabled>
+                <Check className="h-4 w-4 mr-2" />
+                Connected
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="min-h-[44px] min-w-[44px]"
+                onClick={() => {
+                  if (confirm(`Remove ${profile.username} from friends?`)) {
+                    removeFriend(profile.id)
+                    onClose?.()
+                  }
+                }}
+                title="Remove friend"
+              >
+                <UserMinus className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="min-h-[44px] min-w-[44px]"
+                onClick={() => setShowDMChat(true)}
+              >
+                <MessageCircle className="h-4 w-4" />
+              </Button>
+            </>
           ) : requestSent ? (
             <Button variant="secondary" className="flex-1 min-h-[44px]" disabled>
               <Check className="h-4 w-4 mr-2" />
@@ -135,11 +161,6 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
             <Button onClick={handleSendRequest} className="flex-1 min-h-[44px]">
               <UserPlus className="h-4 w-4 mr-2" />
               Add Friend
-            </Button>
-          )}
-          {isConnected && (
-            <Button variant="outline" size="icon" className="min-h-[44px] min-w-[44px]">
-              <MessageCircle className="h-4 w-4" />
             </Button>
           )}
         </div>
@@ -152,6 +173,14 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
         >
           &times;
         </button>
+      )}
+
+      {/* DM Chat */}
+      {showDMChat && (
+        <DirectMessageChat
+          friend={profile}
+          onClose={() => setShowDMChat(false)}
+        />
       )}
     </div>
   )
