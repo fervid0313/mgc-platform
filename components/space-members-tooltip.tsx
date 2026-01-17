@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { useAppStore } from "@/lib/store"
+import { getAvatarUrl } from "@/lib/avatar-generator"
 import { Users } from "lucide-react"
 import type { UserProfile } from "@/lib/types"
 
@@ -59,8 +60,12 @@ export function SpaceMembersTooltip({ spaceId, memberCount, children }: SpaceMem
               <div className="space-y-1">
                 {members && members.slice(0, 10).map((member) => (
                   <div key={member.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-secondary/50">
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-xs font-bold">
-                      ?
+                    <div className="w-6 h-6 rounded-full overflow-hidden">
+                      <img
+                        src={getAvatarUrl(member.username || "user", member.avatar, 24)}
+                        alt={member.username || "Member"}
+                        className="w-full h-full rounded-full object-cover"
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium truncate">{member.username || "Unknown"}</p>

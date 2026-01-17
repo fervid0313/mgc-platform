@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAppStore } from "@/lib/store"
+import { getAvatarUrl } from "@/lib/avatar-generator"
 import { UserProfileCard } from "./user-profile-card"
 import { Users, Search, Shield } from "lucide-react"
 import type { UserProfile } from "@/lib/types"
@@ -139,8 +140,12 @@ export function CommunityProfiles() {
                 setSelectedProfile(profile)
               }} className="flex items-center gap-3 flex-1 text-left">
                 <div className="relative">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-sm font-bold">
-                    ?
+                  <div className="w-10 h-10 rounded-full overflow-hidden">
+                    <img
+                      src={getAvatarUrl(profile.username || "user", profile.avatar, 40)}
+                      alt={profile?.username || "Profile"}
+                      className="w-full h-full rounded-full object-cover"
+                    />
                   </div>
                   {profile.isOnline && (
                     <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background" />

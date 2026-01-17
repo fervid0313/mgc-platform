@@ -3,6 +3,7 @@
 import type React from "react"
 import type { JournalEntry } from "@/lib/types"
 import { useAppStore } from "@/lib/store"
+import { getAvatarUrl } from "@/lib/avatar-generator"
 import {
   TrendingUp,
   TrendingDown,
@@ -97,20 +98,14 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-3 flex-wrap">
             {isGlobal && authorProfile && (
-              <div className="w-8 h-8 rounded-full bg-muted overflow-hidden">
-                {authorProfile?.avatar ? (
-                  <Image
-                    src={authorProfile.avatar || "/placeholder.svg"}
-                    alt={entry.username || "Entry"}
-                    width={32}
-                    height={32}
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-xs font-bold text-muted-foreground">
-                    ?
-                  </div>
-                )}
+              <div className="w-8 h-8 rounded-full overflow-hidden">
+                <img
+                  src={getAvatarUrl(entry.username || "user", authorProfile?.avatar, 32)}
+                  alt={entry.username || "Entry"}
+                  width={32}
+                  height={32}
+                  className="object-cover"
+                />
               </div>
             )}
             <span className="text-[10px] font-black text-primary uppercase tracking-widest">@{entry.username || "unknown"}</span>
@@ -219,20 +214,14 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {comments.map((comment) => (
                   <div key={comment.id} className="flex gap-2 text-xs">
-                    <div className="w-6 h-6 rounded-full bg-muted flex-shrink-0 flex items-center justify-center">
-                      {comment.avatar ? (
-                        <Image
-                          src={comment.avatar || "/placeholder.svg"}
-                          alt={comment.username || "Comment"}
-                          width={24}
-                          height={24}
-                          className="rounded-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-[10px] font-bold text-muted-foreground">
-                          ?
-                        </span>
-                      )}
+                    <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0">
+                      <img
+                        src={getAvatarUrl(comment.username || "user", comment.avatar, 24)}
+                        alt={comment.username || "Comment"}
+                        width={24}
+                        height={24}
+                        className="rounded-full object-cover"
+                      />
                     </div>
                     <div className="flex-1">
                       <span className="font-bold text-primary">@{comment.username || "unknown"}</span>

@@ -2,6 +2,7 @@
 
 import { useAppStore } from "@/lib/store"
 import type { UserProfile } from "@/lib/types"
+import { getAvatarUrl } from "@/lib/avatar-generator"
 import { Twitter, Hash, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
@@ -37,15 +38,11 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
       <div className="flex items-start gap-4 mb-4">
         <div className="relative">
           <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-2xl font-bold">
-            {profile.avatar ? (
-              <img
-                src={profile.avatar || "/placeholder.svg"}
-                alt={profile?.username || "Profile"}
-                className="w-full h-full rounded-full object-cover"
-              />
-            ) : (
-              <span>?</span>
-            )}
+            <img
+              src={getAvatarUrl(profile.username || "user", profile.avatar, 64)}
+              alt={profile?.username || "Profile"}
+              className="w-full h-full rounded-full object-cover"
+            />
           </div>
           {profile.isOnline && (
             <span className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-background" />
