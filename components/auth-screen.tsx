@@ -26,14 +26,22 @@ export function AuthScreen() {
     try {
       let success: boolean
       if (isLogin) {
+        console.log("[AuthScreen] Attempting login with email:", email)
         success = await login(email, password)
         if (!success) {
           setError("Invalid email or password. Please try again or create an account.")
+          console.error("[AuthScreen] Login failed for email:", email)
+        } else {
+          console.log("[AuthScreen] Login successful for email:", email)
         }
       } else {
+        console.log("[AuthScreen] Attempting signup with email:", email, "username:", username)
         success = await signup(email, password, username)
         if (!success) {
           setError("Email already exists or invalid details. Please try again.")
+          console.error("[AuthScreen] Signup failed for email:", email)
+        } else {
+          console.log("[AuthScreen] Signup successful for email:", email)
         }
       }
     } catch {

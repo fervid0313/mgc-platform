@@ -286,22 +286,28 @@ const store = create<AppState>()((set, get) => ({
   },
 
   login: async (email: string, password: string) => {
+    console.log("[DEBUG] Attempting login for email:", email)
     const supabase = createClient()
 
     try {
+      console.log("[DEBUG] Calling supabase.auth.signInWithPassword...")
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
+      console.log("[DEBUG] Supabase signInWithPassword response:", { data, error })
 
       if (error) {
         console.error("[v0] Login error:", error)
+        console.error("[v0] Login error details:", JSON.stringify(error, null, 2))
         return false
       }
 
       if (data.user) {
+        console.log("[DEBUG] User authenticated, fetching profile...")
         // Fetch profile
         const { data: profile } = await supabase.from("profiles").select("*").eq("id", data.user.id).single()
+        console.log("[DEBUG] Profile fetch response:", { profile })
 
         if (profile) {
           const user: User = {
