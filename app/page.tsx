@@ -1,0 +1,75 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { useAppStore } from "@/lib/store"
+import { Sidebar } from "@/components/sidebar"
+import { Navbar } from "@/components/navbar"
+import { JournalFeed } from "@/components/journal-feed"
+import { EntryComposer } from "@/components/entry-composer"
+import { AuthScreen } from "@/components/auth-screen"
+import { SpaceChat } from "@/components/space-chat"
+import { CommunityProfiles } from "@/components/community-profiles"
+import { ViewToggle } from "@/components/view-toggle"
+import { Loader2 } from "lucide-react"
+
+export default function Home() {
+  const { isAuthenticated, isLoading, initializeAuth, sidebarOpen, viewMode, spaces, currentSpaceId, loadEntries } =
+    useAppStore()
+  const [showCommunity, setShowCommunity] = useState(false)
+
+  const currentSpace = spaces.find((s) => s.id === currentSpaceId)
+  const isPrivate = currentSpace?.isPrivate
+
+  useEffect(() => {
+    initializeAuth()
+  }, [initializeAuth])
+
+  useEffect(() => {
+    if (isAuthenticated && currentSpaceId) {
+      loadEntries(currentSpaceId)
+    }
+  }, [isAuthenticated, currentSpaceId, loadEntries])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <AuthScreen />
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col relative">
+      <div className="flex flex-1">
+        <Sidebar />
+
+        <div className={`flex-1 flex flex-col transition-all duration-400 ${sidebarOpen ? "lg:ml-0" : ""}`}>
+          <Navbar />
+
+          <main className="flex-1 max-w-2xl mx-auto w-full px-5 pt-8 pb-32">
+            <ViewToggle showCommunity={showCommunity} onToggleCommunity={() => setShowCommunity(!showCommunity)} />
+
+            {showCommunity ? (
+              <CommunityProfiles />
+            ) : viewMode === "chat" && isPrivate ? (
+              <SpaceChat />
+            ) : (
+              <>
+                <EntryComposer />
+                <JournalFeed />
+              </>
+            )}
+          </main>
+        </div>
+      </div>
+
+      <div className="fixed bottom-10 right-6 lg:right-10">
+        <span className="text-xs italic text-muted-foreground/50">Matthew 6:33</span>
+      </div>
+    </div>
+  )
+}
