@@ -433,8 +433,15 @@ export const useAppStore = create<AppState>()((set, get) => ({
   },
 
   logout: async () => {
+    const { user } = get()
+
     const supabase = createClient()
     await supabase.auth.signOut()
+
+    // Clear localStorage data for this user
+    if (user) {
+      localStorage.removeItem(`mgs_connections_${user.id}`)
+    }
 
     set({
       user: null,
@@ -815,6 +822,17 @@ export const useAppStore = create<AppState>()((set, get) => ({
     const { user } = get()
     if (!user) return
 
+    // First, try to load from localStorage for immediate UI update
+    const cachedConnections = localStorage.getItem(`mgs_connections_${user.id}`)
+    if (cachedConnections) {
+      try {
+        const parsedConnections = JSON.parse(cachedConnections)
+        set({ connections: parsedConnections })
+      } catch (error) {
+        console.warn("[v0] Failed to parse cached connections:", error)
+      }
+    }
+
     const supabase = createClient()
 
     const { data, error } = await supabase
@@ -828,6 +846,9 @@ export const useAppStore = create<AppState>()((set, get) => ({
     }
 
     const connections = data.map((c: any) => (c.user_id === user.id ? c.friend_id : c.user_id))
+
+    // Save to localStorage for persistence
+    localStorage.setItem(`mgs_connections_${user.id}`, JSON.stringify(connections))
 
     set({ connections })
   },
@@ -975,8 +996,14 @@ export const useAppStore = create<AppState>()((set, get) => ({
       friend_id: request.fromUserId,
     })
 
+    // Update local state
+    const updatedConnections = [...connections, request.fromUserId]
+
+    // Save to localStorage
+    localStorage.setItem(`mgs_connections_${user.id}`, JSON.stringify(updatedConnections))
+
     set({
-      connections: [...connections, request.fromUserId],
+      connections: updatedConnections,
       friendRequests: friendRequests.filter((r) => r.id !== requestId),
     })
   },
@@ -1011,8 +1038,13 @@ export const useAppStore = create<AppState>()((set, get) => ({
     }
 
     // Update local state
+    const updatedConnections = connections.filter(id => id !== friendId)
+
+    // Save to localStorage
+    localStorage.setItem(`mgs_connections_${user.id}`, JSON.stringify(updatedConnections))
+
     set({
-      connections: connections.filter(id => id !== friendId)
+      connections: updatedConnections
     })
 
     console.log("[v0] Friend removed successfully")
