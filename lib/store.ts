@@ -591,11 +591,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     console.log("[ENTRY] Loading entries for:", spaceId, "→", actualSpaceId)
 
     try {
-      // Test with minimal columns first
+      // Test with minimal columns first - ONLY USE BASIC COLUMNS
       console.log("[ENTRY] Testing with minimal columns...")
       const { data: testData, error: testError } = await supabase
         .from("entries")
-        .select("id, space_id, user_id, content, image, pnl, created_at")
+        .select("id, space_id, user_id, content, created_at")
         .eq("space_id", actualSpaceId)
         .order("created_at", { ascending: false })
         .limit(10)
@@ -617,14 +617,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       // If minimal query works, use it
       const mappedEntries = (testData || []).filter(e => e != null).map((e: any) => {
-        const hasImage = !!e.image;
-        const hasProfitLoss = e.pnl !== null && e.pnl !== undefined;
-        if (hasImage) {
-          console.log("[ENTRY] 📸 Found image:", e.image?.substring(0, 50) + "...");
-        }
-        if (hasProfitLoss) {
-          console.log("[ENTRY] 💰 Found pnl:", e.pnl);
-        }
+        console.log("[ENTRY] 📝 Found entry:", e.id, e.content?.substring(0, 30) + "...");
         return {
           id: e.id,
           spaceId,
@@ -633,8 +626,8 @@ export const useAppStore = create<AppState>((set, get) => ({
           content: e.content,
           tags: [],
           tradeType: "general" as any,
-          profitLoss: e.pnl,
-          image: e.image,
+          profitLoss: undefined,
+          image: undefined,
           mentalState: undefined,
           createdAt: new Date(e.created_at),
         };
@@ -675,8 +668,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       : spaceId
 
     const pageSize = 20
-    const entrySelectFull = "id, space_id, user_id, username, content, tags, trade_type, pnl, image, mental_state, created_at"
-    const entrySelectFallback = "id, space_id, user_id, username, content, tags, trade_type, pnl, image, mental_state, created_at"
+    const entrySelectFull = "id, space_id, user_id, username, content, tags, trade_type, created_at"
+    const entrySelectFallback = "id, space_id, user_id, username, content, tags, trade_type, created_at"
 
     const baseQuery = (select: string) =>
       supabase
@@ -721,9 +714,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       content: e.content,
       tags: e.tags || [],
       tradeType: e.trade_type,
-      profitLoss: e.pnl,
-      image: e.image,
-      mentalState: e.mental_state,
+      profitLoss: undefined,
+      image: undefined,
+      mentalState: undefined,
       createdAt: new Date(e.created_at),
     }))
 
