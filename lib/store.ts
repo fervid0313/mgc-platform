@@ -873,13 +873,13 @@ export const useAppStore = create<AppState>((set, get) => ({
   getSpaceMembers: (spaceId: string) => {
     const { profiles, user } = get()
     if (spaceId === "space-global") {
-      return profiles.filter(p => p.id !== user?.id)
+      return profiles.filter(p => p != null && p.id !== user?.id)
     }
-    return profiles.filter(p => p.id !== user?.id)
+    return profiles.filter(p => p != null && p.id !== user?.id)
   },
 
   getProfile: (userId: string) => {
-    return get().profiles.find(p => p.id === userId)
+    return get().profiles.find(p => p != null && p.id === userId)
   },
 
   findUserByTag: async (usernameWithTag: string) => {
@@ -887,7 +887,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!username || !tag) return undefined
 
     const profile = get().profiles.find(
-      p => p.username === username && p.tag === tag
+      p => p != null && p.username === username && p.tag === tag
     )
     return profile
   },
