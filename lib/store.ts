@@ -885,32 +885,37 @@ const store = create<AppState>()((set, get) => ({
     const env = process.env.NODE_ENV || 'development'
     const cacheKey = `mgs_${env}_connections_${user.id}`
 
-    // Check for recent local changes first (within last 5 minutes - extended from 30 seconds)
+    // PRIORITY SYSTEM: Always check for recent local changes first (within last 2 minutes)
     const cachedData = localStorage.getItem(cacheKey)
-    console.log("[v0] Checking for cached connections data:", cachedData ? "found" : "not found")
+    console.log("[v1] Checking for cached connections data:", cachedData ? "found" : "not found")
 
     if (cachedData) {
       try {
         const parsed = JSON.parse(cachedData)
-        console.log("[v0] Parsed cached data:", parsed)
+        console.log("[v1] Parsed cached data:", parsed)
 
-        // If there's a recent local change, use it instead of database
-        // Extended to 5 minutes to handle slower database operations
-        const isRecentChange = parsed.isRecentChange && parsed.timestamp && (Date.now() - parsed.timestamp < 300000)
-        console.log("[v0] Is recent change?", isRecentChange, "Timestamp:", parsed.timestamp, "Age:", Date.now() - parsed.timestamp)
+        // CRITICAL: If there's a recent local change (removal), ALWAYS use it
+        // Reduced to 2 minutes to be more responsive but still handle slow operations
+        const isRecentChange = parsed.isRecentChange && parsed.timestamp && (Date.now() - parsed.timestamp < 120000)
+        console.log("[v1] Is recent change?", isRecentChange, "Timestamp:", parsed.timestamp, "Age:", Date.now() - parsed.timestamp)
 
         if (isRecentChange) {
-          console.log("[v0] Using recent local change instead of database:", parsed.connections)
+          console.log("[v1] 🚨 PRIORITY OVERRIDE: Using recent local change instead of database:", parsed.connections)
+          console.log("[v1] 🚨 This prevents friend reappearance after removal")
           set({ connections: parsed.connections })
           return
+        } else if (parsed.isRecentChange === false) {
+          console.log("[v1] Cached data is confirmed synced with database, safe to load fresh data")
         } else {
-          console.log("[v0] Cached data is old, loading from database")
+          console.log("[v1] Cached data timestamp expired, loading from database")
         }
       } catch (error) {
-        console.warn("[v0] Failed to parse cached data:", error)
+        console.warn("[v1] Failed to parse cached data:", error)
+        // Clear corrupted cache
+        localStorage.removeItem(cacheKey)
       }
     } else {
-      console.log("[v0] No cached data found, loading from database")
+      console.log("[v1] No cached data found, loading from database")
     }
 
     // Load from database
@@ -1211,56 +1216,68 @@ const store = create<AppState>()((set, get) => ({
     const { user } = get()
     if (!user) return
 
-    console.log("[v0] Starting friend removal for:", friendId)
+    console.log("[v1] 🚨 STARTING FRIEND REMOVAL for:", friendId)
 
     // IMMEDIATE UI UPDATE - Update state first for instant feedback
     const currentState = get()
     const updatedConnections = currentState.connections.filter(id => id !== friendId)
 
-    console.log("[v0] UI update - connections before:", currentState.connections.length, "after:", updatedConnections.length)
+    console.log("[v1] UI update - connections before:", currentState.connections.length, "after:", updatedConnections.length)
 
     // Update Zustand state immediately
     set({ connections: updatedConnections })
 
-    // Update localStorage with timestamp to prevent database override
+    // CRITICAL: Update localStorage with PRIORITY FLAG to prevent database override
     const env = process.env.NODE_ENV || 'development'
     const cacheKey = `mgs_${env}_connections_${user.id}`
     const cacheData = {
       connections: updatedConnections,
       timestamp: Date.now(),
-      isRecentChange: true
+      isRecentChange: true, // This is CRITICAL - marks as recent change
+      lastAction: 'removeFriend',
+      friendId: friendId
     }
     localStorage.setItem(cacheKey, JSON.stringify(cacheData))
 
-    console.log("[v0] UI updated instantly, localStorage saved with timestamp")
+    console.log("[v1] 🚨 PRIORITY SAVED: localStorage updated with recent change flag")
+    console.log("[v1] 🚨 Cache data:", cacheData)
 
     // DATABASE UPDATE - Handle asynchronously in background
     try {
       const supabase = createClient()
+      console.log("[v1] Attempting database deletion for connections...")
+
       const { error } = await supabase
         .from("connections")
         .delete()
         .or(`and(user_id.eq.${user.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${user.id})`)
 
       if (error) {
-        console.error("[v0] Database deletion failed:", error)
-        // Note: UI is already updated, so user sees the change
-        // On next loadConnections(), it will sync with database
+        console.error("[v1] 🚨 DATABASE DELETION FAILED:", error)
+        console.log("[v1] Keeping localStorage priority flag to preserve UI state")
+        // Keep the priority flag so UI state is preserved
       } else {
-        console.log("[v0] Database deletion successful")
-        // Mark as synced after successful database operation
+        console.log("[v1] ✅ Database deletion successful")
+
+        // After successful DB deletion, update localStorage to mark as synced
+        // But keep the removed friend out of the connections list
         const syncedData = {
-          connections: updatedConnections,
+          connections: updatedConnections, // Keep the updated list (friend removed)
           timestamp: Date.now(),
-          isRecentChange: false // No longer recent, synced with DB
+          isRecentChange: false, // Now synced with DB
+          lastAction: 'removeFriend',
+          friendId: friendId,
+          synced: true
         }
         localStorage.setItem(cacheKey, JSON.stringify(syncedData))
+        console.log("[v1] ✅ localStorage marked as synced, friend permanently removed")
       }
     } catch (error) {
-      console.error("[v0] Error in database operation:", error)
+      console.error("[v1] 🚨 ERROR in database operation:", error)
+      console.log("[v1] Keeping UI state due to database error")
     }
 
-    console.log("[v0] Friend removal process complete")
+    console.log("[v1] 🚨 FRIEND REMOVAL PROCESS COMPLETE - UI should stay updated")
   },
 
   directMessages: {},
@@ -1640,6 +1657,54 @@ const store = create<AppState>()((set, get) => ({
     }
   },
 
+  // Debug: Comprehensive friend removal troubleshooting
+  debugFriendRemoval: () => {
+    console.log("=== FRIEND REMOVAL DEBUG ===")
+    const { user, connections } = get()
+
+    if (!user) {
+      console.log("❌ No user logged in")
+      return
+    }
+
+    const env = process.env.NODE_ENV || 'development'
+    const cacheKey = `mgs_${env}_connections_${user.id}`
+    const cachedData = localStorage.getItem(cacheKey)
+
+    console.log("Current user ID:", user.id)
+    console.log("Current connections in state:", connections)
+    console.log("Environment:", env)
+    console.log("Cache key:", cacheKey)
+
+    if (cachedData) {
+      try {
+        const parsed = JSON.parse(cachedData)
+        console.log("localStorage data:", parsed)
+        console.log("Timestamp age:", Date.now() - parsed.timestamp, "ms")
+        console.log("Is recent change?", parsed.isRecentChange)
+        console.log("Last action:", parsed.lastAction)
+        console.log("Friend ID involved:", parsed.friendId)
+
+        const timeDiff = Date.now() - parsed.timestamp
+        const isRecent = parsed.isRecentChange && timeDiff < 120000
+        console.log("Would loadConnections() use localStorage?", isRecent)
+
+      } catch (error) {
+        console.error("❌ Failed to parse localStorage:", error)
+      }
+    } else {
+      console.log("❌ No localStorage data found")
+    }
+
+    return {
+      userId: user.id,
+      connections,
+      cacheKey,
+      cachedData: cachedData ? JSON.parse(cachedData) : null,
+      environment: env
+    }
+  },
+
   // Debug: Check spaces for duplicates
   debugSpaces: () => {
     console.log("=== SPACES DEBUG ===")
@@ -1767,6 +1832,7 @@ if (typeof window !== 'undefined') {
   window.debugSpaces = store.getState().debugSpaces
   window.fixDuplicateSpaces = store.getState().fixDuplicateSpaces
   window.generateCleanupSQL = store.getState().generateCleanupSQL
+  window.debugFriendRemoval = store.getState().debugFriendRemoval
 }
 
 export const useAppStore = store
