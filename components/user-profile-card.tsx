@@ -136,9 +136,9 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
           {isConnected ? (
             <>
               <Button variant="secondary" className="flex-1 min-h-[44px]" disabled>
-                <Check className="h-4 w-4 mr-2" />
-                Connected
-              </Button>
+              <Check className="h-4 w-4 mr-2" />
+              Connected
+            </Button>
               <Button
                 variant="outline"
                 size="icon"
