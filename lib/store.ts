@@ -1896,6 +1896,7 @@ const store = create<AppState>()((set, get) => ({
 
       if (error) {
         console.error("[ADMIN] Error updating profile in database:", error)
+        console.error("[ADMIN] Supabase error details:", JSON.stringify(error, null, 2))
         return
       }
 

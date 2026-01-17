@@ -51,13 +51,17 @@ export function CommunityProfiles() {
 
     // Adjust filtering based on whether it's global feed or a specific space
     if (isGlobalFeed) {
-      // For "all" or "connected" filter in global feed, show all profiles that are friends
-      // For "online" filter, show only online friends
-      if (filter === "all" || filter === "connected") {
+      // In global feed, "all" shows all registered users (excluding self)
+      if (filter === "all") {
+        return true // All users visible by default in global feed
+      }
+      // For "connected" filter in global feed, show all profiles that are friends
+      if (filter === "connected") {
         if (!isFriend) return false
       }
+      // For "online" filter, show only online profiles
       if (filter === "online") {
-        if (!isFriend || !profile.isOnline) return false
+        if (!profile.isOnline) return false
       }
     } else {
       // In a specific space, always show members. Filters apply to members.
@@ -198,11 +202,9 @@ export function CommunityProfiles() {
                   )}
                 </div>
               ) : (
-                !isGlobalFeed && connections.includes(profile.id) ? (
-                  <span className="text-[9px] text-primary font-medium px-2 py-0.5 bg-primary/10 rounded-full">
-                    Connected
-                  </span>
-                ) : null
+                <span className="text-[9px] text-muted-foreground font-medium px-2 py-0.5 bg-secondary/20 rounded-full">
+                  {profile.tradingStyle ? profile.tradingStyle.replace("-", " ") : "Member"}
+                </span>
               )}
             </div>
           ))
