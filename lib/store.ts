@@ -1529,7 +1529,7 @@ const store = create<AppState>()((set, get) => ({
           console.error("[v7] ❌ Failed to clear locked connections from localStorage:", error)
         }
       }
-    } catch (error) {
+    catch (error) {
       console.error("Error in database operation:", error)
       console.log("Keeping UI state due to database error")
       // Keep locked connections on error to preserve UI state
