@@ -1423,17 +1423,60 @@ const store = create<AppState>()((set, get) => ({
       const supabase = createClient()
       console.log("[v1] Attempting database deletion for connections...")
 
-      const { error } = await supabase
+      console.log("[v8] 🗑️ EXECUTING DATABASE DELETION...")
+      console.log("[v8] Deleting connections where:")
+      console.log("[v8] - user_id =", user.id, "AND friend_id =", friendId)
+      console.log("[v8] - OR user_id =", friendId, "AND friend_id =", user.id)
+
+      const { error, count } = await supabase
         .from("connections")
-        .delete()
+        .delete({ count: 'exact' })
         .or(`and(user_id.eq.${user.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${user.id})`)
 
+      console.log("[v8] Database deletion result - count:", count, "error:", error)
+
       if (error) {
-        console.error("[v1] 🚨 DATABASE DELETION FAILED:", error)
-        console.log("[v1] Keeping localStorage priority flag to preserve UI state")
+        console.error("[v8] 🚨 DATABASE DELETION FAILED:", error)
+        console.log("[v8] Keeping localStorage priority flag to preserve UI state")
         // Keep the priority flag so UI state is preserved
       } else {
-        console.log("[v2] ✅ Database deletion successful")
+        console.log("[v8] ✅ Database deletion successful -", count, "connections deleted")
+
+        if (count === 0) {
+          console.warn("[v8] ⚠️ WARNING: No connections were deleted (count = 0)")
+          console.warn("[v8] This might mean the connection didn't exist in the first place")
+        }
+
+        // VERIFY the deletion actually worked
+        console.log("[v8] 🔍 VERIFYING deletion by checking remaining connections...")
+        const { data: verifyData, error: verifyError } = await supabase
+          .from("connections")
+          .select("*")
+          .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+
+        if (verifyError) {
+          console.error("[v8] ❌ Verification query failed:", verifyError)
+        } else {
+          console.log("[v8] 🔍 All user connections:", verifyData?.length || 0)
+          console.log("[v8] 🔍 Connection details:", verifyData)
+
+          const remainingConnections = verifyData?.filter(c =>
+            (c.user_id === user.id && c.friend_id === friendId) ||
+            (c.user_id === friendId && c.friend_id === user.id)
+          ) || []
+
+          console.log("[v8] 🔍 Verification result - remaining connections with this friend:", remainingConnections.length)
+          console.log("[v8] 🔍 Remaining connection data:", remainingConnections)
+
+          if (remainingConnections.length === 0) {
+            console.log("[v8] ✅ VERIFICATION PASSED - friend connection successfully removed from database")
+          } else {
+            console.error("[v8] ❌ VERIFICATION FAILED - friend connection still exists in database!")
+            console.error("[v8] This means the deletion didn't work properly")
+            // Don't clear the lock if verification failed
+            return
+          }
+        }
 
         // 🚨🚨 CLEAR THE LOCK: Database operation succeeded
         const friendRemovalLockKey = `mgs_${env}_friend_removal_lock_${user.id}`
