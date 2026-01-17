@@ -662,10 +662,34 @@ const store = create<AppState>()((set, get) => ({
     image?: string,
     mentalState?: MentalState,
   ) => {
+    console.log("[DEBUG] addEntry called with:", { content, tags, tradeType, profitLoss, image, mentalState })
+
     const { currentSpaceId, user, entries } = get()
-    if (!currentSpaceId || !user) return
+    console.log("[DEBUG] Current state:", { currentSpaceId, user: user?.id, entriesCount: Object.keys(entries).length })
+
+    if (!currentSpaceId || !user) {
+      console.error("[DEBUG] Missing currentSpaceId or user:", { currentSpaceId, user })
+      return
+    }
 
     const supabase = createClient()
+    console.log("[DEBUG] Created Supabase client")
+
+    // Check authentication
+    const { data: authData, error: authError } = await supabase.auth.getUser()
+    console.log("[DEBUG] Auth check:", { user: authData.user, error: authError })
+
+    console.log("[DEBUG] Attempting to insert entry with data:", {
+      space_id: currentSpaceId,
+      user_id: user.id,
+      username: user.username,
+      content,
+      tags,
+      trade_type: tradeType,
+      profit_loss: profitLoss,
+      image,
+      mental_state: mentalState,
+    })
 
     const { data, error } = await supabase
       .from("entries")
@@ -683,10 +707,14 @@ const store = create<AppState>()((set, get) => ({
       .select()
       .single()
 
+    console.log("[DEBUG] Supabase response:", { data, error })
+
     if (error) {
       console.error("[v0] Add entry error:", error)
       return
     }
+
+    console.log("[DEBUG] Entry successfully inserted:", data)
 
     const newEntry: JournalEntry = {
       id: data.id,
