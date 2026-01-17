@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { useAppStore } from "@/lib/store"
 import { UserProfileCard } from "./user-profile-card"
 import { Users, Search, Shield } from "lucide-react"
@@ -19,49 +19,49 @@ export function CommunityProfiles() {
   const [searchQuery, setSearchQuery] = useState("")
   const [filter, setFilter] = useState<"all" | "connected" | "online">("all")
   const [editingRole, setEditingRole] = useState<string | null>(null)
-  const [renderKey, setRenderKey] = useState(0) // Force re-render
-
   const userIsAdmin = isAdmin()
+
+  // Create a stable reference to connections for dependency tracking
+  const connectionsString = JSON.stringify(connections)
 
   // Debug logging for connections changes
   console.log("[CommunityProfiles] Current connections:", connections.length, connections)
-  console.log("[CommunityProfiles] Render key:", renderKey)
+  console.log("[CommunityProfiles] Connections string:", connectionsString)
 
-  // Force re-render when connections change
-  useEffect(() => {
-    console.log("[CommunityProfiles] Connections changed, forcing re-render")
-    setRenderKey(prev => prev + 1)
-  }, [connections])
+  // Use useMemo to ensure filteredProfiles re-computes when connections change
+  const filteredProfiles = useMemo(() => {
+    console.log("[CommunityProfiles] Re-filtering profiles, connections:", connections)
 
-  const filteredProfiles = profiles.filter((profile) => {
-    if (profile.id === user?.id) return false
+    return profiles.filter((profile) => {
+      if (profile.id === user?.id) return false
 
-    // Only show FRIENDS (connected users) - space sharing is secondary
-    const isFriend = connections.includes(profile.id)
+      // Only show FRIENDS (connected users) - space sharing is secondary
+      const isFriend = connections.includes(profile.id)
 
-    if (profile.username) { // Only log for real profiles
-      console.log(`[CommunityProfiles] ${profile.username}: isFriend=${isFriend}`)
-    }
+      if (profile.username) { // Only log for real profiles
+        console.log(`[CommunityProfiles] ${profile.username}: isFriend=${isFriend}`)
+      }
 
-    // For "all" filter, show all friends
-    // For "connected" filter, show only friends (same as all)
-    // For "online" filter, show only online friends
-    if (filter === "all" || filter === "connected") {
-      if (!isFriend) return false
-    }
+      // For "all" filter, show all friends
+      // For "connected" filter, show only friends (same as all)
+      // For "online" filter, show only online friends
+      if (filter === "all" || filter === "connected") {
+        if (!isFriend) return false
+      }
 
-    if (filter === "online") {
-      if (!isFriend || !profile.isOnline) return false
-    }
+      if (filter === "online") {
+        if (!isFriend || !profile.isOnline) return false
+      }
 
-    const searchLower = searchQuery.toLowerCase()
-    const matchesSearch =
-      profile.username.toLowerCase().includes(searchLower) ||
-      `${profile.username}#${profile.tag}`.toLowerCase().includes(searchLower)
-    if (searchQuery && !matchesSearch) return false
+      const searchLower = searchQuery.toLowerCase()
+      const matchesSearch =
+        profile.username.toLowerCase().includes(searchLower) ||
+        `${profile.username}#${profile.tag}`.toLowerCase().includes(searchLower)
+      if (searchQuery && !matchesSearch) return false
 
-    return true
-  })
+      return true
+    })
+  }, [profiles, connections, user?.id, filter, searchQuery])
 
   const handleAssignSpecialty = (userId: string, specialty: UserProfile["tradingStyle"]) => {
     adminUpdateUserProfile(userId, { tradingStyle: specialty })
@@ -115,7 +115,7 @@ export function CommunityProfiles() {
       </div>
 
       {/* Profile List */}
-      <div key={`profiles-${renderKey}`} className="space-y-2">
+      <div key={`profiles-${connectionsString}`} className="space-y-2">
         {filteredProfiles.length === 0 ? (
           <p className="text-center text-muted-foreground/50 py-8 text-sm">No users found.</p>
         ) : (
