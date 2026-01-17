@@ -14,7 +14,7 @@ const SPECIALTY_OPTIONS = [
 ] as const
 
 export function CommunityProfiles() {
-  const { profiles, connections, user, isAdmin, adminUpdateUserProfile } = useAppStore()
+  const { profiles, connections, user, isAdmin, adminUpdateUserProfile, spaces, currentSpaceId } = useAppStore()
   const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [filter, setFilter] = useState<"all" | "connected" | "online">("all")
@@ -24,6 +24,13 @@ export function CommunityProfiles() {
 
   const filteredProfiles = profiles.filter((profile) => {
     if (profile.id === user?.id) return false
+
+    // Only show users who share at least one space with the current user
+    const userSpaces = spaces.map(s => s.id)
+    const profileSharesSpace = userSpaces.includes(currentSpaceId) // At minimum, they share the current space
+
+    if (!profileSharesSpace) return false
+
     const searchLower = searchQuery.toLowerCase()
     const matchesSearch =
       profile.username.toLowerCase().includes(searchLower) ||
@@ -45,7 +52,7 @@ export function CommunityProfiles() {
       <div className="flex items-center gap-3 mb-4">
         <Users className="h-5 w-5 text-primary" />
         <h2 className="font-semibold">Community</h2>
-        <span className="text-xs text-muted-foreground">{connections.length} connections</span>
+        <span className="text-xs text-muted-foreground">{filteredProfiles.length} members in this space</span>
         {userIsAdmin && (
           <span className="flex items-center gap-1 text-[9px] text-amber-500 font-bold ml-auto">
             <Shield className="h-3 w-3" />

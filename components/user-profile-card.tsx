@@ -120,25 +120,25 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
 
       {/* Actions */}
       {!isOwnProfile && (
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           {isConnected ? (
-            <Button variant="secondary" className="flex-1" disabled>
+            <Button variant="secondary" className="flex-1 min-h-[44px]" disabled>
               <Check className="h-4 w-4 mr-2" />
               Connected
             </Button>
           ) : requestSent ? (
-            <Button variant="secondary" className="flex-1" disabled>
+            <Button variant="secondary" className="flex-1 min-h-[44px]" disabled>
               <Check className="h-4 w-4 mr-2" />
               Request Sent
             </Button>
           ) : (
-            <Button onClick={handleSendRequest} className="flex-1">
+            <Button onClick={handleSendRequest} className="flex-1 min-h-[44px]">
               <UserPlus className="h-4 w-4 mr-2" />
               Add Friend
             </Button>
           )}
           {isConnected && (
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="icon" className="min-h-[44px] min-w-[44px]">
               <MessageCircle className="h-4 w-4" />
             </Button>
           )}

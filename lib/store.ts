@@ -56,6 +56,7 @@ interface AppState {
   currentSpaceId: string | null
   setCurrentSpace: (spaceId: string) => void
   createSpace: (name: string, description?: string, isPrivate?: boolean) => void
+  leaveSpace: (spaceId: string) => void
 
   // Entries
   entries: Record<string, JournalEntry[]>
@@ -393,15 +394,15 @@ export const useAppStore = create<AppState>()((set, get) => ({
             createdAt: new Date(),
           }
 
-          set({
-            user,
-            isAuthenticated: true,
-            isLoading: false,
-            spaces: [globalFeedSpace],
-            currentSpaceId: "space-global",
-            connections: [],
-            profiles: [newProfile],
-          })
+        set({
+          user,
+          isAuthenticated: true,
+          isLoading: false,
+          spaces: [globalFeedSpace], // New users start with only Global Feed
+          currentSpaceId: "space-global",
+          connections: [],
+          profiles: [newProfile],
+        })
 
           // Load data
           get().loadFriendRequests()
@@ -482,6 +483,53 @@ export const useAppStore = create<AppState>()((set, get) => ({
       currentSpaceId: newSpace.id,
       sidebarOpen: false,
     })
+  },
+
+  leaveSpace: async (spaceId: string) => {
+    const { spaces, user, currentSpaceId } = get()
+    if (!user) return
+
+    // Don't allow leaving the global feed
+    if (spaceId === "space-global") return
+
+    const supabase = createClient()
+
+    // If this is a public group that the user joined, delete the space membership
+    // For user-created spaces, we don't actually delete them, just remove from their view
+    const spaceToLeave = spaces.find(s => s.id === spaceId)
+    if (!spaceToLeave) return
+
+    // For user-created private spaces, just remove from their spaces list
+    // For public groups, they can "leave" by removing from their view
+    let newSpaces = spaces.filter(s => s.id !== spaceId)
+    let newCurrentSpaceId = currentSpaceId
+
+    // If they were in the space they're leaving, switch to global feed
+    if (currentSpaceId === spaceId) {
+      newCurrentSpaceId = "space-global"
+    }
+
+    set({
+      spaces: newSpaces,
+      currentSpaceId: newCurrentSpaceId,
+      sidebarOpen: false,
+    })
+
+    // Clear any cached data for this space
+    set((state) => ({
+      entries: Object.fromEntries(
+        Object.entries(state.entries).filter(([key]) => key !== spaceId)
+      ),
+      chatMessages: Object.fromEntries(
+        Object.entries(state.chatMessages).filter(([key]) => key !== spaceId)
+      ),
+      comments: Object.fromEntries(
+        Object.entries(state.comments).filter(([key]) => key !== spaceId)
+      ),
+      likes: Object.fromEntries(
+        Object.entries(state.likes).filter(([key]) => key !== spaceId)
+      ),
+    }))
   },
 
   entries: { "space-global": [] },
