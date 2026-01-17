@@ -667,16 +667,21 @@ const store = create<AppState>()((set, get) => ({
         content: e.content,
         tags: e.tags || [],
         tradeType: e.trade_type,
-        profitLoss: e.profit_loss,
+        profitLoss: e.profit_loss ?? e.pnl,
         image: e.image,
         mentalState: e.mental_state,
         createdAt: new Date(e.created_at),
       }))
 
       console.log(`[v0] Loaded ${globalEntries.length} global entries`)
-      set((state) => ({
-        entries: { ...state.entries, [spaceId]: globalEntries },
-      }))
+      set((state) => {
+        const existing = state.entries[spaceId] || []
+        const fetchedIds = new Set(globalEntries.map((e) => e.id))
+        const merged = [...globalEntries, ...existing.filter((e) => !fetchedIds.has(e.id))]
+        return {
+          entries: { ...state.entries, [spaceId]: merged },
+        }
+      })
       return
     }
 
@@ -701,15 +706,20 @@ const store = create<AppState>()((set, get) => ({
       content: e.content,
       tags: e.tags || [],
       tradeType: e.trade_type,
-      profitLoss: e.profit_loss,
+      profitLoss: e.profit_loss ?? e.pnl,
       image: e.image,
       mentalState: e.mental_state,
       createdAt: new Date(e.created_at),
     }))
 
-    set((state) => ({
-      entries: { ...state.entries, [spaceId]: entries },
-    }))
+    set((state) => {
+      const existing = state.entries[spaceId] || []
+      const fetchedIds = new Set(entries.map((e) => e.id))
+      const merged = [...entries, ...existing.filter((e) => !fetchedIds.has(e.id))]
+      return {
+        entries: { ...state.entries, [spaceId]: merged },
+      }
+    })
   },
 
   addEntry: async (
@@ -780,6 +790,35 @@ const store = create<AppState>()((set, get) => ({
       return
     }
 
+    const optimisticId =
+      typeof globalThis !== "undefined" && "crypto" in globalThis && typeof globalThis.crypto.randomUUID === "function"
+        ? globalThis.crypto.randomUUID()
+        : `optimistic-${Date.now()}`
+
+    const optimisticEntry: JournalEntry = {
+      id: optimisticId,
+      spaceId: currentSpaceId,
+      userId: user.id,
+      username: user.username,
+      content,
+      tags,
+      tradeType,
+      profitLoss,
+      image,
+      mentalState,
+      createdAt: new Date(),
+    }
+
+    set((state) => {
+      const spaceEntries = state.entries[currentSpaceId] || []
+      return {
+        entries: {
+          ...state.entries,
+          [currentSpaceId]: [optimisticEntry, ...spaceEntries],
+        },
+      }
+    })
+
     console.log("[DEBUG] Attempting to insert entry with data:", {
       space_id: currentSpaceId,
       user_id: user.id,
@@ -793,21 +832,33 @@ const store = create<AppState>()((set, get) => ({
     })
 
     console.log("[DEBUG] Making Supabase entries insert call...")
-    const { data, error } = await supabase
+
+    const baseInsert = {
+      space_id: actualSpaceId,
+      user_id: user.id,
+      username: user.username,
+      content,
+      tags,
+      trade_type: tradeType,
+      image,
+      mental_state: mentalState,
+    }
+
+    let insertResult = await supabase
       .from("entries")
-      .insert({
-        space_id: actualSpaceId,
-        user_id: user.id,
-        username: user.username,
-        content,
-        tags,
-        trade_type: tradeType,
-        profit_loss: profitLoss,
-        image,
-        mental_state: mentalState,
-      })
+      .insert({ ...baseInsert, profit_loss: profitLoss })
       .select()
       .single()
+
+    if (insertResult.error && insertResult.error.message?.toLowerCase().includes("profit_loss")) {
+      insertResult = await supabase
+        .from("entries")
+        .insert({ ...baseInsert, pnl: profitLoss })
+        .select()
+        .single()
+    }
+
+    const { data, error } = insertResult
 
     console.log("[DEBUG] Supabase response:", { data, error })
 
@@ -835,24 +886,27 @@ const store = create<AppState>()((set, get) => ({
 
     const newEntry: JournalEntry = {
       id: data.id,
-      spaceId: data.space_id,
+      spaceId: currentSpaceId === "space-global" ? "space-global" : data.space_id,
       userId: data.user_id,
       username: data.username,
       content: data.content,
       tags: data.tags || [],
       tradeType: data.trade_type,
-      profitLoss: data.profit_loss,
+      profitLoss: data.profit_loss ?? data.pnl,
       image: data.image,
       mentalState: data.mental_state,
       createdAt: new Date(data.created_at),
     }
 
-    const spaceEntries = entries[currentSpaceId] || []
-    set({
-      entries: {
-        ...entries,
-        [currentSpaceId]: [newEntry, ...spaceEntries],
-      },
+    set((state) => {
+      const spaceEntries = state.entries[currentSpaceId] || []
+      const withoutOptimistic = spaceEntries.filter((e) => e.id !== optimisticId)
+      return {
+        entries: {
+          ...state.entries,
+          [currentSpaceId]: [newEntry, ...withoutOptimistic],
+        },
+      }
     })
   },
 
