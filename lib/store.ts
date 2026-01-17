@@ -153,43 +153,43 @@ const store = create<AppState>()((set, get) => ({
 
     // Load initial session
     const loadSession = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
 
-        if (session?.user) {
-          // Fetch profile from database
-          const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
+      if (session?.user) {
+        // Fetch profile from database
+        const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
 
-          if (profile) {
-            const user: User = {
-              id: profile.id,
-              username: profile.username,
-              tag: profile.tag,
-              email: profile.email,
-              avatar: profile.avatar,
-              isAdmin: profile.email === ADMIN_EMAIL,
-              createdAt: new Date(profile.created_at),
-            }
+        if (profile) {
+          const user: User = {
+            id: profile.id,
+            username: profile.username,
+            tag: profile.tag,
+            email: profile.email,
+            avatar: profile.avatar,
+            isAdmin: profile.email === ADMIN_EMAIL,
+            createdAt: new Date(profile.created_at),
+          }
 
-            set({
-              user,
-              isAuthenticated: true,
-              isLoading: false,
-              spaces: [globalFeedSpace],
-              currentSpaceId: "space-global",
-            })
+          set({
+            user,
+            isAuthenticated: true,
+            isLoading: false,
+            spaces: [globalFeedSpace],
+            currentSpaceId: "space-global",
+          })
 
             // Load user's spaces - with duplicate prevention
-            const { data: spaces } = await supabase
-              .from("spaces")
-              .select("*")
-              .or(`owner_id.eq.${session.user.id},is_private.eq.false`)
+          const { data: spaces } = await supabase
+            .from("spaces")
+            .select("*")
+            .or(`owner_id.eq.${session.user.id},is_private.eq.false`)
 
             console.log("[v0] Raw spaces from database:", spaces?.length || 0, spaces)
 
-            if (spaces) {
+          if (spaces) {
               // Filter out any database Global Feed spaces to avoid duplicates
               const filteredSpaces = spaces.filter((s: any) => s.name !== 'Global Feed')
               console.log("[v0] After filtering Global Feed:", filteredSpaces.length, filteredSpaces.map(s => s.name))
@@ -208,31 +208,31 @@ const store = create<AppState>()((set, get) => ({
               console.log("[v0] After deduplication:", deduplicatedSpaces.length, deduplicatedSpaces.map(s => s.name))
 
               const mappedSpaces = deduplicatedSpaces.map((s: any) => ({
-                id: s.id,
-                name: s.name,
-                description: s.description,
-                ownerId: s.owner_id,
-                isPrivate: s.is_private,
-                createdAt: new Date(s.created_at),
-                memberCount: s.member_count || 1,
-              }))
+              id: s.id,
+              name: s.name,
+              description: s.description,
+              ownerId: s.owner_id,
+              isPrivate: s.is_private,
+              createdAt: new Date(s.created_at),
+              memberCount: s.member_count || 1,
+            }))
 
               const finalSpaces = [globalFeedSpace, ...mappedSpaces]
               console.log("[v0] Final spaces array:", finalSpaces.length, finalSpaces.map(s => s.name))
 
               set({ spaces: finalSpaces })
-            }
+          }
 
-            // Load friend requests
-            get().loadFriendRequests()
-            get().loadConnections()
-            get().loadProfiles()
+          // Load friend requests
+          get().loadFriendRequests()
+          get().loadConnections()
+          get().loadProfiles()
 
             return true
-          }
         }
-      } catch (error) {
-        console.error("[v0] Auth initialization error:", error)
+      }
+    } catch (error) {
+      console.error("[v0] Auth initialization error:", error)
       }
       return false
     }
@@ -240,7 +240,7 @@ const store = create<AppState>()((set, get) => ({
     // Load initial session
     const hasSession = await loadSession()
     if (!hasSession) {
-      set({ isLoading: false })
+    set({ isLoading: false })
     }
 
     // Set up auth state change listener to keep session in sync
@@ -370,17 +370,17 @@ const store = create<AppState>()((set, get) => ({
         // Create profile in database with better error handling
         let profileCreated = false
         try {
-          const { error: profileError } = await supabase.from("profiles").insert({
-            id: data.user.id,
-            username,
-            tag,
-            email,
-            bio: "",
-            created_at: new Date().toISOString(),
-          })
+        const { error: profileError } = await supabase.from("profiles").insert({
+          id: data.user.id,
+          username,
+          tag,
+          email,
+          bio: "",
+          created_at: new Date().toISOString(),
+        })
 
-          if (profileError) {
-            console.error("[v0] Profile creation error:", profileError)
+        if (profileError) {
+          console.error("[v0] Profile creation error:", profileError)
 
             // If it's a duplicate key error, the profile might already exist
             if (profileError.code === '23505') { // unique_violation
@@ -406,28 +406,28 @@ const store = create<AppState>()((set, get) => ({
         const { data: sessionData } = await supabase.auth.getSession()
 
         if (sessionData?.session) {
-          const user: User = {
-            id: data.user.id,
-            username,
-            tag,
-            email,
-            isAdmin: email === ADMIN_EMAIL,
-            createdAt: new Date(),
-          }
+        const user: User = {
+          id: data.user.id,
+          username,
+          tag,
+          email,
+          isAdmin: email === ADMIN_EMAIL,
+          createdAt: new Date(),
+        }
 
-          const newProfile: UserProfile = {
-            id: user.id,
-            username,
-            tag,
-            email,
-            bio: "",
-            tradingStyle: undefined,
-            winRate: 0,
-            totalTrades: 0,
-            socialLinks: {},
-            isOnline: true,
-            createdAt: new Date(),
-          }
+        const newProfile: UserProfile = {
+          id: user.id,
+          username,
+          tag,
+          email,
+          bio: "",
+          tradingStyle: undefined,
+          winRate: 0,
+          totalTrades: 0,
+          socialLinks: {},
+          isOnline: true,
+          createdAt: new Date(),
+        }
 
         set({
           user,
@@ -444,7 +444,7 @@ const store = create<AppState>()((set, get) => ({
           get().loadConnections()
           get().loadProfiles()
 
-          return true
+        return true
         }
       }
 
@@ -1006,13 +1006,13 @@ const store = create<AppState>()((set, get) => ({
     const supabase = createClient()
 
     try {
-      const { data, error } = await supabase
-        .from("connections")
-        .select("*")
-        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+    const { data, error } = await supabase
+      .from("connections")
+      .select("*")
+      .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
 
-      if (error) {
-        console.error("[v0] Load connections error:", error)
+    if (error) {
+      console.error("[v0] Load connections error:", error)
         // Fallback to cached data if database fails
         if (cachedData) {
           try {
@@ -1023,10 +1023,10 @@ const store = create<AppState>()((set, get) => ({
             console.warn("[v0] Failed to parse cached connections:", cacheError)
           }
         }
-        return
-      }
+      return
+    }
 
-      const connections = data.map((c: any) => (c.user_id === user.id ? c.friend_id : c.user_id))
+    const connections = data.map((c: any) => (c.user_id === user.id ? c.friend_id : c.user_id))
 
       console.log(`[v0] Loaded ${connections.length} connections from database:`, connections)
 
@@ -1038,7 +1038,7 @@ const store = create<AppState>()((set, get) => ({
       }
       localStorage.setItem(cacheKey, JSON.stringify(dbData))
 
-      set({ connections })
+    set({ connections })
 
     } catch (error) {
       console.error("[v0] Load connections exception:", error)
@@ -1195,7 +1195,7 @@ const store = create<AppState>()((set, get) => ({
     const supabase = createClient()
 
     try {
-      // Update request status
+    // Update request status
       const { error: updateError } = await supabase
         .from("friend_requests")
         .update({ status: "accepted" })
@@ -1206,13 +1206,13 @@ const store = create<AppState>()((set, get) => ({
         return
       }
 
-      // Create connection
+    // Create connection
       const { error: connectionError } = await supabase
         .from("connections")
         .insert({
-          user_id: user.id,
-          friend_id: request.fromUserId,
-        })
+      user_id: user.id,
+      friend_id: request.fromUserId,
+    })
 
       if (connectionError) {
         console.error("[v0] Failed to create connection:", connectionError)
@@ -1237,7 +1237,7 @@ const store = create<AppState>()((set, get) => ({
       }
       localStorage.setItem(cacheKey, JSON.stringify(cacheData))
 
-      set({
+    set({
         connections: updatedConnections,
         friendRequests: updatedFriendRequests,
       })
@@ -1284,7 +1284,7 @@ const store = create<AppState>()((set, get) => ({
 
       const updatedFriendRequests = friendRequests.filter((r) => r.id !== requestId)
 
-      set({
+    set({
         friendRequests: updatedFriendRequests,
       })
 
@@ -1423,28 +1423,79 @@ const store = create<AppState>()((set, get) => ({
       const supabase = createClient()
       console.log("[v1] Attempting database deletion for connections...")
 
-      console.log("[v8] 🗑️ EXECUTING DATABASE DELETION...")
-      console.log("[v8] Deleting connections where:")
-      console.log("[v8] - user_id =", user.id, "AND friend_id =", friendId)
-      console.log("[v8] - OR user_id =", friendId, "AND friend_id =", user.id)
+      console.log("[v9] 🗑️ EXECUTING DATABASE DELETION...")
+      console.log("[v9] Current user ID:", user.id)
+      console.log("[v9] Target friend ID:", friendId)
+
+      // First, let's see what connections currently exist
+      console.log("[v9] 🔍 CHECKING existing connections before deletion...")
+      const { data: beforeData, error: beforeError } = await supabase
+        .from("connections")
+        .select("*")
+        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+
+      if (beforeError) {
+        console.error("[v9] ❌ Error checking existing connections:", beforeError)
+      } else {
+        console.log("[v9] 🔍 Connections before deletion:", beforeData)
+        const relevantConnections = beforeData?.filter(c =>
+          (c.user_id === user.id && c.friend_id === friendId) ||
+          (c.user_id === friendId && c.friend_id === user.id)
+        ) || []
+        console.log("[v9] 🔍 Relevant connections to delete:", relevantConnections)
+      }
+
+      // Try the delete with exact count
+      console.log("[v9] 🗑️ ATTEMPTING DELETION...")
+      const deleteQuery = `and(user_id.eq.${user.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${user.id})`
+      console.log("[v9] Delete query OR condition:", deleteQuery)
 
       const { error, count } = await supabase
         .from("connections")
         .delete({ count: 'exact' })
-        .or(`and(user_id.eq.${user.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${user.id})`)
+        .or(deleteQuery)
 
-      console.log("[v8] Database deletion result - count:", count, "error:", error)
+      console.log("[v9] Database deletion result - count:", count, "error:", error)
 
       if (error) {
-        console.error("[v8] 🚨 DATABASE DELETION FAILED:", error)
-        console.log("[v8] Keeping localStorage priority flag to preserve UI state")
+        console.error("[v9] 🚨 DATABASE DELETION FAILED:", error)
+        console.error("[v9] 🚨 Error details:", JSON.stringify(error, null, 2))
+
+        // Try alternative deletion method
+        console.log("[v9] 🔄 TRYING ALTERNATIVE DELETION METHOD...")
+        try {
+          // Delete connections one by one to see which ones exist
+          const { error: error1, count: count1 } = await supabase
+            .from("connections")
+            .delete({ count: 'exact' })
+            .eq('user_id', user.id)
+            .eq('friend_id', friendId)
+
+          const { error: error2, count: count2 } = await supabase
+            .from("connections")
+            .delete({ count: 'exact' })
+            .eq('user_id', friendId)
+            .eq('friend_id', user.id)
+
+          console.log("[v9] Alternative deletion results:")
+          console.log("[v9] Direction 1 (user->friend): count =", count1, "error =", error1)
+          console.log("[v9] Direction 2 (friend->user): count =", count2, "error =", error2)
+
+          if ((count1 || 0) + (count2 || 0) > 0) {
+            console.log("[v9] ✅ Alternative deletion succeeded")
+          }
+        } catch (altError) {
+          console.error("[v9] ❌ Alternative deletion also failed:", altError)
+        }
+
+        console.log("[v9] Keeping localStorage priority flag to preserve UI state")
         // Keep the priority flag so UI state is preserved
       } else {
-        console.log("[v8] ✅ Database deletion successful -", count, "connections deleted")
+        console.log("[v9] ✅ Database deletion reported success -", count, "connections deleted")
 
         if (count === 0) {
-          console.warn("[v8] ⚠️ WARNING: No connections were deleted (count = 0)")
-          console.warn("[v8] This might mean the connection didn't exist in the first place")
+          console.warn("[v9] ⚠️ WARNING: No connections were deleted (count = 0)")
+          console.warn("[v9] This might mean the connection didn't exist in the first place")
         }
 
         // VERIFY the deletion actually worked
@@ -1457,8 +1508,23 @@ const store = create<AppState>()((set, get) => ({
         if (verifyError) {
           console.error("[v8] ❌ Verification query failed:", verifyError)
         } else {
-          console.log("[v8] 🔍 All user connections:", verifyData?.length || 0)
-          console.log("[v8] 🔍 Connection details:", verifyData)
+          console.log("[v9] 🔍 All user connections after deletion attempt:", verifyData?.length || 0)
+          console.log("[v9] 🔍 Connection details:", verifyData)
+
+          // Check if there are any RLS policy issues
+          if (verifyData && verifyData.length > 0) {
+            console.log("[v9] 🔍 Checking for RLS policy issues...")
+            const authUser = await supabase.auth.getUser()
+            console.log("[v9] Current authenticated user:", authUser.data.user?.id)
+
+            // Try to select the specific connections we're trying to delete
+            const { data: specificData, error: specificError } = await supabase
+              .from("connections")
+              .select("*")
+              .or(`and(user_id.eq.${user.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${user.id})`)
+
+            console.log("[v9] Specific connection query result:", specificData, "error:", specificError)
+          }
 
           const remainingConnections = verifyData?.filter(c =>
             (c.user_id === user.id && c.friend_id === friendId) ||
