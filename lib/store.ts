@@ -631,7 +631,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           console.log("[ENTRY] 📸 Found image:", e.image?.substring(0, 50) + "...");
         }
         if (hasPnl) {
-          console.log("[ENTRY] 💰 Found pnl:", e.pnl);
+          console.log("[ENTRY] 💰 Found pnl:", e.pnl, "type:", typeof e.pnl);
         }
         console.log("[ENTRY] 📝 Found entry:", e.id, e.content?.substring(0, 30) + "...");
         return {
@@ -642,7 +642,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           content: e.content,
           tags: [],
           tradeType: "general" as any,
-          profitLoss: e.pnl,
+          profitLoss: e.pnl ? parseFloat(e.pnl) : undefined,
           image: e.image,
           mentalState: undefined,
           createdAt: new Date(e.created_at),
@@ -736,7 +736,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       content: e.content,
       tags: e.tags || [],
       tradeType: e.trade_type,
-      profitLoss: e.pnl,
+      profitLoss: e.pnl ? parseFloat(e.pnl) : undefined,
       image: e.image,
       mentalState: e.mental_state,
       createdAt: new Date(e.created_at),
