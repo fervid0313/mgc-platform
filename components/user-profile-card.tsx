@@ -157,6 +157,11 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
                       const result = removeFriend(profile.id)
                       console.log("[UI] removeFriend returned:", result)
                       console.log("[UI] ✅ removeFriend() called successfully, scheduling modal close")
+                    } catch (uiError) {
+                      console.error("[UI] 🚨🚨🚨🚨🚨 CRITICAL ERROR in UI removeFriend call:", uiError)
+                      console.error("[UI] 🚨🚨🚨🚨🚨 Error stack:", uiError.stack)
+                      console.error("[UI] 🚨🚨🚨🚨🚨 This might cause the red error text you see!")
+                    }
                       // Delay closing to allow state update to propagate
                       setTimeout(() => {
                         console.log("[UI] Closing modal now")

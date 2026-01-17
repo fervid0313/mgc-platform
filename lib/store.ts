@@ -1274,10 +1274,11 @@ const store = create<AppState>()((set, get) => ({
   },
 
   removeFriend: async (friendId: string) => {
-    console.log("[v5] 🚨🚨🚨🚨🚨 FRIEND REMOVAL FUNCTION ENTERED")
-    console.log("[v5] friendId parameter:", friendId)
-    console.log("[v5] friendId type:", typeof friendId)
-    console.log("[v5] friendId length:", friendId?.length)
+    try {
+      console.log("[v5] 🚨🚨🚨🚨🚨 FRIEND REMOVAL FUNCTION ENTERED")
+      console.log("[v5] friendId parameter:", friendId)
+      console.log("[v5] friendId type:", typeof friendId)
+      console.log("[v5] friendId length:", friendId?.length)
 
     const { user } = get()
     console.log("[v4] Current user:", user)
@@ -1417,6 +1418,14 @@ const store = create<AppState>()((set, get) => ({
     }
 
     console.log("[v1] 🚨 FRIEND REMOVAL PROCESS COMPLETE - UI should stay updated")
+
+    } catch (globalError) {
+      console.error("[v5] 🚨🚨🚨🚨🚨 CRITICAL ERROR IN FRIEND REMOVAL FUNCTION:", globalError)
+      console.error("[v5] 🚨🚨🚨🚨🚨 Error stack:", globalError.stack)
+      console.error("[v5] 🚨🚨🚨🚨🚨 This is why friends reappear - function crashed!")
+      // Re-throw to let React error boundary catch it
+      throw globalError
+    }
   },
 
   directMessages: {},
@@ -1987,6 +1996,19 @@ if (typeof window !== 'undefined') {
   (window as any).store = store
   console.log("[DEBUG] Store attached to window:", typeof (window as any).store)
   console.log("[DEBUG] Available store methods:", Object.keys(store.getState()))
+
+  // Global error handler to catch the red error text
+  window.addEventListener('error', (event) => {
+    console.error("[GLOBAL] 🚨🚨🚨🚨🚨 Unhandled error caught:", event.error)
+    console.error("[GLOBAL] 🚨🚨🚨🚨🚨 Error message:", event.message)
+    console.error("[GLOBAL] 🚨🚨🚨🚨🚨 Error stack:", event.error?.stack)
+    console.error("[GLOBAL] 🚨🚨🚨🚨🚨 This might be the red error text you're seeing!")
+  })
+
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error("[GLOBAL] 🚨🚨🚨🚨🚨 Unhandled promise rejection:", event.reason)
+    console.error("[GLOBAL] 🚨🚨🚨🚨🚨 This might be causing the red error text!")
+  })
 }
 
 // Global debug access (immediate)
