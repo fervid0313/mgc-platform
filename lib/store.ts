@@ -1336,9 +1336,10 @@ const store = create<AppState>()((set, get) => ({
     // 🚨🚨🚨🚨 ABSOLUTE LOCK CREATION - STEP BY STEP DEBUGGING
     console.log("[v4] 🚨🚨🚨🚨 STARTING LOCK CREATION PROCESS")
 
+    const env = process.env.NODE_ENV || 'development'
+    console.log("[v4] Environment:", env)
+
     try {
-      const env = process.env.NODE_ENV || 'development'
-      console.log("[v4] Environment:", env)
 
       const friendRemovalLockKey = `mgs_${env}_friend_removal_lock_${user.id}`
       console.log("[v4] Lock key:", friendRemovalLockKey)
