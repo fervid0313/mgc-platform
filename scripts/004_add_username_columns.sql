@@ -1,18 +1,9 @@
 -- Add username column to entries table
 ALTER TABLE entries ADD COLUMN IF NOT EXISTS username TEXT;
 
--- Add username and avatar columns to comments table
+-- Add username column to comments table
 ALTER TABLE comments ADD COLUMN IF NOT EXISTS username TEXT;
 ALTER TABLE comments ADD COLUMN IF NOT EXISTS avatar TEXT;
-
--- Add username column to chat_messages table
-ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS username TEXT;
-
--- Add username and tag columns to friend_requests table
-ALTER TABLE friend_requests ADD COLUMN IF NOT EXISTS from_username TEXT;
-ALTER TABLE friend_requests ADD COLUMN IF NOT EXISTS from_tag TEXT;
-ALTER TABLE friend_requests ADD COLUMN IF NOT EXISTS to_username TEXT;
-ALTER TABLE friend_requests ADD COLUMN IF NOT EXISTS to_tag TEXT;
 
 -- Rename pnl column to profit_loss in entries table to match code expectations
 DO $$ 

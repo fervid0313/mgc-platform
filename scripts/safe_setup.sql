@@ -11,7 +11,7 @@ BEGIN
         SELECT schemaname, tablename, policyname
         FROM pg_policies
         WHERE schemaname = 'public'
-        AND tablename IN ('profiles', 'friend_requests', 'connections', 'spaces', 'space_members', 'entries', 'comments', 'likes', 'chat_messages', 'direct_messages')
+        AND tablename IN ('profiles', 'spaces', 'space_members', 'entries', 'comments', 'likes')
     LOOP
         EXECUTE 'DROP POLICY IF EXISTS ' || quote_ident(policy_record.policyname) || ' ON ' || quote_ident(policy_record.schemaname) || '.' || quote_ident(policy_record.tablename);
         RAISE NOTICE 'Dropped policy: %.%', policy_record.tablename, policy_record.policyname;
@@ -19,26 +19,13 @@ BEGIN
 END;
 $$;
 
--- Create tables if they don't exist (safe to run multiple times)
-CREATE TABLE IF NOT EXISTS public.direct_messages (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  sender_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  receiver_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  content TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
 -- Ensure RLS is enabled (safe to run multiple times)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.friend_requests ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.connections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.spaces ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.space_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.likes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.direct_messages ENABLE ROW LEVEL SECURITY;
 
 -- Recreate all policies
 CREATE POLICY "profiles_select_all" ON public.profiles FOR SELECT USING (true);
@@ -46,30 +33,11 @@ CREATE POLICY "profiles_insert_own" ON public.profiles FOR INSERT WITH CHECK (au
 CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 CREATE POLICY "profiles_delete_own" ON public.profiles FOR DELETE USING (auth.uid() = id);
 
-CREATE POLICY "friend_requests_select_own" ON public.friend_requests FOR SELECT
-  USING (auth.uid() = from_user_id OR auth.uid() = to_user_id);
-CREATE POLICY "friend_requests_insert_own" ON public.friend_requests FOR INSERT
-  WITH CHECK (auth.uid() = from_user_id);
-CREATE POLICY "friend_requests_update_own" ON public.friend_requests FOR UPDATE
-  USING (auth.uid() = to_user_id);
-CREATE POLICY "friend_requests_delete_own" ON public.friend_requests FOR DELETE
-  USING (auth.uid() = from_user_id OR auth.uid() = to_user_id);
-
-CREATE POLICY "connections_select_own" ON public.connections FOR SELECT
-  USING (auth.uid() = user_id OR auth.uid() = friend_id);
-CREATE POLICY "connections_insert_own" ON public.connections FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "connections_delete_own" ON public.connections FOR DELETE
-  USING (auth.uid() = user_id);
-
 CREATE POLICY "spaces_select_public" ON public.spaces FOR SELECT USING (
   is_public_group = true OR
   owner_id = auth.uid() OR
   id IN (SELECT space_id FROM public.space_members WHERE user_id = auth.uid())
 );
-CREATE POLICY "spaces_insert_own" ON public.spaces FOR INSERT WITH CHECK (auth.uid() = owner_id);
-CREATE POLICY "spaces_update_own" ON public.spaces FOR UPDATE USING (auth.uid() = owner_id);
-CREATE POLICY "spaces_delete_own" ON public.spaces FOR DELETE USING (auth.uid() = owner_id);
 
 CREATE POLICY "space_members_select" ON public.space_members FOR SELECT USING (true);
 CREATE POLICY "space_members_insert" ON public.space_members FOR INSERT WITH CHECK (auth.uid() = user_id);
@@ -94,16 +62,6 @@ CREATE POLICY "likes_select" ON public.likes FOR SELECT USING (true);
 CREATE POLICY "likes_insert_own" ON public.likes FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "likes_delete_own" ON public.likes FOR DELETE USING (auth.uid() = user_id);
 
-CREATE POLICY "chat_messages_select" ON public.chat_messages FOR SELECT USING (
-  space_id IN (SELECT space_id FROM public.space_members WHERE user_id = auth.uid())
-);
-CREATE POLICY "chat_messages_insert_own" ON public.chat_messages FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "direct_messages_select_own_chat" ON public.direct_messages FOR SELECT USING (
-  sender_id = auth.uid() OR receiver_id = auth.uid()
-);
-CREATE POLICY "direct_messages_insert_own" ON public.direct_messages FOR INSERT WITH CHECK (auth.uid() = sender_id);
-
 -- Add any missing columns (safe to run multiple times)
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS email TEXT;
 ALTER TABLE spaces ADD COLUMN IF NOT EXISTS member_count INTEGER DEFAULT 0;
@@ -112,11 +70,6 @@ ALTER TABLE spaces ADD COLUMN IF NOT EXISTS member_count INTEGER DEFAULT 0;
 ALTER TABLE entries ADD COLUMN IF NOT EXISTS username TEXT;
 ALTER TABLE comments ADD COLUMN IF NOT EXISTS username TEXT;
 ALTER TABLE comments ADD COLUMN IF NOT EXISTS avatar TEXT;
-ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS username TEXT;
-ALTER TABLE friend_requests ADD COLUMN IF NOT EXISTS from_username TEXT;
-ALTER TABLE friend_requests ADD COLUMN IF NOT EXISTS from_tag TEXT;
-ALTER TABLE friend_requests ADD COLUMN IF NOT EXISTS to_username TEXT;
-ALTER TABLE friend_requests ADD COLUMN IF NOT EXISTS to_tag TEXT;
 
 -- Create indexes if they don't exist
 CREATE INDEX IF NOT EXISTS profiles_email_idx ON profiles(email);

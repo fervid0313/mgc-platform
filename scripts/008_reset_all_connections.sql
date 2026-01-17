@@ -1,6 +1,4 @@
--- Reset all connections to 0 for every user
--- Run this once to clean up any existing auto-friend connections
+-- This script is no longer needed as the connections (friends) feature has been removed
+-- The connections table has been removed from the database schema
 
-DELETE FROM public.connections;
-
-SELECT '✅ All connections reset to 0' AS result;
+SELECT 'ℹ️ Friends feature has been removed - this script is no longer needed' AS result;

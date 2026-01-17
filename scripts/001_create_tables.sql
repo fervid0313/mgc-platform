@@ -15,24 +15,6 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   UNIQUE(username, tag)
 );
 
--- Create friend_requests table
-CREATE TABLE IF NOT EXISTS public.friend_requests (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  from_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  to_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(from_user_id, to_user_id)
-);
-
--- Create connections (friends) table
-CREATE TABLE IF NOT EXISTS public.connections (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  friend_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(user_id, friend_id)
-);
 
 -- Create spaces table
 CREATE TABLE IF NOT EXISTS public.spaces (
@@ -87,35 +69,14 @@ CREATE TABLE IF NOT EXISTS public.likes (
   UNIQUE(entry_id, user_id)
 );
 
--- Create chat_messages table
-CREATE TABLE IF NOT EXISTS public.chat_messages (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  space_id UUID NOT NULL REFERENCES public.spaces(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  content TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Create direct_messages table for friend-to-friend chat
-CREATE TABLE IF NOT EXISTS public.direct_messages (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  sender_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  receiver_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  content TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
 
 -- Enable RLS on all tables
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.friend_requests ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.connections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.spaces ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.space_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.likes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.direct_messages ENABLE ROW LEVEL SECURITY;
 
 -- Profiles policies
 CREATE POLICY "profiles_select_all" ON public.profiles FOR SELECT USING (true);
@@ -123,23 +84,6 @@ CREATE POLICY "profiles_insert_own" ON public.profiles FOR INSERT WITH CHECK (au
 CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 CREATE POLICY "profiles_delete_own" ON public.profiles FOR DELETE USING (auth.uid() = id);
 
--- Friend requests policies
-CREATE POLICY "friend_requests_select_own" ON public.friend_requests FOR SELECT 
-  USING (auth.uid() = from_user_id OR auth.uid() = to_user_id);
-CREATE POLICY "friend_requests_insert_own" ON public.friend_requests FOR INSERT 
-  WITH CHECK (auth.uid() = from_user_id);
-CREATE POLICY "friend_requests_update_own" ON public.friend_requests FOR UPDATE 
-  USING (auth.uid() = to_user_id);
-CREATE POLICY "friend_requests_delete_own" ON public.friend_requests FOR DELETE 
-  USING (auth.uid() = from_user_id OR auth.uid() = to_user_id);
-
--- Connections policies
-CREATE POLICY "connections_select_own" ON public.connections FOR SELECT 
-  USING (auth.uid() = user_id OR auth.uid() = friend_id);
-CREATE POLICY "connections_insert_own" ON public.connections FOR INSERT 
-  WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "connections_delete_own" ON public.connections FOR DELETE 
-  USING (auth.uid() = user_id);
 
 -- Spaces policies (public groups visible to all, private only to members)
 CREATE POLICY "spaces_select_public" ON public.spaces FOR SELECT USING (
@@ -177,18 +121,6 @@ CREATE POLICY "comments_delete_own" ON public.comments FOR DELETE USING (auth.ui
 CREATE POLICY "likes_select" ON public.likes FOR SELECT USING (true);
 CREATE POLICY "likes_insert_own" ON public.likes FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "likes_delete_own" ON public.likes FOR DELETE USING (auth.uid() = user_id);
-
--- Chat messages policies
-CREATE POLICY "chat_messages_select" ON public.chat_messages FOR SELECT USING (
-  space_id IN (SELECT space_id FROM public.space_members WHERE user_id = auth.uid())
-);
-CREATE POLICY "chat_messages_insert_own" ON public.chat_messages FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "direct_messages_select" ON public.direct_messages FOR SELECT USING (
-  auth.uid() = sender_id OR auth.uid() = receiver_id
-);
-CREATE POLICY "direct_messages_insert_own" ON public.direct_messages FOR INSERT WITH CHECK (auth.uid() = sender_id);
-CREATE POLICY "direct_messages_delete_own" ON public.direct_messages FOR DELETE USING (auth.uid() = sender_id);
 
 -- Insert default public spaces (Global Feed and public groups)
 INSERT INTO public.spaces (id, name, description, icon, is_private, is_public_group) VALUES

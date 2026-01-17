@@ -1,4 +1,4 @@
-import type { Space, JournalEntry, Invitation, ChatMessage, UserProfile, Comment, Like } from "./types"
+import type { Space, JournalEntry, Invitation, UserProfile, Comment, Like } from "./types"
 
 export const mockSpaces: Space[] = [
   {
@@ -17,10 +17,6 @@ export const mockEntries: Record<string, JournalEntry[]> = {
 }
 
 export const mockInvitations: Invitation[] = []
-
-export const mockChatMessages: Record<string, ChatMessage[]> = {
-  "space-global": [],
-}
 
 export const mockProfiles: UserProfile[] = []
 

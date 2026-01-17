@@ -66,24 +66,6 @@ export const MILESTONE_LEVELS: MilestoneLevel[] = [
   { level: 12, name: "Legendary", requiredWins: 500, badge: "👑" },
 ]
 
-export interface ChatMessage {
-  id: string
-  spaceId: string
-  userId: string
-  username: string
-  content: string
-  createdAt: Date
-}
-
-export interface DirectMessage {
-  id: string
-  senderId: string
-  receiverId: string
-  content: string
-  createdAt: Date
-  senderUsername?: string
-  receiverUsername?: string
-}
 
 export interface UserProfile {
   id: string
@@ -106,17 +88,6 @@ export interface UserProfile {
   createdAt: Date
 }
 
-export interface FriendRequest {
-  id: string
-  fromUserId: string
-  fromUsername: string
-  fromTag: string
-  toUserId: string
-  toUsername: string
-  toTag: string
-  status: "pending" | "accepted" | "rejected"
-  createdAt: Date
-}
 
 export interface Comment {
   id: string

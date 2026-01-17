@@ -35,13 +35,4 @@ ALTER TABLE public.entries ADD COLUMN IF NOT EXISTS profit_loss NUMERIC;
 ALTER TABLE public.comments ADD COLUMN IF NOT EXISTS username TEXT;
 ALTER TABLE public.comments ADD COLUMN IF NOT EXISTS avatar TEXT;
 
--- Chat messages: app expects username for display
-ALTER TABLE public.chat_messages ADD COLUMN IF NOT EXISTS username TEXT;
-
--- Friend requests: app expects these username/tag fields for display without extra joins
-ALTER TABLE public.friend_requests ADD COLUMN IF NOT EXISTS from_username TEXT;
-ALTER TABLE public.friend_requests ADD COLUMN IF NOT EXISTS from_tag TEXT;
-ALTER TABLE public.friend_requests ADD COLUMN IF NOT EXISTS to_username TEXT;
-ALTER TABLE public.friend_requests ADD COLUMN IF NOT EXISTS to_tag TEXT;
-
 SELECT '✅ Safe schema upgrade complete' AS result;

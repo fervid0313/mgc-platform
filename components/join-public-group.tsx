@@ -85,7 +85,7 @@ export function JoinPublicGroup() {
       {isOpen && (
         <div className="absolute top-full left-0 mt-2 w-72 glass rounded-xl border border-border shadow-xl z-50 overflow-hidden">
           <div className="p-3 border-b border-border">
-            <p className="text-xs text-muted-foreground">Join groups and add friends to build your community.</p>
+            <p className="text-xs text-muted-foreground">Join groups to build your community.</p>
           </div>
           <div className="p-2 max-h-80 overflow-y-auto">
             {PUBLIC_GROUPS.map((group) => {
