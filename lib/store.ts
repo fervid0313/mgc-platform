@@ -834,53 +834,56 @@ export const useAppStore = create<AppState>()((set, get) => ({
     const cacheKey = `mgs_${env}_connections_${user.id}`
     const freshKey = `mgs_${env}_connections_${user.id}_fresh`
 
-    // Check if we have a fresh localStorage update (from removeFriend/addFriend)
-    const freshConnections = localStorage.getItem(freshKey)
-    if (freshConnections) {
-      try {
-        const parsedConnections = JSON.parse(freshConnections)
-        console.log(`[v0] Loading fresh connections from ${env} localStorage:`, parsedConnections)
-        set({ connections: parsedConnections })
-        // Clean up the fresh marker
-        localStorage.removeItem(freshKey)
-        return
-      } catch (error) {
-        console.warn("[v0] Failed to parse fresh connections:", error)
-        localStorage.removeItem(freshKey)
-      }
-    }
+    // Clean up any leftover fresh keys from old system
+    localStorage.removeItem(freshKey)
 
-    // First, try to load from localStorage for immediate UI update
-    const cachedConnections = localStorage.getItem(cacheKey)
-    if (cachedConnections) {
-      try {
-        const parsedConnections = JSON.parse(cachedConnections)
-        set({ connections: parsedConnections })
-      } catch (error) {
-        console.warn("[v0] Failed to parse cached connections:", error)
-      }
-    }
-
+    // Always load from database first to ensure accuracy
+    // Use cached data only for immediate UI update if database is slow
     const supabase = createClient()
 
-    const { data, error } = await supabase
-      .from("connections")
-      .select("*")
-      .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+    try {
+      const { data, error } = await supabase
+        .from("connections")
+        .select("*")
+        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
 
-    if (error) {
-      console.error("[v0] Load connections error:", error)
-      return
-    }
+      if (error) {
+        console.error("[v0] Load connections error:", error)
+        // Fallback to cached data if database fails
+        const cachedConnections = localStorage.getItem(cacheKey)
+        if (cachedConnections) {
+          try {
+            const parsedConnections = JSON.parse(cachedConnections)
+            set({ connections: parsedConnections })
+          } catch (cacheError) {
+            console.warn("[v0] Failed to parse cached connections:", cacheError)
+          }
+        }
+        return
+      }
 
-    const connections = data.map((c: any) => (c.user_id === user.id ? c.friend_id : c.user_id))
+      const connections = data.map((c: any) => (c.user_id === user.id ? c.friend_id : c.user_id))
 
-    // Only update localStorage if we don't have a fresh version
-    if (!freshConnections) {
+      console.log(`[v0] Loaded ${connections.length} connections from database`)
+
+      // Update localStorage with fresh database data
       localStorage.setItem(cacheKey, JSON.stringify(connections))
-    }
 
-    set({ connections })
+      set({ connections })
+
+    } catch (error) {
+      console.error("[v0] Load connections exception:", error)
+      // Fallback to cached data
+      const cachedConnections = localStorage.getItem(cacheKey)
+      if (cachedConnections) {
+        try {
+          const parsedConnections = JSON.parse(cachedConnections)
+          set({ connections: parsedConnections })
+        } catch (cacheError) {
+          console.warn("[v0] Failed to parse cached connections:", cacheError)
+        }
+      }
+    }
   },
 
   loadFriendRequests: async () => {
@@ -1056,11 +1059,9 @@ export const useAppStore = create<AppState>()((set, get) => ({
       // Environment-specific localStorage keys
       const env = process.env.NODE_ENV || 'development'
       const cacheKey = `mgs_${env}_connections_${user.id}`
-      const freshKey = `mgs_${env}_connections_${user.id}_fresh`
 
-      // Save to localStorage with fresh marker
+      // Update localStorage immediately for responsive UI
       localStorage.setItem(cacheKey, JSON.stringify(updatedConnections))
-      localStorage.setItem(freshKey, JSON.stringify(updatedConnections))
 
       set({
         connections: updatedConnections,
@@ -1140,11 +1141,10 @@ export const useAppStore = create<AppState>()((set, get) => ({
     const cacheKey = `mgs_${env}_connections_${user.id}`
     const freshKey = `mgs_${env}_connections_${user.id}_fresh`
 
-    // Save to localStorage with fresh marker (takes precedence over database)
+    // Update localStorage immediately for responsive UI
     localStorage.setItem(cacheKey, JSON.stringify(updatedConnections))
-    localStorage.setItem(freshKey, JSON.stringify(updatedConnections))
 
-    console.log(`[v0] Saved fresh connections to ${env} localStorage`)
+    console.log(`[v0] Updated connections in ${env} localStorage`)
 
     set({
       connections: updatedConnections
