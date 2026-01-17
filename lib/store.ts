@@ -1013,47 +1013,104 @@ export const useAppStore = create<AppState>()((set, get) => ({
     if (!user) return
 
     const request = friendRequests.find((r) => r.id === requestId)
-    if (!request) return
+    if (!request) {
+      console.error("[v0] Friend request not found:", requestId)
+      return
+    }
+
+    console.log("[v0] Accepting friend request:", requestId, "from:", request.fromUsername)
 
     const supabase = createClient()
 
-    // Update request status
-    await supabase.from("friend_requests").update({ status: "accepted" }).eq("id", requestId)
+    try {
+      // Update request status
+      const { error: updateError } = await supabase
+        .from("friend_requests")
+        .update({ status: "accepted" })
+        .eq("id", requestId)
 
-    // Create connection
-    await supabase.from("connections").insert({
-      user_id: user.id,
-      friend_id: request.fromUserId,
-    })
+      if (updateError) {
+        console.error("[v0] Failed to update friend request status:", updateError)
+        return
+      }
 
-    // Update local state
-    const updatedConnections = [...connections, request.fromUserId]
+      // Create connection
+      const { error: connectionError } = await supabase
+        .from("connections")
+        .insert({
+          user_id: user.id,
+          friend_id: request.fromUserId,
+        })
 
-    // Environment-specific localStorage keys
-    const env = process.env.NODE_ENV || 'development'
-    const cacheKey = `mgs_${env}_connections_${user.id}`
-    const freshKey = `mgs_${env}_connections_${user.id}_fresh`
+      if (connectionError) {
+        console.error("[v0] Failed to create connection:", connectionError)
+        return
+      }
 
-    // Save to localStorage with fresh marker
-    localStorage.setItem(cacheKey, JSON.stringify(updatedConnections))
-    localStorage.setItem(freshKey, JSON.stringify(updatedConnections))
+      console.log("[v0] Database updates successful")
 
-    set({
-      connections: updatedConnections,
-      friendRequests: friendRequests.filter((r) => r.id !== requestId),
-    })
+      // Update local state
+      const updatedConnections = [...connections, request.fromUserId]
+      const updatedFriendRequests = friendRequests.filter((r) => r.id !== requestId)
+
+      // Environment-specific localStorage keys
+      const env = process.env.NODE_ENV || 'development'
+      const cacheKey = `mgs_${env}_connections_${user.id}`
+      const freshKey = `mgs_${env}_connections_${user.id}_fresh`
+
+      // Save to localStorage with fresh marker
+      localStorage.setItem(cacheKey, JSON.stringify(updatedConnections))
+      localStorage.setItem(freshKey, JSON.stringify(updatedConnections))
+
+      set({
+        connections: updatedConnections,
+        friendRequests: updatedFriendRequests,
+      })
+
+      console.log("[v0] Friend request accepted successfully")
+      console.log("[v0] Remaining friend requests:", updatedFriendRequests.length)
+
+    } catch (error) {
+      console.error("[v0] Error accepting friend request:", error)
+    }
   },
 
   rejectFriendRequest: async (requestId: string) => {
     const { friendRequests } = get()
 
+    const request = friendRequests.find((r) => r.id === requestId)
+    if (!request) {
+      console.error("[v0] Friend request not found for rejection:", requestId)
+      return
+    }
+
+    console.log("[v0] Rejecting friend request:", requestId, "from:", request.fromUsername)
+
     const supabase = createClient()
 
-    await supabase.from("friend_requests").update({ status: "rejected" }).eq("id", requestId)
+    try {
+      const { error } = await supabase
+        .from("friend_requests")
+        .update({ status: "rejected" })
+        .eq("id", requestId)
 
-    set({
-      friendRequests: friendRequests.filter((r) => r.id !== requestId),
-    })
+      if (error) {
+        console.error("[v0] Failed to reject friend request:", error)
+        return
+      }
+
+      const updatedFriendRequests = friendRequests.filter((r) => r.id !== requestId)
+
+      set({
+        friendRequests: updatedFriendRequests,
+      })
+
+      console.log("[v0] Friend request rejected successfully")
+      console.log("[v0] Remaining friend requests:", updatedFriendRequests.length)
+
+    } catch (error) {
+      console.error("[v0] Error rejecting friend request:", error)
+    }
   },
 
   removeFriend: async (friendId: string) => {
