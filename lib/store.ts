@@ -1172,8 +1172,8 @@ export const useAppStore = create<AppState>()((set, get) => ({
       .single()
 
     if (error) {
-      console.error("[v0] Send DM error:", error)
-      return
+      console.error("[v0] Send DM error:", error);
+      return;
     }
 
     const newMessage: DirectMessage = {
