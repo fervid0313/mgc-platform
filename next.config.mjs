@@ -4,7 +4,24 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+      {
+        protocol: 'http',
+        hostname: '**',
+      },
+    ],
+    domains: [
+      'localhost',
+      'mgstrades.com',
+      'www.mgstrades.com',
+      'supabase.co',
+      'images.unsplash.com',
+      'via.placeholder.com',
+    ],
   },
 }
 

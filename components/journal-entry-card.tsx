@@ -141,6 +141,13 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
 
         <p className="text-sm text-foreground/80 leading-relaxed font-medium">{entry.content}</p>
 
+        {/* Debug: Check if image exists */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+            Debug: {entry.image ? 'Image exists: ' + entry.image.substring(0, 50) + '...' : 'No image'}
+          </div>
+        )}
+
         {entry.image && (
           <div
             className="relative rounded-xl overflow-hidden border border-border cursor-pointer hover:border-primary/50 transition-all duration-300 group"
@@ -155,6 +162,13 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 placeholder="blur"
                 blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAAAX/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwA/8A8A"
+                style={{
+                  position: 'absolute',
+                  height: '100%',
+                  width: '100%',
+                  left: 0,
+                  top: 0,
+                }}
               />
             </div>
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
