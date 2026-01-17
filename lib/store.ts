@@ -589,6 +589,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       : spaceId
 
     console.log("[ENTRY] Loading entries for:", spaceId, "→", actualSpaceId)
+    console.log("[ENTRY] Current space ID in store:", get().currentSpaceId)
 
     try {
       // Test with minimal columns first - ONLY USE BASIC COLUMNS
@@ -634,6 +635,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       })
 
       console.log("[ENTRY] ✅ Loaded", mappedEntries.length, "entries (minimal)")
+      console.log("[ENTRY] 📊 Sample entries:", mappedEntries.map(e => ({
+        id: e.id,
+        content: e.content?.substring(0, 30) + "...",
+        spaceId: e.spaceId,
+        createdAt: e.createdAt
+      })))
       set({
         entries: { ...entries, [spaceId]: mappedEntries },
         lastLoadedEntriesAt: { ...lastLoadedEntriesAt, [spaceId]: Date.now() },

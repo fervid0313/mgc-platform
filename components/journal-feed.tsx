@@ -9,6 +9,14 @@ export function JournalFeed() {
   const spaceEntries = currentSpaceId ? entries[currentSpaceId] || [] : []
   const isGlobalFeed = currentSpaceId === "space-global"
 
+  console.log("[FEED] 📊 Current state:", {
+    currentSpaceId,
+    spaceEntriesCount: spaceEntries.length,
+    entriesKeys: Object.keys(entries),
+    currentSpaceName: currentSpace?.name,
+    isGlobalFeed
+  })
+
   const canLoadMore = currentSpaceId ? hasMoreEntries[currentSpaceId] !== false : false
   const isLoadingMore = currentSpaceId ? isLoadingMoreEntries[currentSpaceId] === true : false
 
