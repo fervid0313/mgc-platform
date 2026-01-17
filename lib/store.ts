@@ -1423,80 +1423,40 @@ const store = create<AppState>()((set, get) => ({
       const supabase = createClient()
       console.log("[v1] Attempting database deletion for connections...")
 
-      console.log("[v9] 🗑️ EXECUTING DATABASE DELETION...")
-      console.log("[v9] Current user ID:", user.id)
-      console.log("[v9] Target friend ID:", friendId)
-
-      // First, let's see what connections currently exist
-      console.log("[v9] 🔍 CHECKING existing connections before deletion...")
-      const { data: beforeData, error: beforeError } = await supabase
-        .from("connections")
-        .select("*")
-        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
-
-      if (beforeError) {
-        console.error("[v9] ❌ Error checking existing connections:", beforeError)
-      } else {
-        console.log("[v9] 🔍 Connections before deletion:", beforeData)
-        const relevantConnections = beforeData?.filter(c =>
-          (c.user_id === user.id && c.friend_id === friendId) ||
-          (c.user_id === friendId && c.friend_id === user.id)
-        ) || []
-        console.log("[v9] 🔍 Relevant connections to delete:", relevantConnections)
-      }
-
-      // Try the delete with exact count
-      console.log("[v9] 🗑️ ATTEMPTING DELETION...")
+      // Execute database deletion with fallback methods
       const deleteQuery = `and(user_id.eq.${user.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${user.id})`
-      console.log("[v9] Delete query OR condition:", deleteQuery)
 
       const { error, count } = await supabase
         .from("connections")
         .delete({ count: 'exact' })
         .or(deleteQuery)
 
-      console.log("[v9] Database deletion result - count:", count, "error:", error)
-
       if (error) {
-        console.error("[v9] 🚨 DATABASE DELETION FAILED:", error)
-        console.error("[v9] 🚨 Error details:", JSON.stringify(error, null, 2))
+        console.error("Friend removal database error:", error)
 
-        // Try alternative deletion method
-        console.log("[v9] 🔄 TRYING ALTERNATIVE DELETION METHOD...")
+        // Try alternative deletion methods
         try {
-          // Delete connections one by one to see which ones exist
-          const { error: error1, count: count1 } = await supabase
+          const { count: count1 } = await supabase
             .from("connections")
             .delete({ count: 'exact' })
             .eq('user_id', user.id)
             .eq('friend_id', friendId)
 
-          const { error: error2, count: count2 } = await supabase
+          const { count: count2 } = await supabase
             .from("connections")
             .delete({ count: 'exact' })
             .eq('user_id', friendId)
             .eq('friend_id', user.id)
 
-          console.log("[v9] Alternative deletion results:")
-          console.log("[v9] Direction 1 (user->friend): count =", count1, "error =", error1)
-          console.log("[v9] Direction 2 (friend->user): count =", count2, "error =", error2)
-
-          if ((count1 || 0) + (count2 || 0) > 0) {
-            console.log("[v9] ✅ Alternative deletion succeeded")
+          if ((count1 || 0) + (count2 || 0) === 0) {
+            console.warn("Alternative deletion methods also found no connections to delete")
           }
         } catch (altError) {
-          console.error("[v9] ❌ Alternative deletion also failed:", altError)
+          console.error("Alternative deletion failed:", altError)
         }
-
-        console.log("[v9] Keeping localStorage priority flag to preserve UI state")
-        // Keep the priority flag so UI state is preserved
-      } else {
-        console.log("[v9] ✅ Database deletion reported success -", count, "connections deleted")
-
-        if (count === 0) {
-          console.warn("[v9] ⚠️ WARNING: No connections were deleted (count = 0)")
-          console.warn("[v9] This might mean the connection didn't exist in the first place")
-        }
+      } else if (count === 0) {
+        console.warn("No connections were deleted - connection may not have existed")
+      }
 
         // VERIFY the deletion actually worked
         console.log("[v8] 🔍 VERIFYING deletion by checking remaining connections...")
@@ -1508,22 +1468,15 @@ const store = create<AppState>()((set, get) => ({
         if (verifyError) {
           console.error("[v8] ❌ Verification query failed:", verifyError)
         } else {
-          console.log("[v9] 🔍 All user connections after deletion attempt:", verifyData?.length || 0)
-          console.log("[v9] 🔍 Connection details:", verifyData)
-
-          // Check if there are any RLS policy issues
-          if (verifyData && verifyData.length > 0) {
-            console.log("[v9] 🔍 Checking for RLS policy issues...")
-            const authUser = await supabase.auth.getUser()
-            console.log("[v9] Current authenticated user:", authUser.data.user?.id)
-
-            // Try to select the specific connections we're trying to delete
-            const { data: specificData, error: specificError } = await supabase
-              .from("connections")
-              .select("*")
-              .or(`and(user_id.eq.${user.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${user.id})`)
-
-            console.log("[v9] Specific connection query result:", specificData, "error:", specificError)
+            if (verifyData && verifyData.length > 0) {
+            // Check for any remaining connections with this friend
+            const remainingWithFriend = verifyData.filter(c =>
+              (c.user_id === friendId || c.friend_id === friendId)
+            )
+            if (remainingWithFriend.length > 0) {
+              console.error("Friend removal verification failed - connection still exists in database")
+              throw new Error("Database deletion verification failed")
+            }
           }
 
           const remainingConnections = verifyData?.filter(c =>
