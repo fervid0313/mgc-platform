@@ -1116,50 +1116,47 @@ export const useAppStore = create<AppState>()((set, get) => ({
   },
 
   removeFriend: async (friendId: string) => {
-    const { user, connections } = get()
+    const { user } = get()
     if (!user) return
 
-    const supabase = createClient()
+    console.log("[v0] Starting friend removal for:", friendId)
 
-    // Remove the connection from database (works for both directions due to table structure)
-    const { error } = await supabase
-      .from("connections")
-      .delete()
-      .or(`and(user_id.eq.${user.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${user.id})`)
+    // IMMEDIATE UI UPDATE - Update state first for instant feedback
+    const currentState = get()
+    const updatedConnections = currentState.connections.filter(id => id !== friendId)
 
-    if (error) {
-      console.error("[v0] Remove friend error:", error)
-      return
-    }
+    console.log("[v0] UI update - connections before:", currentState.connections.length, "after:", updatedConnections.length)
 
-    // Update local state
-    const updatedConnections = connections.filter(id => id !== friendId)
+    // Update Zustand state immediately
+    set({ connections: updatedConnections })
 
-    console.log("[v0] Updated connections after removal:", updatedConnections)
-
-    // Environment-specific localStorage keys
+    // Update localStorage immediately
     const env = process.env.NODE_ENV || 'development'
     const cacheKey = `mgs_${env}_connections_${user.id}`
-
-    // Update localStorage immediately for responsive UI
     localStorage.setItem(cacheKey, JSON.stringify(updatedConnections))
 
-    console.log(`[v0] Updated connections in ${env} localStorage:`, updatedConnections)
+    console.log("[v0] UI updated instantly, localStorage saved")
 
-    // Force immediate state update to trigger UI re-render
-    set((state) => ({
-      ...state,
-      connections: updatedConnections
-    }))
+    // DATABASE UPDATE - Handle asynchronously in background
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from("connections")
+        .delete()
+        .or(`and(user_id.eq.${user.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${user.id})`)
 
-    console.log("[v0] Friend removal complete - UI should update immediately")
-    console.log("[v0] New connections state:", get().connections)
+      if (error) {
+        console.error("[v0] Database deletion failed:", error)
+        // Note: UI is already updated, so user sees the change
+        // On next loadConnections(), it will sync with database
+      } else {
+        console.log("[v0] Database deletion successful")
+      }
+    } catch (error) {
+      console.error("[v0] Error in database operation:", error)
+    }
 
-    // Force a reload of connections from database to ensure consistency
-    console.log("[v0] Forcing connection reload from database...")
-    setTimeout(() => {
-      get().loadConnections()
-    }, 100)
+    console.log("[v0] Friend removal process complete")
   },
 
   directMessages: {},
