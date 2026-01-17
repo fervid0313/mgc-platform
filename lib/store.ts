@@ -604,7 +604,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       console.log("[ENTRY] Test result:", { 
         count: testData?.length || 0, 
         error: testError,
-        errorMessage: testError?.message
+        errorMessage: testError?.message,
+        sampleData: testData?.map(e => ({
+          id: e.id,
+          hasPnl: e.pnl !== null && e.pnl !== undefined,
+          pnlValue: e.pnl,
+          hasImage: !!e.image,
+          imageLength: e.image?.length || 0
+        })) || []
       })
 
       if (testError) {
