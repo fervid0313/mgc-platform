@@ -1256,45 +1256,89 @@ const store = create<AppState>()((set, get) => ({
   },
 
   removeFriend: async (friendId: string) => {
+    console.log("[v4] 🚨🚨🚨🚨 FRIEND REMOVAL FUNCTION CALLED with friendId:", friendId)
+
     const { user } = get()
-    if (!user) return
+    console.log("[v4] Current user:", user)
 
-    console.log("[v1] 🚨 STARTING FRIEND REMOVAL for:", friendId)
-
-    // IMMEDIATE UI UPDATE - Update state first for instant feedback
-    const currentState = get()
-    const updatedConnections = currentState.connections.filter(id => id !== friendId)
-
-    console.log("[v1] UI update - connections before:", currentState.connections.length, "after:", updatedConnections.length)
-
-    // Update Zustand state immediately
-    set({ connections: updatedConnections })
-
-    // 🚨🚨🚨 ABSOLUTE LOCK: Create friend removal lock FIRST - before any other operations
-    const env = process.env.NODE_ENV || 'development'
-    const friendRemovalLockKey = `mgs_${env}_friend_removal_lock_${user.id}`
-    const removalLockData = {
-      timestamp: Date.now(),
-      friendId: friendId,
-      action: 'friend_removed',
-      expiresAt: Date.now() + 120000, // 2 minutes from now
-      userId: user.id,
-      lockVersion: 'v3_final'
+    if (!user) {
+      console.log("[v4] ❌ NO USER - ABORTING FRIEND REMOVAL")
+      return
     }
 
-    try {
-      localStorage.setItem(friendRemovalLockKey, JSON.stringify(removalLockData))
-      console.log("[v3] 🚨🚨🚨 FRIEND REMOVAL LOCK CREATED:", removalLockData)
+    console.log("[v4] ✅ USER FOUND - PROCEEDING WITH FRIEND REMOVAL for:", friendId)
 
-      // Verify lock was created
-      const verifyLock = localStorage.getItem(friendRemovalLockKey)
-      if (!verifyLock) {
-        throw new Error("Lock creation failed - localStorage.setItem returned null")
+    // IMMEDIATE UI UPDATE - Update state first for instant feedback
+    console.log("[v4] 🚨🚨🚨🚨 STARTING UI UPDATE")
+
+    const currentState = get()
+    console.log("[v4] Current state connections:", currentState.connections)
+
+    const updatedConnections = currentState.connections.filter(id => id !== friendId)
+    console.log("[v4] Filtered connections - before:", currentState.connections.length, "after:", updatedConnections.length)
+    console.log("[v4] Removed friend ID:", friendId)
+    console.log("[v4] Updated connections array:", updatedConnections)
+
+    // Update Zustand state immediately
+    console.log("[v4] 🚨🚨🚨🚨 CALLING set() to update Zustand state")
+    set({ connections: updatedConnections })
+    console.log("[v4] ✅✅✅✅ Zustand state updated")
+
+    // Verify the state update
+    const verifyState = get()
+    console.log("[v4] State verification - connections after set():", verifyState.connections)
+
+    // 🚨🚨🚨🚨 ABSOLUTE LOCK CREATION - STEP BY STEP DEBUGGING
+    console.log("[v4] 🚨🚨🚨🚨 STARTING LOCK CREATION PROCESS")
+
+    try {
+      const env = process.env.NODE_ENV || 'development'
+      console.log("[v4] Environment:", env)
+
+      const friendRemovalLockKey = `mgs_${env}_friend_removal_lock_${user.id}`
+      console.log("[v4] Lock key:", friendRemovalLockKey)
+
+      const removalLockData = {
+        timestamp: Date.now(),
+        friendId: friendId,
+        action: 'friend_removed',
+        expiresAt: Date.now() + 120000, // 2 minutes from now
+        userId: user.id,
+        lockVersion: 'v4_debug'
       }
-      console.log("[v3] 🚨🚨🚨 LOCK VERIFIED - Database loads blocked for 2 minutes")
+      console.log("[v4] Lock data to save:", removalLockData)
+
+      const jsonString = JSON.stringify(removalLockData)
+      console.log("[v4] JSON string length:", jsonString.length)
+
+      console.log("[v4] 🚨🚨🚨🚨 CALLING localStorage.setItem...")
+      localStorage.setItem(friendRemovalLockKey, jsonString)
+      console.log("[v4] 🚨🚨🚨🚨 localStorage.setItem completed")
+
+      // IMMEDIATE VERIFICATION
+      console.log("[v4] 🚨🚨🚨🚨 VERIFYING LOCK CREATION...")
+      const verifyLock = localStorage.getItem(friendRemovalLockKey)
+      console.log("[v4] Verification result:", verifyLock)
+
+      if (!verifyLock) {
+        throw new Error("Lock creation verification failed - localStorage.getItem returned null")
+      }
+
+      const parsedVerify = JSON.parse(verifyLock)
+      console.log("[v4] Parsed verification:", parsedVerify)
+
+      if (parsedVerify.friendId !== friendId) {
+        throw new Error(`Lock verification failed - friendId mismatch: expected ${friendId}, got ${parsedVerify.friendId}`)
+      }
+
+      console.log("[v4] ✅✅✅✅ FRIEND REMOVAL LOCK CREATED AND VERIFIED SUCCESSFULLY")
+      console.log("[v4] ✅✅✅✅ Database loads blocked for 2 minutes")
+
     } catch (error) {
-      console.error("[v3] 🚨🚨🚨 CRITICAL: FAILED TO CREATE FRIEND REMOVAL LOCK:", error)
-      // Continue anyway, but this is bad
+      console.error("[v4] 🚨🚨🚨🚨 CRITICAL ERROR IN LOCK CREATION:", error)
+      console.error("[v4] 🚨🚨🚨🚨 Error stack:", error.stack)
+      console.log("[v4] ❌❌❌❌ LOCK CREATION FAILED - FRIENDS WILL REAPPEAR")
+      // Continue anyway, but log the failure
     }
 
     // CRITICAL: Update localStorage with PRIORITY FLAG to prevent database override
