@@ -76,6 +76,7 @@ interface AppState {
   ) => void
   deleteEntry: (entryId: string, spaceId: string) => void
   loadEntries: (spaceId: string) => Promise<void>
+  forceLoadEntries: (spaceId: string) => Promise<void>
   loadMoreEntries: (spaceId: string) => Promise<void>
 
   getCollectiveVibe: () => MentalState | null
@@ -579,7 +580,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   loadEntries: async (spaceId: string) => {
     const { lastLoadedEntriesAt, entries } = get()
-    if (Date.now() - (lastLoadedEntriesAt[spaceId] || 0) < 10_000) {
+    if (Date.now() - (lastLoadedEntriesAt[spaceId] || 0) < 1_000) {
+      console.log("[ENTRY] ⏱️ Using cached entries (loaded < 1s ago)")
       return
     }
 
@@ -668,6 +670,19 @@ export const useAppStore = create<AppState>((set, get) => ({
         lastLoadedEntriesAt: { ...lastLoadedEntriesAt, [spaceId]: Date.now() },
       })
     }
+  },
+
+  forceLoadEntries: async (spaceId: string) => {
+    console.log("[ENTRY] 🔄 Force loading entries (bypassing cache)")
+    const { lastLoadedEntriesAt, entries } = get()
+    
+    // Clear the cache timestamp to force reload
+    set({
+      lastLoadedEntriesAt: { ...lastLoadedEntriesAt, [spaceId]: 0 }
+    })
+    
+    // Call loadEntries which will now reload from database
+    await get().loadEntries(spaceId)
   },
 
   loadMoreEntries: async (spaceId: string) => {
