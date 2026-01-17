@@ -108,7 +108,7 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-xs font-bold text-muted-foreground">
-                    {entry.username ? entry.username.charAt(0).toUpperCase() : "?"}
+                    ?
                   </div>
                 )}
               </div>
@@ -230,7 +230,7 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
                         />
                       ) : (
                         <span className="text-[10px] font-bold text-muted-foreground">
-                          {comment.username ? comment.username.charAt(0).toUpperCase() : "?"}
+                          ?
                         </span>
                       )}
                     </div>

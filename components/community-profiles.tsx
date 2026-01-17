@@ -140,7 +140,7 @@ export function CommunityProfiles() {
               }} className="flex items-center gap-3 flex-1 text-left">
                 <div className="relative">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-sm font-bold">
-                    {profile.username ? profile.username.charAt(0).toUpperCase() : "?"}
+                    ?
                   </div>
                   {profile.isOnline && (
                     <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background" />
