@@ -53,6 +53,11 @@ interface AppState {
   logout: () => void
   initializeAuth: () => Promise<void>
 
+  lastLoadedProfilesAt: number
+  lastLoadedConnectionsAt: number
+  lastLoadedFriendRequestsAt: number
+  lastLoadedEntriesAt: Record<string, number>
+
   // Spaces
   spaces: Space[]
   currentSpaceId: string | null
@@ -62,6 +67,9 @@ interface AppState {
 
   // Entries
   entries: Record<string, JournalEntry[]>
+  entriesCursor: Record<string, { createdAt: string; id: string } | null>
+  hasMoreEntries: Record<string, boolean>
+  isLoadingMoreEntries: Record<string, boolean>
   addEntry: (
     content: string,
     tags?: string[],
@@ -72,6 +80,7 @@ interface AppState {
   ) => void
   deleteEntry: (entryId: string, spaceId: string) => void
   loadEntries: (spaceId: string) => Promise<void>
+  loadMoreEntries: (spaceId: string) => Promise<void>
 
   getCollectiveVibe: () => MentalState | null
   getVibeThemeClass: () => string | null
@@ -143,6 +152,11 @@ const store = create<AppState>()((set, get) => ({
   isAuthenticated: false,
   isLoading: true,
 
+  lastLoadedProfilesAt: 0,
+  lastLoadedConnectionsAt: 0,
+  lastLoadedFriendRequestsAt: 0,
+  lastLoadedEntriesAt: {},
+
   isAdmin: () => {
     const { user } = get()
     return user?.isAdmin === true
@@ -167,7 +181,11 @@ const store = create<AppState>()((set, get) => ({
         if (session?.user) {
           console.log("[AUTH] Session found, fetching profile for user:", session.user.id)
           // Fetch profile from database
-          const { data: profile, error: profileError } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("id, username, tag, email, avatar, created_at")
+            .eq("id", session.user.id)
+            .single()
           console.log("[AUTH] Profile fetch response:", { profile, profileError })
 
           if (profileError) {
@@ -199,7 +217,7 @@ const store = create<AppState>()((set, get) => ({
             console.log("[AUTH] Loading user spaces...")
             const { data: spaces, error: spacesError } = await supabase
               .from("spaces")
-              .select("*")
+              .select("id, name, description, owner_id, is_private, created_at, member_count")
               .or(`owner_id.eq.${session.user.id},is_private.eq.false`)
             console.log("[AUTH] Spaces fetch response:", { spaces: spaces?.length, spacesError })
 
@@ -245,9 +263,11 @@ const store = create<AppState>()((set, get) => ({
 
             // Load friend requests
             console.log("[AUTH] Loading friend requests, connections, profiles...")
-            get().loadFriendRequests()
-            get().loadConnections()
-            get().loadProfiles()
+            void Promise.allSettled([
+              get().loadFriendRequests(),
+              get().loadConnections(),
+              get().loadProfiles(),
+            ])
             console.log("[AUTH] Initial data loading triggered.")
             return true
           }
@@ -269,7 +289,11 @@ const store = create<AppState>()((set, get) => ({
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         if (session?.user) {
           // Fetch profile from database
-          const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single()
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("id, username, tag, email, avatar, created_at")
+            .eq("id", session.user.id)
+            .single()
 
           if (profile) {
             const user: User = {
@@ -289,9 +313,11 @@ const store = create<AppState>()((set, get) => ({
             })
 
             // Reload data
-            get().loadFriendRequests()
-            get().loadConnections()
-            get().loadProfiles()
+            void Promise.allSettled([
+              get().loadFriendRequests(),
+              get().loadConnections(),
+              get().loadProfiles(),
+            ])
           }
         }
       } else if (event === "SIGNED_OUT") {
@@ -327,7 +353,11 @@ const store = create<AppState>()((set, get) => ({
       if (data.user) {
         console.log("[DEBUG] User authenticated, fetching profile...")
         // Fetch profile
-        const { data: profile } = await supabase.from("profiles").select("*").eq("id", data.user.id).single()
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("id, username, tag, email, avatar, created_at")
+          .eq("id", data.user.id)
+          .single()
         console.log("[DEBUG] Profile fetch response:", { profile })
 
         if (profile) {
@@ -351,9 +381,11 @@ const store = create<AppState>()((set, get) => ({
           })
 
           // Load data
-          get().loadFriendRequests()
-          get().loadConnections()
-          get().loadProfiles()
+          void Promise.allSettled([
+            get().loadFriendRequests(),
+            get().loadConnections(),
+            get().loadProfiles(),
+          ])
 
           return true
         }
@@ -467,9 +499,11 @@ const store = create<AppState>()((set, get) => ({
         })
 
           // Load data
-          get().loadFriendRequests()
-          get().loadConnections()
-          get().loadProfiles()
+          void Promise.allSettled([
+            get().loadFriendRequests(),
+            get().loadConnections(),
+            get().loadProfiles(),
+          ])
 
         return true
         }
@@ -537,9 +571,11 @@ const store = create<AppState>()((set, get) => ({
 
   setCurrentSpace: (spaceId: string) => {
     set({ currentSpaceId: spaceId, sidebarOpen: false, viewMode: "journal" })
-    get().loadEntries(spaceId)
-    get().loadCommentsAndLikes(spaceId)
-    get().loadChatMessages(spaceId)
+    void Promise.allSettled([
+      get().loadEntries(spaceId),
+      get().loadCommentsAndLikes(spaceId),
+      get().loadChatMessages(spaceId),
+    ])
   },
 
   createSpace: async (name: string, description?: string, isPrivate = false) => {
@@ -638,36 +674,112 @@ const store = create<AppState>()((set, get) => ({
   },
 
   entries: { "space-global": [] },
+  entriesCursor: { "space-global": null },
+  hasMoreEntries: { "space-global": true },
+  isLoadingMoreEntries: { "space-global": false },
 
   loadEntries: async (spaceId: string) => {
+    const { lastLoadedEntriesAt } = get()
+    const lastLoadedAt = lastLoadedEntriesAt[spaceId] || 0
+    if (Date.now() - lastLoadedAt < 10_000) {
+      return
+    }
+
+    const entrySelectFullProfit = "id, space_id, user_id, username, content, tags, trade_type, profit_loss, image, mental_state, created_at"
+    const entrySelectFullPnl = "id, space_id, user_id, username, content, tags, trade_type, pnl, image, mental_state, created_at"
+    const entrySelectNoUsernameProfit = "id, space_id, user_id, content, tags, trade_type, profit_loss, image, mental_state, created_at"
+    const entrySelectNoUsernamePnl = "id, space_id, user_id, content, tags, trade_type, pnl, image, mental_state, created_at"
+    const entrySelectMinimal = "id, space_id, user_id, content, created_at"
+
+    const pageSize = 50
+
     // Handle global feed specially - load entries from Global Feed space
     if (spaceId === "space-global") {
       console.log("[v0] Loading global feed entries from Global Feed space")
 
       const supabase = createClient()
-      const { data, error } = await supabase
+      let result: any = await supabase
         .from("entries")
-        .select("*")
+        .select(entrySelectFullProfit)
         .eq("space_id", "00000000-0000-0000-0000-000000000001") // Global Feed space ID
         .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(pageSize)
+
+      const firstMsg = String((result.error as any)?.message || "").toLowerCase()
+      if (result.error && firstMsg.includes("profit_loss")) {
+        result = await supabase
+          .from("entries")
+          .select(entrySelectFullPnl)
+          .eq("space_id", "00000000-0000-0000-0000-000000000001") // Global Feed space ID
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .limit(pageSize)
+      }
+
+      if (result.error) {
+        result = await supabase
+          .from("entries")
+          .select(entrySelectNoUsernameProfit)
+          .eq("space_id", "00000000-0000-0000-0000-000000000001") // Global Feed space ID
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .limit(pageSize)
+      }
+
+      const noUserMsg = String((result.error as any)?.message || "").toLowerCase()
+      if (result.error && noUserMsg.includes("profit_loss")) {
+        result = await supabase
+          .from("entries")
+          .select(entrySelectNoUsernamePnl)
+          .eq("space_id", "00000000-0000-0000-0000-000000000001") // Global Feed space ID
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .limit(pageSize)
+      }
+
+      if (result.error) {
+        result = await supabase
+          .from("entries")
+          .select(entrySelectMinimal)
+          .eq("space_id", "00000000-0000-0000-0000-000000000001") // Global Feed space ID
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .limit(pageSize)
+      }
+
+      const { data, error } = result
 
       if (error) {
-        console.error("[v0] Load global entries error:", error)
+        console.error("[v0] Load global entries error:", {
+          message: (error as any)?.message,
+          code: (error as any)?.code,
+          details: (error as any)?.details,
+          hint: (error as any)?.hint,
+        })
+        console.error("[v0] Load global entries raw error:", error)
+        try {
+          console.error("[v0] Load global entries error JSON:", JSON.stringify(error))
+        } catch {
+          // ignore
+        }
         set((state) => ({
           entries: { ...state.entries, [spaceId]: [] },
         }))
         return
       }
 
+      const usernameByUserId = new Map((get().profiles || []).map((p: any) => [p.id, p.username]))
+
       const globalEntries = data.map((e: any) => ({
         id: e.id,
         spaceId: "space-global", // Display as global space
         userId: e.user_id,
-        username: e.username,
+        username: e.username || usernameByUserId.get(e.user_id) || "unknown",
         content: e.content,
         tags: e.tags || [],
         tradeType: e.trade_type,
-        profitLoss: e.profit_loss ?? e.pnl,
+        profitLoss: e.profit_loss ?? e.pnl ?? undefined,
         image: e.image,
         mentalState: e.mental_state,
         createdAt: new Date(e.created_at),
@@ -678,8 +790,15 @@ const store = create<AppState>()((set, get) => ({
         const existing = state.entries[spaceId] || []
         const fetchedIds = new Set(globalEntries.map((e) => e.id))
         const merged = [...globalEntries, ...existing.filter((e) => !fetchedIds.has(e.id))]
+
+        const last = globalEntries[globalEntries.length - 1]
+        const nextCursor = last ? { createdAt: last.createdAt.toISOString(), id: last.id } : null
+
         return {
           entries: { ...state.entries, [spaceId]: merged },
+          lastLoadedEntriesAt: { ...state.lastLoadedEntriesAt, [spaceId]: Date.now() },
+          entriesCursor: { ...state.entriesCursor, [spaceId]: nextCursor },
+          hasMoreEntries: { ...state.hasMoreEntries, [spaceId]: globalEntries.length === pageSize },
         }
       })
       return
@@ -687,26 +806,85 @@ const store = create<AppState>()((set, get) => ({
 
     const supabase = createClient()
 
-    const { data, error } = await supabase
+    let result: any = await supabase
       .from("entries")
-      .select("*")
+      .select(entrySelectFullProfit)
       .eq("space_id", spaceId)
       .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(pageSize)
+
+    const msg = String((result.error as any)?.message || "").toLowerCase()
+    if (result.error && msg.includes("profit_loss")) {
+      result = await supabase
+        .from("entries")
+        .select(entrySelectFullPnl)
+        .eq("space_id", spaceId)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(pageSize)
+    }
+
+    if (result.error) {
+      result = await supabase
+        .from("entries")
+        .select(entrySelectNoUsernameProfit)
+        .eq("space_id", spaceId)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(pageSize)
+    }
+
+    const msg2 = String((result.error as any)?.message || "").toLowerCase()
+    if (result.error && msg2.includes("profit_loss")) {
+      result = await supabase
+        .from("entries")
+        .select(entrySelectNoUsernamePnl)
+        .eq("space_id", spaceId)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(pageSize)
+    }
+
+    if (result.error) {
+      result = await supabase
+        .from("entries")
+        .select(entrySelectMinimal)
+        .eq("space_id", spaceId)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(pageSize)
+    }
+
+    const { data, error } = result
 
     if (error) {
-      console.error("[v0] Load entries error:", error)
+      console.error("[v0] Load entries error:", {
+        message: (error as any)?.message,
+        code: (error as any)?.code,
+        details: (error as any)?.details,
+        hint: (error as any)?.hint,
+      })
+      console.error("[v0] Load entries raw error:", error)
+      try {
+        console.error("[v0] Load entries error JSON:", JSON.stringify(error))
+      } catch {
+        // ignore
+      }
       return
     }
+
+    const usernameByUserId = new Map((get().profiles || []).map((p: any) => [p.id, p.username]))
 
     const entries = data.map((e: any) => ({
       id: e.id,
       spaceId: e.space_id,
       userId: e.user_id,
-      username: e.username,
+      username: e.username || usernameByUserId.get(e.user_id) || "unknown",
       content: e.content,
       tags: e.tags || [],
       tradeType: e.trade_type,
-      profitLoss: e.profit_loss ?? e.pnl,
+      profitLoss: e.profit_loss ?? e.pnl ?? undefined,
       image: e.image,
       mentalState: e.mental_state,
       createdAt: new Date(e.created_at),
@@ -716,8 +894,109 @@ const store = create<AppState>()((set, get) => ({
       const existing = state.entries[spaceId] || []
       const fetchedIds = new Set(entries.map((e) => e.id))
       const merged = [...entries, ...existing.filter((e) => !fetchedIds.has(e.id))]
+
+      const last = entries[entries.length - 1]
+      const nextCursor = last ? { createdAt: last.createdAt.toISOString(), id: last.id } : null
+
       return {
         entries: { ...state.entries, [spaceId]: merged },
+        lastLoadedEntriesAt: { ...state.lastLoadedEntriesAt, [spaceId]: Date.now() },
+        entriesCursor: { ...state.entriesCursor, [spaceId]: nextCursor },
+        hasMoreEntries: { ...state.hasMoreEntries, [spaceId]: entries.length === pageSize },
+      }
+    })
+  },
+
+  loadMoreEntries: async (spaceId: string) => {
+    const { isLoadingMoreEntries, hasMoreEntries, entriesCursor } = get()
+    if (isLoadingMoreEntries[spaceId]) return
+    if (hasMoreEntries[spaceId] === false) return
+
+    const cursor = entriesCursor[spaceId]
+    if (!cursor) return
+
+    set((state) => ({
+      isLoadingMoreEntries: { ...state.isLoadingMoreEntries, [spaceId]: true },
+    }))
+
+    const pageSize = 50
+    const entrySelectFullProfit = "id, space_id, user_id, username, content, tags, trade_type, profit_loss, image, mental_state, created_at"
+    const entrySelectFullPnl = "id, space_id, user_id, username, content, tags, trade_type, pnl, image, mental_state, created_at"
+    const entrySelectNoUsernameProfit = "id, space_id, user_id, content, tags, trade_type, profit_loss, image, mental_state, created_at"
+    const entrySelectNoUsernamePnl = "id, space_id, user_id, content, tags, trade_type, pnl, image, mental_state, created_at"
+
+    const supabase = createClient()
+    const actualSpaceId = spaceId === "space-global" ? "00000000-0000-0000-0000-000000000001" : spaceId
+
+    const baseQuery = (select: string) =>
+      supabase
+        .from("entries")
+        .select(select)
+        .eq("space_id", actualSpaceId)
+        .lt("created_at", cursor.createdAt)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(pageSize)
+
+    let result: any = await baseQuery(entrySelectFullProfit)
+    const m1 = String((result.error as any)?.message || "").toLowerCase()
+    if (result.error && m1.includes("profit_loss")) {
+      result = await baseQuery(entrySelectFullPnl)
+    }
+
+    if (result.error) {
+      result = await baseQuery(entrySelectNoUsernameProfit)
+    }
+
+    const m2 = String((result.error as any)?.message || "").toLowerCase()
+    if (result.error && m2.includes("profit_loss")) {
+      result = await baseQuery(entrySelectNoUsernamePnl)
+    }
+
+    const { data, error } = result
+
+    if (error) {
+      console.error("[v0] Load more entries error:", {
+        message: (error as any)?.message,
+        code: (error as any)?.code,
+        details: (error as any)?.details,
+        hint: (error as any)?.hint,
+      })
+      set((state) => ({
+        isLoadingMoreEntries: { ...state.isLoadingMoreEntries, [spaceId]: false },
+      }))
+      return
+    }
+
+    const usernameByUserId = new Map((get().profiles || []).map((p: any) => [p.id, p.username]))
+
+    const nextEntries = (data || []).map((e: any) => ({
+      id: e.id,
+      spaceId: spaceId === "space-global" ? "space-global" : e.space_id,
+      userId: e.user_id,
+      username: e.username || usernameByUserId.get(e.user_id) || "unknown",
+      content: e.content,
+      tags: e.tags || [],
+      tradeType: e.trade_type,
+      profitLoss: e.profit_loss ?? e.pnl ?? undefined,
+      image: e.image,
+      mentalState: e.mental_state,
+      createdAt: new Date(e.created_at),
+    }))
+
+    set((state) => {
+      const existing = state.entries[spaceId] || []
+      const existingIds = new Set(existing.map((e: any) => e.id))
+      const appended = [...existing, ...nextEntries.filter((e: any) => !existingIds.has(e.id))]
+
+      const last = nextEntries[nextEntries.length - 1]
+      const nextCursor = last ? { createdAt: last.createdAt.toISOString(), id: last.id } : state.entriesCursor[spaceId]
+
+      return {
+        entries: { ...state.entries, [spaceId]: appended },
+        entriesCursor: { ...state.entriesCursor, [spaceId]: nextCursor },
+        hasMoreEntries: { ...state.hasMoreEntries, [spaceId]: nextEntries.length === pageSize },
+        isLoadingMoreEntries: { ...state.isLoadingMoreEntries, [spaceId]: false },
       }
     })
   },
@@ -993,9 +1272,10 @@ const store = create<AppState>()((set, get) => ({
       const supabase = createClient()
       const { data, error } = await supabase
         .from("chat_messages")
-        .select("*")
+        .select("id, space_id, user_id, username, content, created_at")
         .eq("space_id", "00000000-0000-0000-0000-000000000001") // Global Feed space ID
         .order("created_at", { ascending: false })
+        .limit(100)
 
       if (error) {
         console.error("[v0] Load global chat messages error:", error)
@@ -1024,9 +1304,10 @@ const store = create<AppState>()((set, get) => ({
 
     const { data, error } = await supabase
       .from("chat_messages")
-      .select("*")
+      .select("id, space_id, user_id, username, content, created_at")
       .eq("space_id", spaceId)
       .order("created_at", { ascending: true })
+      .limit(200)
 
     if (error) {
       console.error("[v0] Load chat messages error:", error)
@@ -1099,12 +1380,38 @@ const store = create<AppState>()((set, get) => ({
   friendRequests: [],
 
   loadProfiles: async () => {
+    const { lastLoadedProfilesAt } = get()
+    if (Date.now() - lastLoadedProfilesAt < 60_000) {
+      return
+    }
+
+    const profileSelectFull = "id, username, tag, email, avatar, bio, trading_style, win_rate, total_trades, social_links, created_at"
+    const profileSelectFallback = "id, username, tag, email, avatar, bio, win_rate, social_links, created_at"
+
     const supabase = createClient()
 
-    const { data, error } = await supabase.from("profiles").select("*")
+    let result: any = await supabase
+      .from("profiles")
+      .select(profileSelectFull)
+      .limit(500)
+
+    const msg = String((result.error as any)?.message || "").toLowerCase()
+    if (result.error && (msg.includes("trading_style") || msg.includes("total_trades"))) {
+      result = await supabase
+        .from("profiles")
+        .select(profileSelectFallback)
+        .limit(500)
+    }
+
+    const { data, error } = result
 
     if (error) {
-      console.error("[v0] Load profiles error:", error)
+      console.error("[v0] Load profiles error:", {
+        message: (error as any)?.message,
+        code: (error as any)?.code,
+        details: (error as any)?.details,
+        hint: (error as any)?.hint,
+      })
       return
     }
 
@@ -1123,12 +1430,31 @@ const store = create<AppState>()((set, get) => ({
       createdAt: new Date(p.created_at),
     }))
 
-    set({ profiles })
+    set({ profiles, lastLoadedProfilesAt: Date.now() })
+
+    const usernameByUserId = new Map(profiles.map((p: any) => [p.id, p.username]))
+    set((state) => {
+      const updatedEntries: Record<string, any[]> = {}
+      for (const [spaceId, spaceEntries] of Object.entries(state.entries)) {
+        updatedEntries[spaceId] = (spaceEntries || []).map((e: any) => {
+          if (!e || (e.username && e.username !== "unknown")) return e
+          const resolved = usernameByUserId.get(e.userId)
+          if (!resolved) return e
+          return { ...e, username: resolved }
+        })
+      }
+      return { entries: updatedEntries }
+    })
   },
 
   loadConnections: async () => {
     const { user } = get()
     if (!user) return
+
+    const { lastLoadedConnectionsAt } = get()
+    if (Date.now() - lastLoadedConnectionsAt < 20_000) {
+      return
+    }
 
     // 🚨🚨🚨 CHECK GLOBAL FRIEND REMOVAL PROTECTION
     if (FRIEND_REMOVAL_IN_PROGRESS) {
@@ -1237,27 +1563,17 @@ const store = create<AppState>()((set, get) => ({
     const supabase = createClient()
 
     try {
-    const { data, error } = await supabase
-      .from("connections")
-      .select("*")
-      .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+      const { data, error } = await supabase
+        .from("connections")
+        .select("user_id, friend_id")
+        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
 
-    if (error) {
-      console.error("[v0] Load connections error:", error)
-        // Fallback to cached data if database fails
-        if (cachedData) {
-          try {
-            const parsed = JSON.parse(cachedData)
-            const connections = parsed.connections || parsed // Handle both old and new formats
-            set({ connections: connections })
-          } catch (cacheError) {
-            console.warn("[v0] Failed to parse cached connections:", cacheError)
-          }
-        }
-      return
-    }
+      if (error) {
+        console.error("[v0] Load connections error:", error)
+        return
+      }
 
-    const connections = data.map((c: any) => (c.user_id === user.id ? c.friend_id : c.user_id))
+      const connections = (data || []).map((c: any) => (c.user_id === user.id ? c.friend_id : c.user_id))
 
       console.log(`[v0] Loaded ${connections.length} connections from database:`, connections)
 
@@ -1265,12 +1581,11 @@ const store = create<AppState>()((set, get) => ({
       const dbData = {
         connections,
         timestamp: Date.now(),
-        isRecentChange: false
+        isRecentChange: false,
       }
       localStorage.setItem(cacheKey, JSON.stringify(dbData))
 
-    set({ connections })
-
+      set({ connections })
     } catch (error) {
       console.error("[v0] Load connections exception:", error)
       // Fallback to cached data
@@ -1290,13 +1605,19 @@ const store = create<AppState>()((set, get) => ({
     const { user } = get()
     if (!user) return
 
+    const { lastLoadedFriendRequestsAt } = get()
+    if (Date.now() - lastLoadedFriendRequestsAt < 20_000) {
+      return
+    }
+
     const supabase = createClient()
 
     const { data, error } = await supabase
       .from("friend_requests")
-      .select("*")
+      .select("id, from_user_id, from_username, from_tag, to_user_id, to_username, to_tag, status, created_at")
       .or(`from_user_id.eq.${user.id},to_user_id.eq.${user.id}`)
       .eq("status", "pending")
+      .limit(200)
 
     if (error) {
       console.error("[v0] Load friend requests error:", error)
@@ -1315,7 +1636,7 @@ const store = create<AppState>()((set, get) => ({
       createdAt: new Date(r.created_at),
     }))
 
-    set({ friendRequests: requests })
+    set({ friendRequests: requests, lastLoadedFriendRequestsAt: Date.now() })
   },
 
   findUserByTag: async (usernameWithTag: string) => {
@@ -1329,7 +1650,7 @@ const store = create<AppState>()((set, get) => ({
 
     const { data, error } = await supabase
       .from("profiles")
-      .select("*")
+      .select("id, username, tag, email, avatar, bio, trading_style, win_rate, total_trades, social_links, created_at")
       .ilike("username", username)
       .eq("tag", tag)
       .single()
@@ -1374,8 +1695,26 @@ const store = create<AppState>()((set, get) => ({
     )
     if (existingRequest) return { success: false, error: "Request already exists" }
 
-    const supabase = createClient()
+    const optimisticId =
+      typeof globalThis !== "undefined" && "crypto" in globalThis && typeof globalThis.crypto.randomUUID === "function"
+        ? globalThis.crypto.randomUUID()
+        : `optimistic-${Date.now()}`
 
+    const optimisticRequest: FriendRequest = {
+      id: optimisticId,
+      fromUserId: user.id,
+      fromUsername: user.username,
+      fromTag: user.tag,
+      toUserId: targetProfile.id,
+      toUsername: targetProfile.username,
+      toTag: targetProfile.tag,
+      status: "pending",
+      createdAt: new Date(),
+    }
+
+    set({ friendRequests: [...friendRequests, optimisticRequest] })
+
+    const supabase = createClient()
     const { data, error } = await supabase
       .from("friend_requests")
       .insert({
@@ -1392,6 +1731,9 @@ const store = create<AppState>()((set, get) => ({
 
     if (error) {
       console.error("[v0] Send friend request error:", error)
+      set((state) => ({
+        friendRequests: state.friendRequests.filter((r) => r.id !== optimisticId),
+      }))
       return { success: false, error: "Failed to send request" }
     }
 
@@ -1407,7 +1749,9 @@ const store = create<AppState>()((set, get) => ({
       createdAt: new Date(data.created_at),
     }
 
-    set({ friendRequests: [...friendRequests, newRequest] })
+    set((state) => ({
+      friendRequests: [newRequest, ...state.friendRequests.filter((r) => r.id !== optimisticId)],
+    }))
     return { success: true }
   },
 
@@ -1426,34 +1770,9 @@ const store = create<AppState>()((set, get) => ({
     const supabase = createClient()
 
     try {
-    // Update request status
-      const { error: updateError } = await supabase
-        .from("friend_requests")
-        .update({ status: "accepted" })
-        .eq("id", requestId)
-
-      if (updateError) {
-        console.error("[v0] Failed to update friend request status:", updateError)
-        return
-      }
-
-    // Create connection
-      const { error: connectionError } = await supabase
-        .from("connections")
-        .insert({
-      user_id: user.id,
-      friend_id: request.fromUserId,
-    })
-
-      if (connectionError) {
-        console.error("[v0] Failed to create connection:", connectionError)
-        return
-      }
-
-      console.log("[v0] Database updates successful")
-
-      // Update local state
-      const updatedConnections = [...connections, request.fromUserId]
+      const updatedConnections = connections.includes(request.fromUserId)
+        ? connections
+        : [...connections, request.fromUserId]
       const updatedFriendRequests = friendRequests.filter((r) => r.id !== requestId)
 
       // Environment-specific localStorage keys
@@ -1468,10 +1787,38 @@ const store = create<AppState>()((set, get) => ({
       }
       localStorage.setItem(cacheKey, JSON.stringify(cacheData))
 
-    set({
+      set({
         connections: updatedConnections,
         friendRequests: updatedFriendRequests,
       })
+
+      const updateRequestPromise = supabase
+        .from("friend_requests")
+        .update({ status: "accepted" })
+        .eq("id", requestId)
+
+      const createConnectionPromise = supabase
+        .from("connections")
+        .insert({
+          user_id: user.id,
+          friend_id: request.fromUserId,
+        })
+
+      const [{ error: updateError }, { error: connectionError }] = await Promise.all([
+        updateRequestPromise,
+        createConnectionPromise,
+      ])
+
+      if (updateError || connectionError) {
+        console.error("[v0] Failed to accept friend request:", { updateError, connectionError })
+        set({
+          connections,
+          friendRequests,
+        })
+        return
+      }
+
+      console.log("[v0] Database updates successful")
 
       // Mark as synced after successful database operation
       const syncedData = {
@@ -1486,6 +1833,10 @@ const store = create<AppState>()((set, get) => ({
 
     } catch (error) {
       console.error("[v0] Error accepting friend request:", error)
+      set({
+        connections,
+        friendRequests,
+      })
     }
   },
 
@@ -1502,6 +1853,8 @@ const store = create<AppState>()((set, get) => ({
 
     const supabase = createClient()
 
+    set({ friendRequests: friendRequests.filter((r) => r.id !== requestId) })
+
     try {
       const { error } = await supabase
         .from("friend_requests")
@@ -1510,20 +1863,16 @@ const store = create<AppState>()((set, get) => ({
 
       if (error) {
         console.error("[v0] Failed to reject friend request:", error)
+        set({ friendRequests })
         return
       }
 
-      const updatedFriendRequests = friendRequests.filter((r) => r.id !== requestId)
-
-    set({
-        friendRequests: updatedFriendRequests,
-      })
-
       console.log("[v0] Friend request rejected successfully")
-      console.log("[v0] Remaining friend requests:", updatedFriendRequests.length)
+      console.log("[v0] Remaining friend requests:", get().friendRequests.length)
 
     } catch (error) {
       console.error("[v0] Error rejecting friend request:", error)
+      set({ friendRequests })
     }
   },
 
@@ -1837,9 +2186,10 @@ const store = create<AppState>()((set, get) => ({
 
     const { data, error } = await supabase
       .from("direct_messages")
-      .select("*")
+      .select("id, sender_id, receiver_id, content, created_at")
       .or(`and(sender_id.eq.${user.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${user.id})`)
       .order("created_at", { ascending: true })
+      .limit(200)
 
     if (error) {
       console.error("[v0] Load DMs error:", error)
@@ -1975,14 +2325,20 @@ const store = create<AppState>()((set, get) => ({
     const spaceEntries = entries[spaceId] || []
     if (spaceEntries.length === 0) return
 
-    const entryIds = spaceEntries.map((e) => e.id)
+    const entryIds = spaceEntries.slice(0, 20).map((e) => e.id)
     const supabase = createClient()
 
     // Load comments
-    const { data: commentsData } = await supabase.from("comments").select("*").in("entry_id", entryIds)
+    const { data: commentsData } = await supabase
+      .from("comments")
+      .select("id, entry_id, user_id, username, avatar, content, created_at")
+      .in("entry_id", entryIds)
 
     // Load likes
-    const { data: likesData } = await supabase.from("likes").select("*").in("entry_id", entryIds)
+    const { data: likesData } = await supabase
+      .from("likes")
+      .select("id, entry_id, user_id, created_at")
+      .in("entry_id", entryIds)
 
     const commentsMap: Record<string, Comment[]> = {}
     const likesMap: Record<string, Like[]> = {}
@@ -2421,6 +2777,7 @@ declare global {
     debugSpaces: () => any
     fixDuplicateSpaces: () => any
     generateCleanupSQL: () => string
+    debugFriendRemoval: () => any
   }
 }
 

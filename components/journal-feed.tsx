@@ -4,10 +4,13 @@ import { useAppStore } from "@/lib/store"
 import { JournalEntryCard } from "./journal-entry-card"
 
 export function JournalFeed() {
-  const { entries, currentSpaceId, spaces } = useAppStore()
+  const { entries, currentSpaceId, spaces, loadMoreEntries, hasMoreEntries, isLoadingMoreEntries } = useAppStore()
   const currentSpace = spaces.find((s) => s.id === currentSpaceId)
   const spaceEntries = currentSpaceId ? entries[currentSpaceId] || [] : []
   const isGlobalFeed = currentSpaceId === "space-global"
+
+  const canLoadMore = currentSpaceId ? hasMoreEntries[currentSpaceId] !== false : false
+  const isLoadingMore = currentSpaceId ? isLoadingMoreEntries[currentSpaceId] === true : false
 
   if (spaceEntries.length === 0) {
     return (
@@ -25,6 +28,18 @@ export function JournalFeed() {
       {spaceEntries.map((entry, index) => (
         <JournalEntryCard key={entry.id} entry={entry} index={index} isGlobal={isGlobalFeed} />
       ))}
+
+      {currentSpaceId && spaceEntries.length > 0 && (
+        <div className="flex justify-center pt-4">
+          <button
+            onClick={() => void loadMoreEntries(currentSpaceId)}
+            disabled={!canLoadMore || isLoadingMore}
+            className="text-xs font-bold px-4 py-2 rounded-full bg-muted/50 text-muted-foreground hover:text-primary hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoadingMore ? "Loading..." : canLoadMore ? "Load more" : "No more posts"}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

@@ -5,7 +5,7 @@ import type { JournalEntry, MentalState } from "../lib/types"
 
 import { useState, useRef } from "react"
 import { useAppStore } from "@/lib/store"
-import { TrendingUp, TrendingDown, Tag, ChevronDown, ImagePlus, X } from "lucide-react"
+import { TrendingUp, TrendingDown, ChevronDown, ImagePlus, X } from "lucide-react"
 import Image from "next/image"
 import { MentalStateSelector } from "./mental-state-selector"
 
@@ -23,8 +23,6 @@ export function EntryComposer() {
   const [tradeType, setTradeType] = useState<JournalEntry["tradeType"]>("general")
   const [profitLoss, setProfitLoss] = useState("")
   const [showOptions, setShowOptions] = useState(false)
-  const [tags, setTags] = useState<string[]>([])
-  const [tagInput, setTagInput] = useState("")
   const [image, setImage] = useState<string | null>(null)
   const [mentalState, setMentalState] = useState<MentalState | undefined>(undefined)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -62,12 +60,10 @@ export function EntryComposer() {
     }
 
     const pl = tradeType !== "general" && profitLoss ? Number.parseFloat(profitLoss) : undefined
-    addEntry(content, tags, tradeType, pl, image || undefined, mentalState)
+    addEntry(content, [], tradeType, pl, image || undefined, mentalState)
 
     setContent("")
     setProfitLoss("")
-    setTags([])
-    setTagInput("")
     setShowOptions(false)
     setImage(null)
     setMentalState(undefined)
@@ -80,17 +76,6 @@ export function EntryComposer() {
     if (e.key === "Enter" && e.metaKey) {
       handleSubmit()
     }
-  }
-
-  const addTag = () => {
-    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
-      setTags([...tags, tagInput.trim()])
-      setTagInput("")
-    }
-  }
-
-  const removeTag = (tag: string) => {
-    setTags(tags.filter((t) => t !== tag))
   }
 
   return (
@@ -124,21 +109,6 @@ export function EntryComposer() {
           >
             <X className="h-4 w-4" />
           </button>
-        </div>
-      )}
-
-      {/* Tags display */}
-      {tags.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-4">
-          {tags.map((tag) => (
-            <button
-              key={tag}
-              onClick={() => removeTag(tag)}
-              className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-full border border-primary/20 hover:bg-primary/20 transition-colors"
-            >
-              #{tag} ×
-            </button>
-          ))}
         </div>
       )}
 
@@ -193,22 +163,6 @@ export function EntryComposer() {
               </div>
             </div>
           )}
-
-          {/* Tags Input */}
-          <div className="flex items-center gap-2">
-            <Tag className="h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
-              placeholder="Add tags..."
-              className="flex-1 bg-background/50 border border-border rounded-xl px-3 py-2 text-sm outline-none focus:border-primary transition-colors"
-            />
-            <button onClick={addTag} className="text-xs font-bold text-primary hover:text-primary/80 transition-colors">
-              Add
-            </button>
-          </div>
 
           {/* Photo Upload */}
           <div className="flex items-center gap-2">
