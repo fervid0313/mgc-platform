@@ -595,7 +595,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       console.log("[ENTRY] Testing with minimal columns...")
       const { data: testData, error: testError } = await supabase
         .from("entries")
-        .select("id, space_id, user_id, content, image, created_at")
+        .select("id, space_id, user_id, content, image, profit_loss, pnl, created_at")
         .eq("space_id", actualSpaceId)
         .order("created_at", { ascending: false })
         .limit(10)
@@ -618,8 +618,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       // If minimal query works, use it
       const mappedEntries = (testData || []).filter(e => e != null).map((e: any) => {
         const hasImage = !!e.image;
+        const hasProfitLoss = e.profit_loss !== null || e.pnl !== null;
         if (hasImage) {
           console.log("[ENTRY] 📸 Found image:", e.image?.substring(0, 50) + "...");
+        }
+        if (hasProfitLoss) {
+          console.log("[ENTRY] 💰 Found profit/loss:", e.profit_loss || e.pnl);
         }
         return {
           id: e.id,
@@ -629,7 +633,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           content: e.content,
           tags: [],
           tradeType: "general" as any,
-          profitLoss: undefined,
+          profitLoss: e.profit_loss ?? e.pnl ?? undefined,
           image: e.image,
           mentalState: undefined,
           createdAt: new Date(e.created_at),
