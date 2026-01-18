@@ -1009,9 +1009,14 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     console.log("[PROFILE] Updating profile for user:", user.id, "with updates:", updates)
     const supabase = createClient()
+    
+    // Temporarily exclude socialLinks to test if other fields save
+    const { socialLinks, ...updatesWithoutSocialLinks } = updates
+    console.log("[PROFILE] Updates without socialLinks:", updatesWithoutSocialLinks)
+    
     const { error } = await supabase
       .from("profiles")
-      .update(updates)
+      .update(updatesWithoutSocialLinks)
       .eq("id", user.id)
 
     if (error) {
