@@ -57,7 +57,14 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
 
   const handleSave = async () => {
     setSaving(true)
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    
+    console.log("[PROFILE] Saving profile with data:", {
+      username: formData.username.trim(),
+      bio: formData.bio.trim(),
+      tradingStyle: formData.tradingStyle,
+      avatar: formData.avatar,
+      socialLinks: formData.socialLinks
+    })
 
     updateProfile({
       username: formData.username.trim(),
