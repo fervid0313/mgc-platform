@@ -33,75 +33,119 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
   }
 
   return (
-    <div className="glass rounded-2xl p-6 max-w-sm w-full relative">
+    <div className="glass rounded-2xl p-8 max-w-2xl w-full relative">
       {/* Header */}
-      <div className="flex items-start gap-4 mb-4">
+      <div className="flex items-start gap-6 mb-6">
         <div className="relative">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-2xl font-bold">
+          <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-4xl font-bold">
             <img
-              src={getAvatarUrl(profile.username || "user", profile.avatar, 64)}
+              src={getAvatarUrl(profile.username || "user", profile.avatar, 128)}
               alt={profile?.username || "Profile"}
               className="w-full h-full rounded-full object-cover"
             />
           </div>
           {profile.isOnline && (
-            <span className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-background" />
+            <span className="absolute bottom-0 right-0 w-6 h-6 bg-green-500 rounded-full border-2 border-background" />
           )}
         </div>
         <div className="flex-1">
-          <h3 className="font-bold text-lg">{profile?.username || "Unknown"}</h3>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground font-mono">#{profile?.tag || "0000"}</span>
-            <button onClick={copyTag} className="p-0.5 rounded hover:bg-secondary transition-colors" title="Copy tag">
+          <h3 className="font-bold text-2xl">{profile?.username || "Unknown"}</h3>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground font-mono">#{profile?.tag || "0000"}</span>
+            <button onClick={copyTag} className="p-1 rounded hover:bg-secondary transition-colors" title="Copy tag">
               {copied ? (
-                <div className="h-3 w-3 text-green-500">✓</div>
+                <div className="h-4 w-4 text-green-500">✓</div>
               ) : (
-                <Copy className="h-3 w-3 text-muted-foreground" />
+                <Copy className="h-4 w-4 text-muted-foreground" />
               )}
             </button>
           </div>
           {profile.tradingStyle && (
-            <span className="text-xs text-primary font-medium">{tradingStyleLabels[profile.tradingStyle]}</span>
+            <span className="text-sm text-primary font-medium">{tradingStyleLabels[profile.tradingStyle]}</span>
           )}
-          <p className="text-xs text-muted-foreground mt-1">{profile.isOnline ? "Online" : "Offline"}</p>
+          <p className="text-sm text-muted-foreground mt-2">{profile.isOnline ? "Online" : "Offline"}</p>
         </div>
       </div>
 
       {/* Bio */}
-      {profile.bio && <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{profile.bio}</p>}
+      {profile.bio && <p className="text-base text-muted-foreground mb-6 leading-relaxed">{profile.bio}</p>}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
+      <div className="grid grid-cols-2 gap-4 mb-6">
         {profile.winRate !== undefined && profile.winRate > 0 && (
-          <div className="bg-secondary/30 rounded-xl p-3 text-center">
-            <p className="text-lg font-bold text-green-400">{profile.winRate}%</p>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Win Rate</p>
+          <div className="bg-secondary/30 rounded-xl p-4 text-center">
+            <p className="text-2xl font-bold text-green-400">{profile.winRate}%</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">Win Rate</p>
           </div>
         )}
         {profile.totalTrades !== undefined && profile.totalTrades > 0 && (
-          <div className="bg-secondary/30 rounded-xl p-3 text-center">
-            <p className="text-lg font-bold">{profile.totalTrades.toLocaleString()}</p>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total Trades</p>
+          <div className="bg-secondary/30 rounded-xl p-4 text-center">
+            <p className="text-2xl font-bold">{profile.totalTrades.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Trades</p>
           </div>
         )}
       </div>
 
+      {/* Connections Section */}
+      <div className="mb-6">
+        <h4 className="text-lg font-bold mb-4">Connections</h4>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 bg-secondary/20 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-500/5 flex items-center justify-center text-sm font-bold">
+                <img
+                  src={getAvatarUrl("connection1", "", 40)}
+                  alt="Connection"
+                  className="w-full h-full rounded-full object-cover"
+                />
+              </div>
+              <div>
+                <p className="font-medium">Connection 1</p>
+                <p className="text-xs text-muted-foreground">@conn1</p>
+              </div>
+            </div>
+            <span className="text-xs text-muted-foreground">2 days ago</span>
+          </div>
+          <div className="flex items-center justify-between p-3 bg-secondary/20 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500/20 to-purple-500/5 flex items-center justify-center text-sm font-bold">
+                <img
+                  src={getAvatarUrl("connection2", "", 40)}
+                  alt="Connection"
+                  className="w-full h-full rounded-full object-cover"
+                />
+              </div>
+              <div>
+                <p className="font-medium">Connection 2</p>
+                <p className="text-xs text-muted-foreground">@conn2</p>
+              </div>
+            </div>
+            <span className="text-xs text-muted-foreground">1 week ago</span>
+          </div>
+        </div>
+        <div className="text-center mt-4">
+          <button className="text-sm text-primary hover:text-primary/80 transition-colors">
+            View all connections →
+          </button>
+        </div>
+      </div>
+
       {/* Social Links */}
       {profile.socialLinks && Object.values(profile.socialLinks).some((v) => v) && (
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex flex-wrap gap-3 mb-6">
           {profile.socialLinks.twitter && (
             <a
               href={`https://twitter.com/${profile.socialLinks.twitter}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors bg-secondary/30 px-3 py-1.5 rounded-full"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors bg-secondary/30 px-4 py-2 rounded-full"
             >
-              <Twitter className="h-3 w-3" />@{profile.socialLinks.twitter}
+              <Twitter className="h-4 w-4" />@{profile.socialLinks.twitter}
             </a>
           )}
           {profile.socialLinks.discord && (
-            <span className="flex items-center gap-1.5 text-xs text-muted-foreground bg-secondary/30 px-3 py-1.5 rounded-full">
-              <Hash className="h-3 w-3" />
+            <span className="flex items-center gap-2 text-sm text-muted-foreground bg-secondary/30 px-4 py-2 rounded-full">
+              <Hash className="h-4 w-4" />
               {profile.socialLinks.discord}
             </span>
           )}
@@ -111,7 +155,7 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
       {onClose && (
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-muted-foreground hover:text-foreground text-xl leading-none"
+          className="absolute top-6 right-6 text-muted-foreground hover:text-foreground text-2xl leading-none"
         >
           &times;
         </button>
