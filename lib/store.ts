@@ -628,7 +628,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       // If full query works, use it
       const mappedEntries = (testData || []).filter(e => e != null).map((e: any) => {
         const hasImage = !!e.image;
-        const hasPnl = e.pnl !== null && e.pnl !== undefined;
+        const hasPnl = e.pnl !== null && e.pnl !== undefined && e.pnl !== '';
         if (hasImage) {
           console.log("[ENTRY] 📸 Found image:", e.image?.substring(0, 50) + "...");
         }
@@ -644,7 +644,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           content: e.content,
           tags: [],
           tradeType: "general" as any,
-          profitLoss: e.pnl ? parseFloat(e.pnl) : undefined,
+          profitLoss: (e.pnl !== null && e.pnl !== undefined && e.pnl !== '') ? parseFloat(e.pnl) : undefined,
           image: e.image,
           mentalState: undefined,
           createdAt: new Date(e.created_at),
@@ -771,7 +771,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       content: e.content,
       tags: e.tags || [],
       tradeType: e.trade_type,
-      profitLoss: e.pnl ? parseFloat(e.pnl) : undefined,
+      profitLoss: (e.pnl !== null && e.pnl !== undefined && e.pnl !== '') ? parseFloat(e.pnl) : undefined,
       image: e.image,
       mentalState: e.mental_state,
       createdAt: new Date(e.created_at),
