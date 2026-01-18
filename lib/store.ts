@@ -172,6 +172,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     // Load data
     void Promise.allSettled([
       get().loadProfiles(),
+      get().loadSocialConnections(),
     ])
 
     return true
@@ -244,6 +245,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     // Load data
     void Promise.allSettled([
       get().loadProfiles(),
+      get().loadSocialConnections(),
     ])
 
     return true
@@ -313,6 +315,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       // Load data
       void Promise.allSettled([
         get().loadProfiles(),
+        get().loadSocialConnections(),
       ])
     } else {
       set({ isLoading: false })
