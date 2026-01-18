@@ -1010,13 +1010,19 @@ export const useAppStore = create<AppState>((set, get) => ({
     console.log("[PROFILE] Updating profile for user:", user.id, "with updates:", updates)
     const supabase = createClient()
     
-    // Temporarily exclude socialLinks to test if other fields save
-    const { socialLinks, ...updatesWithoutSocialLinks } = updates
-    console.log("[PROFILE] Updates without socialLinks:", updatesWithoutSocialLinks)
+    // Only update basic fields that work
+    const basicUpdates = {
+      username: updates.username,
+      bio: updates.bio,
+      tradingStyle: updates.tradingStyle,
+      avatar: updates.avatar,
+    }
+    
+    console.log("[PROFILE] Basic updates:", basicUpdates)
     
     const { error } = await supabase
       .from("profiles")
-      .update(updatesWithoutSocialLinks)
+      .update(basicUpdates)
       .eq("id", user.id)
 
     if (error) {
