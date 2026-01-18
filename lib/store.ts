@@ -204,6 +204,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       username,
       email,
       tag,
+      socialLinks: {},
     })
 
     if (profileError) {
