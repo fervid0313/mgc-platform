@@ -644,7 +644,15 @@ export const useAppStore = create<AppState>((set, get) => ({
           content: e.content,
           tags: [],
           tradeType: "general" as any,
-          profitLoss: (e.pnl !== null && e.pnl !== undefined && e.pnl !== '') ? parseFloat(e.pnl) : undefined,
+          profitLoss: (e.pnl !== null && e.pnl !== undefined && e.pnl !== '') ? 
+            (() => {
+              try {
+                return parseFloat(e.pnl);
+              } catch (error) {
+                console.warn("[ENTRY] ⚠️ Invalid pnl value:", e.pnl, error);
+                return undefined;
+              }
+            })() : undefined,
           image: e.image,
           mentalState: undefined,
           createdAt: new Date(e.created_at),
@@ -771,7 +779,15 @@ export const useAppStore = create<AppState>((set, get) => ({
       content: e.content,
       tags: e.tags || [],
       tradeType: e.trade_type,
-      profitLoss: (e.pnl !== null && e.pnl !== undefined && e.pnl !== '') ? parseFloat(e.pnl) : undefined,
+      profitLoss: (e.pnl !== null && e.pnl !== undefined && e.pnl !== '') ? 
+            (() => {
+              try {
+                return parseFloat(e.pnl);
+              } catch (error) {
+                console.warn("[ENTRY] ⚠️ Invalid pnl value in loadMore:", e.pnl, error);
+                return undefined;
+              }
+            })() : undefined,
       image: e.image,
       mentalState: e.mental_state,
       createdAt: new Date(e.created_at),
