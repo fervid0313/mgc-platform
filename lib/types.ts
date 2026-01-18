@@ -84,6 +84,7 @@ export interface UserProfile {
     telegram?: string
     youtube?: string
   }
+  connections?: string[]
   isOnline?: boolean
   createdAt: Date
 }

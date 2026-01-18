@@ -89,43 +89,36 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
       {/* Connections Section */}
       <div className="mb-6">
         <h4 className="text-lg font-bold mb-4">Connections</h4>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-secondary/20 rounded-xl">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-500/5 flex items-center justify-center text-sm font-bold">
-                <img
-                  src={getAvatarUrl("connection1", "", 40)}
-                  alt="Connection"
-                  className="w-full h-full rounded-full object-cover"
-                />
+        {profile.connections && profile.connections.length > 0 ? (
+          <div className="space-y-3">
+            {profile.connections.map((connectionId, index) => (
+              <div key={connectionId} className="flex items-center justify-between p-3 bg-secondary/20 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-500/5 flex items-center justify-center text-sm font-bold">
+                    <img
+                      src={getAvatarUrl(`connection-${connectionId}`, "", 40)}
+                      alt="Connection"
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  </div>
+                  <div>
+                    <p className="font-medium">Connection {index + 1}</p>
+                    <p className="text-xs text-muted-foreground">ID: {connectionId.substring(0, 8)}...</p>
+                  </div>
+                </div>
+                <span className="text-xs text-muted-foreground">Connected</span>
               </div>
-              <div>
-                <p className="font-medium">Connection 1</p>
-                <p className="text-xs text-muted-foreground">@conn1</p>
-              </div>
-            </div>
-            <span className="text-xs text-muted-foreground">2 days ago</span>
+            ))}
           </div>
-          <div className="flex items-center justify-between p-3 bg-secondary/20 rounded-xl">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500/20 to-purple-500/5 flex items-center justify-center text-sm font-bold">
-                <img
-                  src={getAvatarUrl("connection2", "", 40)}
-                  alt="Connection"
-                  className="w-full h-full rounded-full object-cover"
-                />
-              </div>
-              <div>
-                <p className="font-medium">Connection 2</p>
-                <p className="text-xs text-muted-foreground">@conn2</p>
-              </div>
-            </div>
-            <span className="text-xs text-muted-foreground">1 week ago</span>
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground text-sm">No connections yet</p>
+            <p className="text-xs text-muted-foreground/50 mt-2">Connect with others to build your network</p>
           </div>
-        </div>
+        )}
         <div className="text-center mt-4">
           <button className="text-sm text-primary hover:text-primary/80 transition-colors">
-            View all connections →
+            {profile.connections && profile.connections.length > 0 ? "Manage connections →" : "Find connections →"}
           </button>
         </div>
       </div>
