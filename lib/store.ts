@@ -1255,44 +1255,69 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Social Connections
   sendConnectionRequest: async (requestedId: string) => {
     const { user } = get()
-    if (!user || !user.id) return false
+    if (!user || !user.id) {
+      console.log("[CONNECTION] No user found, cannot send request")
+      return false
+    }
+
+    console.log("[CONNECTION] Sending connection request:")
+    console.log("  From user ID:", user.id)
+    console.log("  To user ID:", requestedId)
 
     const supabase = createClient()
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("social_connections")
       .insert({
         requester_id: user.id,
         requested_id: requestedId,
         status: "pending",
       })
+      .select()
+      .single()
 
     if (error) {
       console.error("[CONNECTION] Send request error:", error)
+      console.error("  Error details:", error.message)
       return false
     }
 
-    console.log("[CONNECTION] ✅ Connection request sent")
+    console.log("[CONNECTION] ✅ Connection request sent successfully!")
+    console.log("  Created connection:", data)
     return true
   },
 
   acceptConnectionRequest: async (requesterId: string) => {
     const { user } = get()
-    if (!user || !user.id) return false
+    if (!user || !user.id) {
+      console.log("[CONNECTION] No user found, cannot accept request")
+      return false
+    }
+
+    console.log("[CONNECTION] Accepting connection request:")
+    console.log("  From user ID:", requesterId)
+    console.log("  To user ID:", user.id)
 
     const supabase = createClient()
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("social_connections")
       .update({ status: "accepted" })
       .eq("requester_id", requesterId)
       .eq("requested_id", user.id)
       .eq("status", "pending")
+      .select()
+      .single()
 
     if (error) {
       console.error("[CONNECTION] Accept request error:", error)
+      console.error("  Error details:", error.message)
       return false
     }
 
-    console.log("[CONNECTION] ✅ Connection request accepted")
+    console.log("[CONNECTION] ✅ Connection request accepted!")
+    console.log("  Updated connection:", data)
+    
+    // Reload connections after accepting
+    await get().loadSocialConnections()
     return true
   },
 
