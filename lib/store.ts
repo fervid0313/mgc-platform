@@ -1373,7 +1373,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { data, error } = await supabase
       .from("social_connections")
       .select("*")
-      .or(`(requester_id.eq.${user.id},status.eq.accepted),(requested_id.eq.${user.id},status.eq.accepted)`)
+      .or(`requester_id.eq.${user.id},status.eq.accepted`)
+      .or(`requested_id.eq.${user.id},status.eq.accepted`)
 
     if (error) {
       console.error("[CONNECTION] Load connections error:", error)
