@@ -21,4 +21,4 @@ WHERE table_schema = 'public'
 ORDER BY ordinal_position;
 
 -- Show the table structure
-\d public.profiles
+SELECT * FROM public.profiles LIMIT 5;
