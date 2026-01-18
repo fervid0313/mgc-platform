@@ -1001,8 +1001,12 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   updateProfile: async (updates: Partial<UserProfile>) => {
     const { user } = get()
-    if (!user) return
+    if (!user) {
+      console.log("[PROFILE] No user found, skipping update")
+      return
+    }
 
+    console.log("[PROFILE] Updating profile for user:", user.id, "with updates:", updates)
     const supabase = createClient()
     const { error } = await supabase
       .from("profiles")
@@ -1014,11 +1018,13 @@ export const useAppStore = create<AppState>((set, get) => ({
       return
     }
 
+    console.log("[PROFILE] ✅ Profile updated successfully")
     set((state) => ({
       profiles: state.profiles.map(p =>
         p.id === user.id ? { ...p, ...updates } : p
       ),
     }))
+    console.log("[PROFILE] ✅ Profile updated in local state")
   },
 
   adminUpdateUserProfile: (userId: string, updates: Partial<UserProfile>) => {
