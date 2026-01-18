@@ -79,6 +79,14 @@ interface AppState {
   forceLoadEntries: (spaceId: string) => Promise<void>
   loadMoreEntries: (spaceId: string) => Promise<void>
 
+  // Social Connections
+  socialConnections: Record<string, any[]>
+  sendConnectionRequest: (requestedId: string) => Promise<boolean>
+  acceptConnectionRequest: (requesterId: string) => Promise<boolean>
+  declineConnectionRequest: (requesterId: string) => Promise<boolean>
+  removeConnection: (connectionId: string) => Promise<boolean>
+  loadSocialConnections: () => Promise<void>
+
   getCollectiveVibe: () => MentalState | null
   getVibeThemeClass: () => string | null
 
@@ -451,6 +459,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   entriesCursor: {},
   hasMoreEntries: {},
   isLoadingMoreEntries: {},
+
+  // Social Connections
+  socialConnections: {},
 
   addEntry: async (
     content: string,
@@ -1230,6 +1241,111 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { comments, currentSpaceId } = get()
     if (!currentSpaceId) return []
     return comments[currentSpaceId]?.filter(c => c.entryId === entryId) || []
+  },
+
+  // Social Connections
+  sendConnectionRequest: async (requestedId: string) => {
+    const { user } = get()
+    if (!user || !user.id) return false
+
+    const supabase = createClient()
+    const { error } = await supabase
+      .from("social_connections")
+      .insert({
+        requester_id: user.id,
+        requested_id: requestedId,
+        status: "pending",
+      })
+
+    if (error) {
+      console.error("[CONNECTION] Send request error:", error)
+      return false
+    }
+
+    console.log("[CONNECTION] ✅ Connection request sent")
+    return true
+  },
+
+  acceptConnectionRequest: async (requesterId: string) => {
+    const { user } = get()
+    if (!user || !user.id) return false
+
+    const supabase = createClient()
+    const { error } = await supabase
+      .from("social_connections")
+      .update({ status: "accepted" })
+      .eq("requester_id", requesterId)
+      .eq("requested_id", user.id)
+      .eq("status", "pending")
+
+    if (error) {
+      console.error("[CONNECTION] Accept request error:", error)
+      return false
+    }
+
+    console.log("[CONNECTION] ✅ Connection request accepted")
+    return true
+  },
+
+  declineConnectionRequest: async (requesterId: string) => {
+    const { user } = get()
+    if (!user || !user.id) return false
+
+    const supabase = createClient()
+    const { error } = await supabase
+      .from("social_connections")
+      .update({ status: "declined" })
+      .eq("requester_id", requesterId)
+      .eq("requested_id", user.id)
+      .eq("status", "pending")
+
+    if (error) {
+      console.error("[CONNECTION] Decline request error:", error)
+      return false
+    }
+
+    console.log("[CONNECTION] ✅ Connection request declined")
+    return true
+  },
+
+  removeConnection: async (connectionId: string) => {
+    const { user } = get()
+    if (!user || !user.id) return false
+
+    const supabase = createClient()
+    const { error } = await supabase
+      .from("social_connections")
+      .delete()
+      .or(`(requester_id.eq.${user.id},requested_id.eq.${connectionId}),(requester_id.eq.${connectionId},requested_id.eq.${user.id})`)
+
+    if (error) {
+      console.error("[CONNECTION] Remove connection error:", error)
+      return false
+    }
+
+    console.log("[CONNECTION] ✅ Connection removed")
+    return true
+  },
+
+  loadSocialConnections: async () => {
+    const { user } = get()
+    if (!user || !user.id) return
+
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("social_connections")
+      .select("*")
+      .or(`(requester_id.eq.${user.id},status.eq.accepted),(requested_id.eq.${user.id},status.eq.accepted)`)
+
+    if (error) {
+      console.error("[CONNECTION] Load connections error:", error)
+      return
+    }
+
+    const connections = data || []
+    console.log("[CONNECTION] ✅ Loaded connections:", connections.length)
+
+    set({ socialConnections: { [user.id]: connections } })
   },
 }))
 

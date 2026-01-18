@@ -20,9 +20,16 @@ const tradingStyleLabels = {
 }
 
 export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
-  const { user } = useAppStore()
+  const { user, socialConnections, profiles } = useAppStore()
   const isOwnProfile = user?.id === profile?.id
   const [copied, setCopied] = useState(false)
+
+  // Get real connections for this profile
+  const profileConnections = socialConnections[profile?.id || ''] || []
+  const connectedUsers = profileConnections.map(conn => {
+    const connectionId = conn.requester_id === profile.id ? conn.requested_id : conn.requester_id
+    return profiles.find(p => p.id === connectionId)
+  }).filter(Boolean)
 
   const copyTag = () => {
     if (profile?.username && profile?.tag) {
@@ -89,21 +96,21 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
       {/* Connections Section */}
       <div className="mb-6">
         <h4 className="text-lg font-bold mb-4">Connections</h4>
-        {profile.connections && profile.connections.length > 0 ? (
+        {connectedUsers.length > 0 ? (
           <div className="space-y-3">
-            {profile.connections.map((connectionId, index) => (
-              <div key={connectionId} className="flex items-center justify-between p-3 bg-secondary/20 rounded-xl">
+            {connectedUsers.map((connectedUser) => (
+              <div key={connectedUser?.id || 'unknown'} className="flex items-center justify-between p-3 bg-secondary/20 rounded-xl">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-500/5 flex items-center justify-center text-sm font-bold">
                     <img
-                      src={getAvatarUrl(`connection-${connectionId}`, "", 40)}
-                      alt="Connection"
+                      src={getAvatarUrl(connectedUser?.username || "user", connectedUser?.avatar, 40)}
+                      alt={connectedUser?.username || "Connection"}
                       className="w-full h-full rounded-full object-cover"
                     />
                   </div>
                   <div>
-                    <p className="font-medium">Connection {index + 1}</p>
-                    <p className="text-xs text-muted-foreground">ID: {connectionId.substring(0, 8)}...</p>
+                    <p className="font-medium">{connectedUser?.username || "Unknown"}</p>
+                    <p className="text-xs text-muted-foreground">#{connectedUser?.tag || "0000"}</p>
                   </div>
                 </div>
                 <span className="text-xs text-muted-foreground">Connected</span>
@@ -118,7 +125,7 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
         )}
         <div className="text-center mt-4">
           <button className="text-sm text-primary hover:text-primary/80 transition-colors">
-            {profile.connections && profile.connections.length > 0 ? "Manage connections →" : "Find connections →"}
+            {connectedUsers.length > 0 ? "Manage connections →" : "Find connections →"}
           </button>
         </div>
       </div>
