@@ -1332,8 +1332,12 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   loadSocialConnections: async () => {
     const { user } = get()
-    if (!user || !user.id) return
+    if (!user || !user.id) {
+      console.log("[CONNECTION] No user found, skipping load")
+      return
+    }
 
+    console.log("[CONNECTION] Loading connections for user:", user.id)
     const supabase = createClient()
     const { data, error } = await supabase
       .from("social_connections")
@@ -1346,9 +1350,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     const connections = data || []
-    console.log("[CONNECTION] ✅ Loaded connections:", connections.length)
+    console.log("[CONNECTION] ✅ Loaded connections:", connections.length, connections)
+    console.log("[CONNECTION] Sample connection:", connections[0])
 
     set({ socialConnections: { [user.id]: connections } })
+    console.log("[CONNECTION] ✅ Stored in state:", { [user.id]: connections })
   },
 }))
 

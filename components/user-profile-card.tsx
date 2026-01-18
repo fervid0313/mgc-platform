@@ -31,6 +31,13 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
     return profiles.find(p => p.id === connectionId)
   }).filter(Boolean)
 
+  console.log("[PROFILE] Debug:", {
+    profileId: profile?.id,
+    profileConnections: profileConnections,
+    connectedUsersCount: connectedUsers.length,
+    connectedUsers: connectedUsers.map(u => ({ id: u?.id, username: u?.username, tag: u?.tag }))
+  })
+
   const copyTag = () => {
     if (profile?.username && profile?.tag) {
       navigator.clipboard.writeText(`${profile.username}#${profile.tag}`)
