@@ -25,6 +25,6 @@ WHERE table_schema = 'public'
 ORDER BY ordinal_position;
 
 -- Method 4: Test the column with a simple query
-SELECT COUNT(*) as test_count, socialLinks 
+SELECT COUNT(*) as test_count 
 FROM public.profiles 
 LIMIT 1;
