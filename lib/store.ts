@@ -503,11 +503,20 @@ export const useAppStore = create<AppState>((set, get) => ({
       content,
       tags: tags || [],
       trade_type: tradeType,
-      profit_loss: profitLoss,
+      pnl: profitLoss,
       image,
       mental_state: mentalState,
       user_id: user.id,
     }
+
+    console.log("[ENTRY] 📝 Saving entry:", {
+      actualSpaceId,
+      hasProfitLoss: profitLoss !== undefined,
+      profitLoss,
+      hasImage: !!image,
+      tradeType,
+      mentalState
+    })
 
     const { data, error } = await supabase
       .from("entries")
@@ -529,6 +538,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       return
     }
 
+    console.log("[ENTRY] ✅ Entry saved successfully:", {
+      savedId: data.id,
+      savedPnl: data.pnl,
+      savedImage: !!data.image
+    })
+
     const realEntry: JournalEntry = {
       id: data.id,
       spaceId: currentSpaceId,
@@ -537,7 +552,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       content: data.content,
       tags: data.tags || [],
       tradeType: data.trade_type,
-      profitLoss: data.profit_loss,
+      profitLoss: data.pnl,
       image: data.image,
       mentalState: data.mental_state,
       createdAt: new Date(data.created_at),
