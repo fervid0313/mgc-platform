@@ -2,10 +2,11 @@
 
 import { useState } from "react"
 import { useAppStore } from "@/lib/store"
-import { LogOut, User, Shield } from "lucide-react"
+import { LogOut, User, Shield, Plus } from "lucide-react"
 import { VibeIndicator } from "./vibe-indicator"
 import { ProfileSettings } from "./profile-settings"
 import { JoinPublicGroup } from "./join-public-group"
+import { CreateSpaceModal } from "./create-space-modal"
 import { useEffect } from "react"
 
 export function Navbar() {
@@ -13,6 +14,7 @@ export function Navbar() {
   const currentSpace = spaces.find((s) => s.id === currentSpaceId)
   const vibe = getCollectiveVibe()
   const [showProfileSettings, setShowProfileSettings] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
   const userIsAdmin = isAdmin()
 
   useEffect(() => {
@@ -47,6 +49,13 @@ export function Navbar() {
         <div className="flex items-center gap-4">
           <div className="hidden sm:flex items-center gap-3">
             <JoinPublicGroup />
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-secondary/50 hover:bg-secondary rounded-lg transition-colors"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Create Private Space</span>
+            </button>
             <div className="w-px h-6 bg-border" />
             <VibeIndicator />
           </div>
@@ -77,6 +86,7 @@ export function Navbar() {
       </nav>
 
       <ProfileSettings isOpen={showProfileSettings} onClose={() => setShowProfileSettings(false)} />
+      <CreateSpaceModal open={showCreateModal} onClose={() => setShowCreateModal(false)} />
     </>
   )
 }

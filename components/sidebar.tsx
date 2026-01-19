@@ -95,16 +95,6 @@ export function Sidebar() {
         <div className="absolute bottom-24 left-6 right-6">
           <MilestoneProgress />
         </div>
-
-        <div className="absolute bottom-10 left-6 right-6">
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="w-full py-3 rounded-xl border border-dashed border-border text-muted-foreground text-xs font-bold hover:border-foreground hover:text-foreground transition-all flex items-center justify-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Create New Space
-          </button>
-        </div>
       </aside>
 
       <CreateSpaceModal open={showCreateModal} onClose={() => setShowCreateModal(false)} />
