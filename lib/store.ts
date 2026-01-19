@@ -282,7 +282,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       // Try to create profile with fallback data
       const fallbackProfile = {
         id: data.user.id,
-        username: username || email.split("@")[0],
+        username: username || email.split("@")[0], // Keep the entered username, fallback to email prefix only if empty
         email,
         tag: tag || generateTag(),
         socialLinks: {}, // Add back since schema cache expects it
@@ -326,7 +326,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         .from("profiles")
         .upsert({
           id: data.user.id,
-          username: email.split("@")[0],
+          username: username, // Use the entered username
           email,
           tag: generateTag(),
           socialLinks: {}, // Add back since schema cache expects it
