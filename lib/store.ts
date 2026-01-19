@@ -246,7 +246,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     // Create profile
-    console.log("[AUTH] Attempting to create profile for user:", data.user.id, username, email)
+    console.log("[AUTH] Attempting to create profile for user:", data.user.id, "username:", username, "email:", email)
     const { error: profileError } = await supabase.from("profiles").insert({
       id: data.user.id,
       username,
@@ -256,6 +256,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     })
 
     console.log("[AUTH] Profile creation result:", { profileError, success: !profileError })
+    console.log("[AUTH] Username used in profile creation:", username)
 
     if (profileError) {
       console.error("[AUTH] Profile creation error:", profileError)
@@ -288,7 +289,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         socialLinks: {}, // Add back since schema cache expects it
       }
       
-      console.log("[AUTH] Trying fallback profile creation:", fallbackProfile)
+      console.log("[AUTH] Trying fallback profile creation with username:", username, "fallbackProfile:", fallbackProfile)
       const { error: fallbackError } = await supabase
         .from("profiles")
         .upsert(fallbackProfile)
@@ -322,6 +323,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (verifyError || !verifyProfile) {
       console.error("[AUTH] ❌ Profile verification failed:", verifyError)
       // One last attempt with minimal data
+      console.log("[AUTH] Final attempt with username:", username)
       const { error: finalError } = await supabase
         .from("profiles")
         .upsert({
@@ -345,10 +347,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     const user: User = {
       id: data.user.id,
       email: data.user.email!,
-      username,
+      username: username, // Use the entered username
       tag,
       createdAt: new Date(),
     }
+
+    console.log("[AUTH] User object created with username:", user.username)
 
     // Join Global Feed space
     await supabase.from("space_members").insert({
