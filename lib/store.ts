@@ -1239,6 +1239,9 @@ export const useAppStore = create<AppState>((set, get) => ({
           entries: { ...entries, [spaceId]: [] },
           lastLoadedEntriesAt: { ...lastLoadedEntriesAt, [spaceId]: Date.now() },
         })
+        
+        // Still load comments/likes (will be empty)
+        get().loadCommentsAndLikes(spaceId)
         return
       }
 
@@ -1328,6 +1331,9 @@ export const useAppStore = create<AppState>((set, get) => ({
             entries: { ...entries, [spaceId]: updatedEntries }
           })
           console.log("[ENTRY] ✅ Updated entries with usernames")
+          
+          // Load comments and likes for the entries
+          get().loadCommentsAndLikes(spaceId)
         }
       }
 
@@ -1337,6 +1343,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         entries: { ...entries, [spaceId]: [] },
         lastLoadedEntriesAt: { ...lastLoadedEntriesAt, [spaceId]: Date.now() },
       })
+      
+      // Still load comments/likes (will be empty)
+      get().loadCommentsAndLikes(spaceId)
     }
   },
 
@@ -1765,10 +1774,19 @@ export const useAppStore = create<AppState>((set, get) => ({
       ? "00000000-0000-0000-0000-000000000001" 
       : spaceId
 
+    console.log("[COMMENTS/LIKES] Loading for space:", spaceId, "→", actualSpaceId)
+    console.log("[COMMENTS/LIKES] Entry IDs:", Object.values(get().entries[spaceId] || []).map(e => e.id))
+
     const [commentsResult, likesResult] = await Promise.allSettled([
       supabase
         .from("comments")
-        .select("*")
+        .select(`
+          *,
+          profiles (
+            username,
+            tag
+          )
+        `)
         .in("entry_id", 
           Object.values(get().entries[spaceId] || []).map(e => e.id)
         ),
@@ -1781,14 +1799,28 @@ export const useAppStore = create<AppState>((set, get) => ({
     ])
 
     const comments = commentsResult.status === "fulfilled" 
-      ? (commentsResult.value.data || []).filter(c => c != null).map((c: any) => ({
-          id: c.id,
-          entryId: c.entry_id,
-          userId: c.user_id,
-          username: c.username || "Unknown",
-          content: c.content,
-          createdAt: new Date(c.created_at),
-        }))
+      ? (commentsResult.value.data || []).filter(c => c != null).map((c: any) => {
+          const profile = c.profiles
+          let displayName = "Unknown"
+          
+          if (profile) {
+            // NEVER show email as username
+            if (profile.username && !profile.username.includes('@')) {
+              displayName = profile.username
+            } else {
+              displayName = "User" + (profile.tag?.slice(-4) || "0000")
+            }
+          }
+          
+          return {
+            id: c.id,
+            entryId: c.entry_id,
+            userId: c.user_id,
+            username: displayName,
+            content: c.content,
+            createdAt: new Date(c.created_at),
+          }
+        })
       : []
 
     const likes = likesResult.status === "fulfilled"
@@ -1799,6 +1831,9 @@ export const useAppStore = create<AppState>((set, get) => ({
           createdAt: new Date(l.created_at),
         }))
       : []
+
+    console.log("[COMMENTS/LIKES] Loaded comments:", comments.length, comments)
+    console.log("[COMMENTS/LIKES] Loaded likes:", likes.length, likes)
 
     set({
       comments: { ...get().comments, [spaceId]: comments },
@@ -1811,19 +1846,31 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!user) return
 
     const supabase = createClient()
+    console.log("[COMMENT] Attempting to insert comment:", { entryId, userId: user.id, content })
+    
     const { data, error } = await supabase
       .from("comments")
       .insert({
         entry_id: entryId,
+        user_id: user.id,
         content,
       })
       .select()
       .single()
 
+    console.log("[COMMENT] Database response:", { data, error })
+
     if (error || !data) {
       console.error("[COMMENT] Add error:", error)
+      console.error("[COMMENT] Error details:", {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details
+      })
       return
     }
+
+    console.log("[COMMENT] Successfully saved to database:", data)
 
     const comment: Comment = {
       id: data.id,
@@ -1896,6 +1943,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       .from("likes")
       .insert({
         entry_id: entryId,
+        user_id: user.id,
       })
       .select()
       .single()
