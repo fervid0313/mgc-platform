@@ -9,6 +9,7 @@ import { EntryComposer } from "@/components/entry-composer"
 import { AuthScreen } from "@/components/auth-screen"
 import { CommunityProfiles } from "@/components/community-profiles"
 import { ViewToggle } from "@/components/view-toggle"
+import { InviteToSpaceButton } from "@/components/invite-to-space-button"
 import { Loader2 } from "lucide-react"
 
 export default function Home() {
@@ -64,6 +65,7 @@ export default function Home() {
               <CommunityProfiles />
             ) : (
               <>
+                <InviteToSpaceButton />
                 <EntryComposer />
                 <JournalFeed />
               </>
