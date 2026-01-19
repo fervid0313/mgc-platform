@@ -964,22 +964,19 @@ export const useAppStore = create<AppState>((set, get) => ({
     console.log("[ENTRY] Current space ID in store:", get().currentSpaceId)
 
     try {
-      // First try to load entries with user profiles
-      console.log("[ENTRY] Loading entries with profiles...")
+      // First try to load entries without user profiles (deployment safe)
+      console.log("[ENTRY] Loading entries without profiles...")
       const { data: testData, error: testError } = await supabase
         .from("entries")
         .select(`
           id, 
           space_id, 
           user_id, 
+          username, 
           content, 
           image, 
           pnl, 
-          created_at,
-          profiles!inner (
-            username,
-            tag
-          )
+          created_at
         `)
         .eq("space_id", actualSpaceId)
         .order("created_at", { ascending: false })
@@ -1201,7 +1198,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       : spaceId
 
     const pageSize = 20
-    const entrySelectFull = "id, space_id, user_id, username, content, tags, trade_type, pnl, image, mental_state, created_at, auth_user!inner(user_metadata(username))"
+    const entrySelectFull = "id, space_id, user_id, username, content, tags, trade_type, pnl, image, mental_state, created_at"
     const entrySelectFallback = "id, space_id, user_id, username, content, tags, trade_type, pnl, image, mental_state, created_at"
 
     const baseQuery = (select: string) =>
@@ -1238,16 +1235,13 @@ export const useAppStore = create<AppState>((set, get) => ({
       hasMore = newEntries.length === pageSize
     }
 
-    // Map entries with schema tolerance and auth metadata
+    // Map entries with schema tolerance
     const mappedEntries = newEntries.filter(e => e != null).map((e: any) => {
-      // Try to get auth username for entries
-      const authUsername = e.auth_user?.user_metadata?.username || e.username
-      
       return {
         id: e.id,
         spaceId,
         userId: e.user_id,
-        username: authUsername || "Unknown",
+        username: e.username || "Unknown",
         content: e.content,
         tags: e.tags || [],
         tradeType: e.trade_type,
@@ -1341,28 +1335,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     const supabase = createClient()
-    const profileSelectFull = "id, username, tag, email, avatar, bio, trading_style, win_rate, total_trades, social_links, created_at, auth_user!inner(user_metadata(username))"
+    const profileSelectFull = "id, username, tag, email, avatar, bio, trading_style, win_rate, total_trades, social_links, created_at"
     const profileSelectFallback = "id, username, tag, email, avatar, bio, win_rate, social_links, created_at"
 
-    // First, try to get all profiles (this will show us what we have)
+    // First, try to get all profiles
     console.log("[PROFILES] Loading all profiles...")
-    const { data: existingProfiles, error: existingError } = await supabase
-      .from("profiles")
-      .select("id, username, email")
-      .order("created_at", { ascending: false })
-    
-    if (existingError) {
-      console.error("[PROFILES] Error getting existing profiles:", existingError)
-    } else {
-      console.log("[PROFILES] Existing profiles in database:", existingProfiles?.length || 0)
-      console.log("[PROFILES] Sample existing profiles:", existingProfiles?.slice(0, 3).map(p => ({ id: p.id, username: p.username, email: p.email })))
-    }
-
     let query = supabase
       .from("profiles")
       .select(profileSelectFull)
       .order("created_at", { ascending: false })
       .limit(500)
+    
 
     const { data: profilesData, error: profilesError } = await query
 
@@ -1403,12 +1386,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     const mappedProfiles = (profilesData || []).filter(p => p != null).map((p: any) => {
       console.log("[PROFILES] Mapping profile:", { id: p.id, username: p.username, email: p.email })
       
-      // Try to get auth username as primary source
-      const authUsername = p.auth_user?.user_metadata?.username || p.username
-      
       return {
         id: p.id,
-        username: authUsername || "Unknown",
+        username: p.username || "Unknown",
         tag: p.tag || "0000",
         email: p.email || "",
         avatar: p.avatar,
