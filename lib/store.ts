@@ -246,13 +246,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     // Create profile
+    console.log("[AUTH] Attempting to create profile for user:", data.user.id, username, email)
     const { error: profileError } = await supabase.from("profiles").insert({
       id: data.user.id,
       username,
       email,
       tag,
-      // socialLinks: {}, // Remove for now to handle schema issues
+      socialLinks: {}, // Add back since schema cache expects it
     })
+
+    console.log("[AUTH] Profile creation result:", { profileError, success: !profileError })
 
     if (profileError) {
       console.error("[AUTH] Profile creation error:", profileError)
@@ -263,19 +266,34 @@ export const useAppStore = create<AppState>((set, get) => ({
         code: profileError.code
       })
       
+      // Try to check if the user exists in auth
+      console.log("[AUTH] Checking if auth user exists...")
+      const { data: authUser, error: authError } = await supabase.auth.getUser(data.user.id)
+      console.log("[AUTH] Auth user check:", { authUser, authError })
+      
+      // Try to check current profiles
+      console.log("[AUTH] Checking current profiles...")
+      const { data: currentProfiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, username, email")
+        .limit(5)
+      console.log("[AUTH] Current profiles:", { currentProfiles, profilesError })
+      
       // Try to create profile with fallback data
       const fallbackProfile = {
         id: data.user.id,
         username: username || email.split("@")[0],
         email,
         tag: tag || generateTag(),
-        // socialLinks: {}, // Remove for now to handle schema issues
+        socialLinks: {}, // Add back since schema cache expects it
       }
       
       console.log("[AUTH] Trying fallback profile creation:", fallbackProfile)
       const { error: fallbackError } = await supabase
         .from("profiles")
         .upsert(fallbackProfile)
+      
+      console.log("[AUTH] Fallback creation result:", { fallbackError, success: !fallbackError })
       
       if (fallbackError) {
         console.error("[AUTH] Fallback profile creation failed:", fallbackError)
@@ -311,6 +329,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           username: email.split("@")[0],
           email,
           tag: generateTag(),
+          socialLinks: {}, // Add back since schema cache expects it
         })
       
       if (finalError) {
@@ -356,7 +375,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     // Load data
     void Promise.allSettled([
-      get().loadProfiles(),
+      get().forceLoadProfiles(), // Force reload to show new user immediately
       get().loadSocialConnections(),
       get().loadSpaceInviteLinks(),
       get().loadSpaces(),
