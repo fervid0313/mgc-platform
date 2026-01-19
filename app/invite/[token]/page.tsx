@@ -42,7 +42,7 @@ export default function InvitePage() {
       // Redirect after a delay
       setTimeout(() => {
         router.push("/")
-      }, 3000)
+      }, 2000)
     } else {
       setJoinResult("error")
     }

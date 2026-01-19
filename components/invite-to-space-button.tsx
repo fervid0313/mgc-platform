@@ -2,9 +2,8 @@
 
 import { useState } from "react"
 import { useAppStore } from "@/lib/store"
-import { UserPlus, Copy, Mail, Link2, Check, X } from "lucide-react"
+import { UserPlus, Copy, Link2, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
@@ -24,7 +23,6 @@ import {
 
 export function InviteToSpaceButton() {
   const [open, setOpen] = useState(false)
-  const [email, setEmail] = useState("")
   const [message, setMessage] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedLink, setGeneratedLink] = useState<string | null>(null)
@@ -41,16 +39,11 @@ export function InviteToSpaceButton() {
   }
 
   const handleGenerateLink = async () => {
-    if (!email.trim()) {
-      return
-    }
-
     setIsGenerating(true)
-    const link = await generateInviteLink(currentSpaceId!, email.trim(), message.trim())
+    const link = await generateInviteLink(currentSpaceId!, message.trim() || undefined)
     
     if (link) {
       setGeneratedLink(link)
-      setEmail("")
       setMessage("")
     }
     
@@ -65,15 +58,6 @@ export function InviteToSpaceButton() {
     } catch (err) {
       console.error("Failed to copy:", err)
     }
-  }
-
-  const sendEmail = (link: string, email: string, message?: string) => {
-    const subject = `You're invited to join ${currentSpace?.name}`
-    const body = message 
-      ? `${message}\n\nJoin here: ${link}`
-      : `You're invited to join my private space: ${currentSpace?.name}\n\nJoin here: ${link}`
-    
-    window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
   }
 
   const myInviteLinks = spaceInviteLinks.filter(link => 
@@ -94,27 +78,13 @@ export function InviteToSpaceButton() {
           <DialogHeader>
             <DialogTitle>Invite to {currentSpace?.name}</DialogTitle>
             <DialogDescription>
-              Generate a secure invite link that only works for the specified email.
+              Generate a secure invite link that anyone can use to join this private space.
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
             {!generatedLink ? (
               <>
-                <div>
-                  <label htmlFor="email" className="text-sm font-medium">
-                    Email Address
-                  </label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="friend@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="mt-1"
-                  />
-                </div>
-                
                 <div>
                   <label htmlFor="message" className="text-sm font-medium">
                     Message (optional)
@@ -135,7 +105,7 @@ export function InviteToSpaceButton() {
                   </Button>
                   <Button 
                     onClick={handleGenerateLink} 
-                    disabled={!email.trim() || isGenerating}
+                    disabled={isGenerating}
                   >
                     {isGenerating ? "Generating..." : "Generate Invite Link"}
                   </Button>
@@ -148,9 +118,6 @@ export function InviteToSpaceButton() {
                     <Link2 className="h-4 w-4" />
                     <span className="text-sm font-medium">Invite Link Generated</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    For: {email}
-                  </p>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
@@ -160,14 +127,6 @@ export function InviteToSpaceButton() {
                     >
                       {copied ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
                       {copied ? "Copied!" : "Copy Link"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => sendEmail(generatedLink, email, message)}
-                    >
-                      <Mail className="h-3 w-3 mr-1" />
-                      Send Email
                     </Button>
                   </div>
                 </div>
@@ -197,7 +156,7 @@ export function InviteToSpaceButton() {
             <Card key={link.id} className="p-3">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <p className="text-sm font-medium">{link.email}</p>
+                  <p className="text-sm font-medium">Shared Link</p>
                   {link.message && (
                     <p className="text-xs text-muted-foreground mt-1">{link.message}</p>
                   )}

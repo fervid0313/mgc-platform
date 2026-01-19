@@ -10,6 +10,7 @@ import { AuthScreen } from "@/components/auth-screen"
 import { CommunityProfiles } from "@/components/community-profiles"
 import { ViewToggle } from "@/components/view-toggle"
 import { InviteToSpaceButton } from "@/components/invite-to-space-button"
+import { JoinPrivateSpaceButton } from "@/components/join-private-space-button"
 import { Loader2 } from "lucide-react"
 
 export default function Home() {
@@ -62,7 +63,10 @@ export default function Home() {
             <ViewToggle showCommunity={showCommunity} onToggleCommunity={() => setShowCommunity(!showCommunity)} />
 
             {showCommunity ? (
-              <CommunityProfiles />
+              <>
+                <JoinPrivateSpaceButton />
+                <CommunityProfiles />
+              </>
             ) : (
               <>
                 <InviteToSpaceButton />

@@ -60,6 +60,7 @@ interface AppState {
   createSpace: (name: string, description?: string, isPrivate?: boolean) => void
   joinSpace: (spaceId: string) => Promise<void>
   leaveSpace: (spaceId: string) => void
+  loadSpaces: () => Promise<void>
 
   // Entries
   entries: Record<string, JournalEntry[]>
@@ -89,7 +90,7 @@ interface AppState {
 
   // Space Invite Links
   spaceInviteLinks: any[]
-  generateInviteLink: (spaceId: string, email: string, message?: string) => Promise<string | null>
+  generateInviteLink: (spaceId: string, message?: string) => Promise<string | null>
   joinSpaceViaInviteLink: (token: string) => Promise<boolean>
   loadSpaceInviteLinks: () => Promise<void>
 
@@ -180,6 +181,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       get().loadProfiles(),
       get().loadSocialConnections(),
       get().loadSpaceInviteLinks(),
+      get().loadSpaces(),
     ])
 
     return true
@@ -255,6 +257,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       get().loadProfiles(),
       get().loadSocialConnections(),
       get().loadSpaceInviteLinks(),
+      get().loadSpaces(),
     ])
 
     return true
@@ -326,6 +329,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         get().loadProfiles(),
         get().loadSocialConnections(),
         get().loadSpaceInviteLinks(),
+        get().loadSpaces(),
       ])
     } else {
       set({ isLoading: false })
@@ -393,10 +397,18 @@ export const useAppStore = create<AppState>((set, get) => ({
       memberCount: 1,
     }
 
-    set((state) => ({
-      spaces: [...state.spaces, space],
-      currentSpaceId: space.id,
-    }))
+    // For private spaces, the creator should automatically see and access it
+    // For public spaces, users need to explicitly join to see them
+    if (space.isPrivate) {
+      console.log("[SPACE] Private space created, adding to creator's spaces list")
+      set((state) => ({
+        spaces: [...state.spaces, space],
+        currentSpaceId: space.id,
+      }))
+    } else {
+      console.log("[SPACE] Public space created, user needs to explicitly join to see it")
+      // Don't add public spaces automatically - user needs to join explicitly
+    }
 
     // Join the space
     await get().joinSpace(space.id)
@@ -417,14 +429,49 @@ export const useAppStore = create<AppState>((set, get) => ({
       return
     }
 
-    // Update member count
-    set((state) => ({
-      spaces: state.spaces.map((space) =>
-        space.id === spaceId
-          ? { ...space, memberCount: space.memberCount + 1 }
-          : space
-      ),
-    }))
+    console.log("[SPACE] User joined space, loading space details")
+    
+    // Get space details to add to user's spaces list
+    const { data: space } = await supabase
+      .from("spaces")
+      .select("*")
+      .eq("id", spaceId)
+      .single()
+
+    if (space) {
+      const spaceToAdd: Space = {
+        id: space.id,
+        name: space.name,
+        description: space.description || "",
+        ownerId: space.owner_id,
+        isPrivate: space.is_private,
+        createdAt: new Date(space.created_at),
+        memberCount: 1,
+      }
+
+      // Add to user's spaces list if not already there
+      set((state) => {
+        const existingSpace = state.spaces.find(s => s.id === spaceId)
+        if (!existingSpace) {
+          console.log("[SPACE] Adding space to user's list:", space.name)
+          return {
+            spaces: [...state.spaces, spaceToAdd],
+            currentSpaceId: spaceId,
+          }
+        } else {
+          // Just update member count and switch to space
+          console.log("[SPACE] Space already in list, updating count and switching")
+          return {
+            spaces: state.spaces.map((s) =>
+              s.id === spaceId
+                ? { ...s, memberCount: s.memberCount + 1 }
+                : s
+            ),
+            currentSpaceId: spaceId,
+          }
+        }
+      })
+    }
   },
 
   leaveSpace: async (spaceId: string) => {
@@ -465,6 +512,118 @@ export const useAppStore = create<AppState>((set, get) => ({
         ),
       }
     })
+  },
+
+  loadSpaces: async () => {
+    const { user } = get()
+    if (!user) return
+
+    console.log("[SPACES] Loading spaces for user:", user.id)
+    const supabase = createClient()
+    
+    // Always include global space
+    const spaces = [globalFeedSpace]
+    
+    // Only load spaces that the user is an explicit member of (via space_members table)
+    console.log("[SPACES] Getting space memberships for user:", user.id)
+    const { data: memberships, error: membershipError } = await supabase
+      .from("space_members")
+      .select("space_id")
+      .eq("user_id", user.id)
+
+    console.log("[SPACES] Memberships result:", { memberships, membershipError })
+
+    if (membershipError) {
+      console.error("[SPACES] Membership load error:", membershipError)
+      console.error("[SPACES] Error details:", {
+        message: membershipError.message,
+        details: membershipError.details,
+        hint: membershipError.hint,
+        code: membershipError.code
+      })
+      // Continue with just global space
+      set({ spaces: [globalFeedSpace] })
+      return
+    }
+
+    // If no memberships (other than global), just return global space
+    if (!memberships || memberships.length === 0) {
+      console.log("[SPACES] No space memberships found, returning only global")
+      set({ spaces: [globalFeedSpace] })
+      return
+    }
+
+    // Get the space IDs (excluding global space since we handle it separately)
+    const spaceIds = memberships
+      .map(m => m.space_id)
+      .filter(id => id !== "00000000-0000-0000-0000-000000000001")
+
+    if (spaceIds.length === 0) {
+      console.log("[SPACES] Only global space membership found")
+      set({ spaces: [globalFeedSpace] })
+      return
+    }
+
+    // Get spaces details for the spaces the user is a member of
+    console.log("[SPACES] Loading space details for:", spaceIds)
+    const { data: userSpaces, error: spacesError } = await supabase
+      .from("spaces")
+      .select("*")
+      .in("id", spaceIds)
+
+    console.log("[SPACES] Spaces result:", { userSpaces, spacesError })
+
+    if (spacesError) {
+      console.error("[SPACES] Spaces load error:", spacesError)
+      console.error("[SPACES] Error details:", {
+        message: spacesError.message,
+        details: spacesError.details,
+        hint: spacesError.hint,
+        code: spacesError.code
+      })
+      // Continue with just global space
+      set({ spaces: [globalFeedSpace] })
+      return
+    }
+
+    if (!userSpaces || userSpaces.length === 0) {
+      console.log("[SPACES] No space details found")
+      set({ spaces: [globalFeedSpace] })
+      return
+    }
+
+    // Get member counts for each space
+    const allSpaceIds = ["00000000-0000-0000-0000-000000000001", ...spaceIds]
+    
+    const { data: memberCounts, error: countError } = await supabase
+      .from("space_members")
+      .select("space_id")
+      .in("space_id", allSpaceIds)
+
+    if (countError) {
+      console.error("[SPACES] Member count error:", countError)
+      // Continue without member counts
+    }
+
+    // Count members per space
+    const counts = memberCounts?.reduce((acc, member) => {
+      acc[member.space_id] = (acc[member.space_id] || 0) + 1
+      return acc
+    }, {} as Record<string, number>) || {}
+
+    // Map spaces with member counts and proper ID mapping
+    const mappedSpaces = userSpaces.map(space => ({
+      ...space,
+      id: space.id === "00000000-0000-0000-0000-000000000001" ? "space-global" : space.id,
+      isPrivate: space.is_private, // Map snake_case to camelCase
+      memberCount: counts[space.id] || 0
+    }))
+
+    // Combine global space with user's joined spaces
+    const allSpaces = [globalFeedSpace, ...mappedSpaces.filter(s => s.id !== "space-global")]
+
+    console.log("[SPACES] ✅ Loaded spaces:", allSpaces.length, allSpaces.map(s => ({ name: s.name, id: s.id, isPrivate: s.isPrivate })))
+    set({ spaces: allSpaces })
   },
 
   // Entries
@@ -1420,14 +1579,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   // Space Invite Links
-  generateInviteLink: async (spaceId: string, email: string, message?: string) => {
+  generateInviteLink: async (spaceId: string, message?: string) => {
     const { user } = get()
     if (!user || !user.id) {
       console.log("[INVITE_LINK] No user found, skipping link generation")
       return null
     }
 
-    console.log("[INVITE_LINK] Generating link for space:", spaceId, "email:", email)
+    console.log("[INVITE_LINK] Generating link for space:", spaceId)
     const supabase = createClient()
     
     // Generate secure token
@@ -1441,7 +1600,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         space_id: spaceId,
         creator_id: user.id,
         token,
-        email,
+        email: "shared-link", // Placeholder for shared links
         message,
       })
 
@@ -1453,8 +1612,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     const inviteLink = `${window.location.origin}/invite/${token}`
     console.log("[INVITE_LINK] ✅ Link generated:", inviteLink)
     
-    // Here you would send an email with the link
-    // For now, we'll just return the link
     await get().loadSpaceInviteLinks()
     return inviteLink
   },
@@ -1483,6 +1640,34 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     console.log("[INVITE_LINK] ✅ Successfully joined space")
     await get().loadProfiles()
+    
+    // For private spaces, we need to manually add them to the spaces list
+    // since loadSpaces() won't load private spaces the user didn't create
+    const { data: inviteLink } = await supabase
+      .from("space_invite_links")
+      .select("space_id")
+      .eq("token", token)
+      .single()
+    
+    if (inviteLink?.space_id) {
+      const { data: joinedSpace } = await supabase
+        .from("spaces")
+        .select("*")
+        .eq("id", inviteLink.space_id)
+        .single()
+      
+      if (joinedSpace && joinedSpace.is_private) {
+        // Add the private space to the list
+        set((state) => ({
+          spaces: [...state.spaces, {
+            ...joinedSpace,
+            id: joinedSpace.id === "00000000-0000-0000-0000-000000000001" ? "space-global" : joinedSpace.id,
+            memberCount: state.spaces.find(s => s.id === joinedSpace.id)?.memberCount || 1
+          }]
+        }))
+      }
+    }
+    
     return true
   },
 
