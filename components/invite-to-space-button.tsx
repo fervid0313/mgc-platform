@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useAppStore } from "@/lib/store"
-import { UserPlus, X, Check, XCircle } from "lucide-react"
+import { UserPlus, Copy, Mail, Link2, Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -26,9 +26,11 @@ export function InviteToSpaceButton() {
   const [open, setOpen] = useState(false)
   const [email, setEmail] = useState("")
   const [message, setMessage] = useState("")
-  const [isInviting, setIsInviting] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generatedLink, setGeneratedLink] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
   
-  const { currentSpaceId, spaces, inviteToSpace, spaceInvitations, acceptSpaceInvitation, declineSpaceInvitation } = useAppStore()
+  const { currentSpaceId, spaces, generateInviteLink, spaceInviteLinks } = useAppStore()
   
   const currentSpace = spaces.find((s) => s.id === currentSpaceId)
   const isPrivate = currentSpace?.isPrivate
@@ -38,25 +40,44 @@ export function InviteToSpaceButton() {
     return null
   }
 
-  const handleInvite = async () => {
+  const handleGenerateLink = async () => {
     if (!email.trim()) {
       return
     }
 
-    setIsInviting(true)
-    const success = await inviteToSpace(currentSpaceId!, email.trim(), message.trim())
+    setIsGenerating(true)
+    const link = await generateInviteLink(currentSpaceId!, email.trim(), message.trim())
     
-    if (success) {
+    if (link) {
+      setGeneratedLink(link)
       setEmail("")
       setMessage("")
-      setOpen(false)
     }
     
-    setIsInviting(false)
+    setIsGenerating(false)
   }
 
-  const pendingInvitations = spaceInvitations.filter(inv => 
-    inv.space_id === currentSpaceId && inv.status === "pending"
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error("Failed to copy:", err)
+    }
+  }
+
+  const sendEmail = (link: string, email: string, message?: string) => {
+    const subject = `You're invited to join ${currentSpace?.name}`
+    const body = message 
+      ? `${message}\n\nJoin here: ${link}`
+      : `You're invited to join my private space: ${currentSpace?.name}\n\nJoin here: ${link}`
+    
+    window.location.href = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  }
+
+  const myInviteLinks = spaceInviteLinks.filter(link => 
+    link.space_id === currentSpaceId
   )
 
   return (
@@ -69,90 +90,135 @@ export function InviteToSpaceButton() {
           </Button>
         </DialogTrigger>
         
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Invite to {currentSpace?.name}</DialogTitle>
             <DialogDescription>
-              Send an invitation to join this private space via email.
+              Generate a secure invite link that only works for the specified email.
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
-            <div>
-              <label htmlFor="email" className="text-sm font-medium">
-                Email Address
-              </label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="friend@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="message" className="text-sm font-medium">
-                Message (optional)
-              </label>
-              <Textarea
-                id="message"
-                placeholder="Join my private trading space..."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                className="mt-1"
-                rows={3}
-              />
-            </div>
-            
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setOpen(false)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleInvite} 
-                disabled={!email.trim() || isInviting}
-              >
-                {isInviting ? "Sending..." : "Send Invitation"}
-              </Button>
-            </div>
+            {!generatedLink ? (
+              <>
+                <div>
+                  <label htmlFor="email" className="text-sm font-medium">
+                    Email Address
+                  </label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="friend@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="message" className="text-sm font-medium">
+                    Message (optional)
+                  </label>
+                  <Textarea
+                    id="message"
+                    placeholder="Join my private trading space..."
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    className="mt-1"
+                    rows={3}
+                  />
+                </div>
+                
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleGenerateLink} 
+                    disabled={!email.trim() || isGenerating}
+                  >
+                    {isGenerating ? "Generating..." : "Generate Invite Link"}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-4 bg-muted rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Link2 className="h-4 w-4" />
+                    <span className="text-sm font-medium">Invite Link Generated</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    For: {email}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyToClipboard(generatedLink)}
+                      className="flex-1"
+                    >
+                      {copied ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+                      {copied ? "Copied!" : "Copy Link"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => sendEmail(generatedLink, email, message)}
+                    >
+                      <Mail className="h-3 w-3 mr-1" />
+                      Send Email
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="text-center">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setGeneratedLink(null)
+                      setCopied(false)
+                    }}
+                  >
+                    Generate Another Link
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Show pending invitations */}
-      {pendingInvitations.length > 0 && (
+      {/* Show existing invite links */}
+      {myInviteLinks.length > 0 && (
         <div className="mt-4 space-y-2">
-          <h4 className="text-sm font-medium text-muted-foreground">Pending Invitations</h4>
-          {pendingInvitations.map((invitation) => (
-            <Card key={invitation.id} className="p-3">
+          <h4 className="text-sm font-medium text-muted-foreground">Your Invite Links</h4>
+          {myInviteLinks.map((link) => (
+            <Card key={link.id} className="p-3">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">{invitation.invitee_email}</p>
-                  {invitation.message && (
-                    <p className="text-xs text-muted-foreground mt-1">{invitation.message}</p>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{link.email}</p>
+                  {link.message && (
+                    <p className="text-xs text-muted-foreground mt-1">{link.message}</p>
                   )}
                   <p className="text-xs text-muted-foreground mt-1">
-                    From {invitation.inviter?.username}#{invitation.inviter?.tag}
+                    {link.used ? (
+                      <span className="text-green-600">✓ Used</span>
+                    ) : new Date(link.expires_at) > new Date() ? (
+                      <span>Expires {new Date(link.expires_at).toLocaleDateString()}</span>
+                    ) : (
+                      <span className="text-red-600">Expired</span>
+                    )}
                   </p>
                 </div>
                 <div className="flex gap-1">
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => acceptSpaceInvitation(invitation.id)}
+                    onClick={() => copyToClipboard(`${window.location.origin}/invite/${link.token}`)}
                     className="h-8 w-8 p-0"
                   >
-                    <Check className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => declineSpaceInvitation(invitation.id)}
-                    className="h-8 w-8 p-0"
-                  >
-                    <XCircle className="h-3 w-3" />
+                    <Copy className="h-3 w-3" />
                   </Button>
                 </div>
               </div>

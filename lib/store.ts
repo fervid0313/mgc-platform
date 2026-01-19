@@ -87,12 +87,11 @@ interface AppState {
   removeConnection: (connectionId: string) => Promise<boolean>
   loadSocialConnections: () => Promise<void>
 
-  // Space Invitations
-  spaceInvitations: any[]
-  inviteToSpace: (spaceId: string, inviteeEmail: string, message?: string) => Promise<boolean>
-  acceptSpaceInvitation: (invitationId: string) => Promise<boolean>
-  declineSpaceInvitation: (invitationId: string) => Promise<boolean>
-  loadSpaceInvitations: () => Promise<void>
+  // Space Invite Links
+  spaceInviteLinks: any[]
+  generateInviteLink: (spaceId: string, email: string, message?: string) => Promise<string | null>
+  joinSpaceViaInviteLink: (token: string) => Promise<boolean>
+  loadSpaceInviteLinks: () => Promise<void>
 
   getCollectiveVibe: () => MentalState | null
   getVibeThemeClass: () => string | null
@@ -180,7 +179,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     void Promise.allSettled([
       get().loadProfiles(),
       get().loadSocialConnections(),
-      get().loadSpaceInvitations(),
+      get().loadSpaceInviteLinks(),
     ])
 
     return true
@@ -255,7 +254,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     void Promise.allSettled([
       get().loadProfiles(),
       get().loadSocialConnections(),
-      get().loadSpaceInvitations(),
+      get().loadSpaceInviteLinks(),
     ])
 
     return true
@@ -326,7 +325,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       void Promise.allSettled([
         get().loadProfiles(),
         get().loadSocialConnections(),
-        get().loadSpaceInvitations(),
+        get().loadSpaceInviteLinks(),
       ])
     } else {
       set({ isLoading: false })
@@ -477,8 +476,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Social Connections
   socialConnections: {},
 
-  // Space Invitations
-  spaceInvitations: [],
+  // Space Invite Links
+  spaceInviteLinks: [],
 
   addEntry: async (
     content: string,
@@ -1420,152 +1419,106 @@ export const useAppStore = create<AppState>((set, get) => ({
     console.log("[CONNECTION] ✅ Stored in state:", { [user.id]: connections })
   },
 
-  // Space Invitations
-  inviteToSpace: async (spaceId: string, inviteeEmail: string, message?: string) => {
+  // Space Invite Links
+  generateInviteLink: async (spaceId: string, email: string, message?: string) => {
     const { user } = get()
     if (!user || !user.id) {
-      console.log("[INVITATION] No user found, skipping invite")
-      return false
+      console.log("[INVITE_LINK] No user found, skipping link generation")
+      return null
     }
 
-    console.log("[INVITATION] Inviting to space:", spaceId, "email:", inviteeEmail)
+    console.log("[INVITE_LINK] Generating link for space:", spaceId, "email:", email)
     const supabase = createClient()
     
+    // Generate secure token
+    const token = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+    
     const { error } = await supabase
-      .from("space_invitations")
+      .from("space_invite_links")
       .insert({
         space_id: spaceId,
-        inviter_id: user.id,
-        invitee_email: inviteeEmail,
+        creator_id: user.id,
+        token,
+        email,
         message,
-        status: "pending",
       })
 
     if (error) {
-      console.error("[INVITATION] Invite error:", error)
-      return false
+      console.error("[INVITE_LINK] Generate error:", error)
+      return null
     }
 
-    console.log("[INVITATION] ✅ Invitation sent successfully")
-    await get().loadSpaceInvitations()
-    return true
+    const inviteLink = `${window.location.origin}/invite/${token}`
+    console.log("[INVITE_LINK] ✅ Link generated:", inviteLink)
+    
+    // Here you would send an email with the link
+    // For now, we'll just return the link
+    await get().loadSpaceInviteLinks()
+    return inviteLink
   },
 
-  acceptSpaceInvitation: async (invitationId: string) => {
+  joinSpaceViaInviteLink: async (token: string) => {
     const { user } = get()
     if (!user || !user.id) {
-      console.log("[INVITATION] No user found, skipping accept")
+      console.log("[INVITE_LINK] No user found, skipping join")
       return false
     }
 
-    console.log("[INVITATION] Accepting invitation:", invitationId)
+    console.log("[INVITE_LINK] Joining via token:", token)
     const supabase = createClient()
     
-    // Get invitation details
-    const { data: invitation, error: fetchError } = await supabase
-      .from("space_invitations")
-      .select("*")
-      .eq("id", invitationId)
-      .single()
-
-    if (fetchError || !invitation) {
-      console.error("[INVITATION] Fetch error:", fetchError)
-      return false
-    }
-
-    // Update invitation status
-    const { error: updateError } = await supabase
-      .from("space_invitations")
-      .update({ status: "accepted" })
-      .eq("id", invitationId)
-
-    if (updateError) {
-      console.error("[INVITATION] Update error:", updateError)
-      return false
-    }
-
-    // Join the space
-    const { error: joinError } = await supabase
-      .from("space_members")
-      .insert({
-        space_id: invitation.space_id,
-        user_id: user.id,
+    // Call the database function
+    const { data, error } = await supabase
+      .rpc('join_space_via_invite_link', {
+        p_token: token,
+        p_user_id: user.id
       })
 
-    if (joinError) {
-      console.error("[INVITATION] Join error:", joinError)
+    if (error || !data) {
+      console.error("[INVITE_LINK] Join error:", error)
       return false
     }
 
-    console.log("[INVITATION] ✅ Invitation accepted and space joined")
-    await get().loadSpaceInvitations()
+    console.log("[INVITE_LINK] ✅ Successfully joined space")
     await get().loadProfiles()
     return true
   },
 
-  declineSpaceInvitation: async (invitationId: string) => {
+  loadSpaceInviteLinks: async () => {
     const { user } = get()
     if (!user || !user.id) {
-      console.log("[INVITATION] No user found, skipping decline")
-      return false
-    }
-
-    console.log("[INVITATION] Declining invitation:", invitationId)
-    const supabase = createClient()
-    
-    const { error } = await supabase
-      .from("space_invitations")
-      .update({ status: "declined" })
-      .eq("id", invitationId)
-
-    if (error) {
-      console.error("[INVITATION] Decline error:", error)
-      return false
-    }
-
-    console.log("[INVITATION] ✅ Invitation declined")
-    await get().loadSpaceInvitations()
-    return true
-  },
-
-  loadSpaceInvitations: async () => {
-    const { user } = get()
-    if (!user || !user.id) {
-      console.log("[INVITATION] No user found, skipping load")
+      console.log("[INVITE_LINK] No user found, skipping load")
       return
     }
 
-    console.log("[INVITATION] Loading invitations for user:", user.id)
+    console.log("[INVITE_LINK] Loading invite links for user:", user.id)
     const supabase = createClient()
     
     const { data, error } = await supabase
-      .from("space_invitations")
+      .from("space_invite_links")
       .select(`
         *,
         spaces:space_id (
           id,
           name,
           description
-        ),
-        inviter:inviter_id (
-          id,
-          username,
-          tag
         )
       `)
-      .or(`invitee_id.eq.${user.id},inviter_id.eq.${user.id}`)
-      .eq("status", "pending")
+      .eq("creator_id", user.id)
+      .order("created_at", { ascending: false })
 
     if (error) {
-      console.error("[INVITATION] Load error:", error)
+      console.error("[INVITE_LINK] Load error:", error)
       return
     }
 
-    const invitations = data || []
-    console.log("[INVITATION] ✅ Loaded invitations:", invitations.length, invitations)
+    const inviteLinks = data || [];
+    console.log("[INVITE_LINK] ✅ Loaded invite links:", inviteLinks.length, inviteLinks);
 
-    set({ spaceInvitations: invitations })
+    set({ spaceInviteLinks: inviteLinks });
   },
-}))
+});
 
-export const appStore = useAppStore
+export const appStore = useAppStore;
