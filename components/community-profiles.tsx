@@ -15,13 +15,19 @@ const SPECIALTY_OPTIONS = [
 ] as const
 
 export function CommunityProfiles() {
-  const { profiles, user, isAdmin, adminUpdateUserProfile, spaces, currentSpaceId, getSpaceMembers, forceLoadProfiles, checkForMissingProfiles } = useAppStore()
+  const { profiles, user, isAdmin, adminUpdateUserProfile, spaces, currentSpaceId, getSpaceMembers, forceLoadProfiles, checkForMissingProfiles, getUsernameFromAuth } = useAppStore()
   const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [filter, setFilter] = useState<"all" | "online">("all")
   const [editingRole, setEditingRole] = useState<string | null>(null)
   const [spaceMembers, setSpaceMembers] = useState<UserProfile[]>([])
+  const [authUsernames, setAuthUsernames] = useState<Record<string, string>>({})
   const userIsAdmin = isAdmin()
+
+  const isGlobalFeed = currentSpaceId === "space-global"
+
+  // Determine the base list of profiles to filter
+  const baseProfiles = isGlobalFeed ? profiles : spaceMembers
 
   useEffect(() => {
     if (currentSpaceId && currentSpaceId !== "space-global") {
@@ -33,10 +39,33 @@ export function CommunityProfiles() {
     }
   }, [currentSpaceId, getSpaceMembers])
 
-  const isGlobalFeed = currentSpaceId === "space-global"
-
-  // Determine the base list of profiles to filter
-  const baseProfiles = isGlobalFeed ? profiles : spaceMembers
+  // Fetch auth usernames for profiles that have email as username
+  useEffect(() => {
+    const fetchAuthUsernames = async () => {
+      const profilesWithEmailUsername = baseProfiles.filter(p => 
+        p.username === p.email || p.username.includes('@')
+      )
+      
+      if (profilesWithEmailUsername.length > 0) {
+        console.log("[CommunityProfiles] Fetching auth usernames for profiles with email usernames")
+        const newAuthUsernames = { ...authUsernames }
+        
+        for (const profile of profilesWithEmailUsername) {
+          if (!newAuthUsernames[profile.id]) {
+            const authUsername = await getUsernameFromAuth(profile.id)
+            if (authUsername) {
+              newAuthUsernames[profile.id] = authUsername
+              console.log("[CommunityProfiles] Got auth username for", profile.id, ":", authUsername)
+            }
+          }
+        }
+        
+        setAuthUsernames(newAuthUsernames)
+      }
+    }
+    
+    fetchAuthUsernames()
+  }, [baseProfiles, getUsernameFromAuth])
 
   console.log("[CommunityProfiles] Total profiles in store:", profiles.length)
   console.log("[CommunityProfiles] Base profiles to display:", baseProfiles.length)
@@ -44,6 +73,15 @@ export function CommunityProfiles() {
   console.log("[CommunityProfiles] Current user:", user?.username)
   console.log("[CommunityProfiles] Sample profiles from store:", baseProfiles.slice(0, 3).map(p => ({ id: p.id, username: p.username, email: p.email })))
   console.log("[CommunityProfiles] Sample profiles raw:", baseProfiles.slice(0, 3))
+
+  // Create a helper function to get the display username
+  const getDisplayUsername = (profile: UserProfile) => {
+    // If profile has email as username, try to get auth username
+    if (profile.username === profile.email || profile.username.includes('@')) {
+      return authUsernames[profile.id] || profile.username
+    }
+    return profile.username
+  }
 
   // Simple filtering - Zustand should handle reactivity
   const filteredProfiles = baseProfiles.filter((profile) => {
@@ -69,9 +107,10 @@ export function CommunityProfiles() {
     }
 
     const searchLower = searchQuery ? searchQuery.toLowerCase() : ""
+    const displayUsername = getDisplayUsername(profile)
     const matchesSearch =
-      (profile.username && profile.username.toLowerCase().includes(searchLower)) ||
-      (profile.username && profile.tag && `${profile.username}#${profile.tag}`.toLowerCase().includes(searchLower))
+      (displayUsername && displayUsername.toLowerCase().includes(searchLower)) ||
+      (displayUsername && profile.tag && `${displayUsername}#${profile.tag}`.toLowerCase().includes(searchLower))
     if (searchQuery && !matchesSearch) {
       return false
     }
@@ -214,7 +253,7 @@ export function CommunityProfiles() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">
-                    {profile.username || "Unknown"}
+                    {getDisplayUsername(profile) || "Unknown"}
                     <span className="text-muted-foreground font-mono text-xs ml-1">#{profile.tag || "0000"}</span>
                   </p>
                   <p className="text-[10px] text-muted-foreground truncate">

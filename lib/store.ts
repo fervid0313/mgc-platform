@@ -124,6 +124,7 @@ interface AppState {
   findUserByTag: (usernameWithTag: string) => Promise<UserProfile | undefined>
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>
   adminUpdateUserProfile: (userId: string, updates: Partial<UserProfile>) => void
+  getUsernameFromAuth: (userId: string) => Promise<string | null>
 
   // Comments and Likes
   comments: Record<string, Comment[]>
@@ -1200,7 +1201,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       : spaceId
 
     const pageSize = 20
-    const entrySelectFull = "id, space_id, user_id, username, content, tags, trade_type, pnl, image, mental_state, created_at"
+    const entrySelectFull = "id, space_id, user_id, username, content, tags, trade_type, pnl, image, mental_state, created_at, auth_user!inner(user_metadata(username))"
     const entrySelectFallback = "id, space_id, user_id, username, content, tags, trade_type, pnl, image, mental_state, created_at"
 
     const baseQuery = (select: string) =>
@@ -1237,28 +1238,33 @@ export const useAppStore = create<AppState>((set, get) => ({
       hasMore = newEntries.length === pageSize
     }
 
-    // Map entries with schema tolerance
-    const mappedEntries = newEntries.filter(e => e != null).map((e: any) => ({
-      id: e.id,
-      spaceId,
-      userId: e.user_id,
-      username: e.username || "Unknown",
-      content: e.content,
-      tags: e.tags || [],
-      tradeType: e.trade_type,
-      profitLoss: (e.pnl !== null && e.pnl !== undefined && e.pnl !== '') ? 
-            (() => {
-              try {
-                return parseFloat(e.pnl);
-              } catch (error) {
-                console.warn("[ENTRY] ⚠️ Invalid pnl value in loadMore:", e.pnl, error);
-                return undefined;
-              }
-            })() : undefined,
-      image: e.image,
-      mentalState: e.mental_state,
-      createdAt: new Date(e.created_at),
-    }))
+    // Map entries with schema tolerance and auth metadata
+    const mappedEntries = newEntries.filter(e => e != null).map((e: any) => {
+      // Try to get auth username for entries
+      const authUsername = e.auth_user?.user_metadata?.username || e.username
+      
+      return {
+        id: e.id,
+        spaceId,
+        userId: e.user_id,
+        username: authUsername || "Unknown",
+        content: e.content,
+        tags: e.tags || [],
+        tradeType: e.trade_type,
+        profitLoss: (e.pnl !== null && e.pnl !== undefined && e.pnl !== '') ? 
+              (() => {
+                try {
+                  return parseFloat(e.pnl);
+                } catch (error) {
+                  console.warn("[ENTRY] ⚠️ Invalid pnl value in loadMore:", e.pnl, error);
+                  return undefined;
+                }
+              })() : undefined,
+        image: e.image,
+        mentalState: e.mental_state,
+        createdAt: new Date(e.created_at),
+      }
+    })
 
     const currentEntries = entries[spaceId] || []
     const newCursor = mappedEntries.length > 0 
@@ -1335,7 +1341,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     const supabase = createClient()
-    const profileSelectFull = "id, username, tag, email, avatar, bio, trading_style, win_rate, total_trades, social_links, created_at"
+    const profileSelectFull = "id, username, tag, email, avatar, bio, trading_style, win_rate, total_trades, social_links, created_at, auth_user!inner(user_metadata(username))"
     const profileSelectFallback = "id, username, tag, email, avatar, bio, win_rate, social_links, created_at"
 
     // First, try to get all profiles (this will show us what we have)
@@ -1396,9 +1402,13 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const mappedProfiles = (profilesData || []).filter(p => p != null).map((p: any) => {
       console.log("[PROFILES] Mapping profile:", { id: p.id, username: p.username, email: p.email })
+      
+      // Try to get auth username as primary source
+      const authUsername = p.auth_user?.user_metadata?.username || p.username
+      
       return {
         id: p.id,
-        username: p.username || "Unknown",
+        username: authUsername || "Unknown",
         tag: p.tag || "0000",
         email: p.email || "",
         avatar: p.avatar,
@@ -1428,7 +1438,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           const profile = mappedProfiles.find(p => p.id === entry.userId)
           if (profile) {
             console.log("[PROFILES] Backfilling username for entry:", entry.id, "with:", profile.username)
-            return { ...entry, username: profile.username }
+            return { ...entry, username: profile.username, tag: profile.tag }
           }
         }
         return entry
@@ -1439,6 +1449,21 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     set({ entries: updatedEntries })
     console.log("[PROFILES] ✅ Loaded and processed", mappedProfiles.length, "profiles")
+  },
+
+  getUsernameFromAuth: async (userId: string) => {
+    const supabase = createClient()
+    try {
+      const { data: authUser, error } = await supabase.auth.admin.getUserById(userId)
+      if (error || !authUser) {
+        console.error("[AUTH] Error getting user from auth:", error)
+        return null
+      }
+      return authUser.user.user_metadata?.username || null
+    } catch (error) {
+      console.error("[AUTH] Error in getUsernameFromAuth:", error)
+      return null
+    }
   },
 
   forceLoadProfiles: async () => {
