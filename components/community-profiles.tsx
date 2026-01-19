@@ -42,7 +42,8 @@ export function CommunityProfiles() {
   console.log("[CommunityProfiles] Base profiles to display:", baseProfiles.length)
   console.log("[CommunityProfiles] Is global feed:", isGlobalFeed)
   console.log("[CommunityProfiles] Current user:", user?.username)
-  console.log("[CommunityProfiles] Sample profiles:", baseProfiles.slice(0, 3).map(p => ({ id: p.id, username: p.username })))
+  console.log("[CommunityProfiles] Sample profiles from store:", baseProfiles.slice(0, 3).map(p => ({ id: p.id, username: p.username, email: p.email })))
+  console.log("[CommunityProfiles] Sample profiles raw:", baseProfiles.slice(0, 3))
 
   // Simple filtering - Zustand should handle reactivity
   const filteredProfiles = baseProfiles.filter((profile) => {
