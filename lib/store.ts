@@ -795,7 +795,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     console.log("[ENTRY] Current space ID in store:", get().currentSpaceId)
 
     try {
-      // Load entries with user profiles
+      // First try to load entries with user profiles
       console.log("[ENTRY] Loading entries with profiles...")
       const { data: testData, error: testError } = await supabase
         .from("entries")
@@ -816,7 +816,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         .order("created_at", { ascending: false })
         .limit(10)
 
-      console.log("[ENTRY] Test result:", { 
+      console.log("[ENTRY] Profile join result:", { 
         count: testData?.length || 0, 
         error: testError,
         errorMessage: testError?.message,
@@ -832,11 +832,87 @@ export const useAppStore = create<AppState>((set, get) => ({
       })
 
       if (testError) {
-        console.error("[ENTRY] ❌ Query failed:", testError.message)
+        console.error("[ENTRY] ❌ Profile join failed, trying fallback:", testError.message)
+        
+        // Fallback: Load entries without profiles, then load profiles separately
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from("entries")
+          .select("id, space_id, user_id, content, image, pnl, created_at")
+          .eq("space_id", actualSpaceId)
+          .order("created_at", { ascending: false })
+          .limit(10)
+
+        if (fallbackError) {
+          console.error("[ENTRY] ❌ Even fallback failed:", fallbackError.message)
+          set({
+            entries: { ...entries, [spaceId]: [] },
+            lastLoadedEntriesAt: { ...lastLoadedEntriesAt, [spaceId]: Date.now() },
+          })
+          return
+        }
+
+        console.log("[ENTRY] ✅ Fallback loaded", fallbackData?.length || 0, "entries")
+        
+        // Map entries with basic data
+        const mappedEntries = (fallbackData || []).filter(e => e != null).map((e: any) => {
+          return {
+            id: e.id,
+            spaceId,
+            userId: e.user_id,
+            username: "Loading...", // Will be updated when profiles load
+            tag: undefined,
+            content: e.content,
+            tags: [],
+            tradeType: "general" as any,
+            profitLoss: (e.pnl !== null && e.pnl !== undefined && e.pnl !== '') ? 
+              (() => {
+                try {
+                  return parseFloat(e.pnl);
+                } catch (error) {
+                  console.warn("[ENTRY] ⚠️ Invalid pnl value:", e.pnl, error);
+                  return undefined;
+                }
+              })() : undefined,
+            image: e.image,
+            mentalState: undefined,
+            createdAt: new Date(e.created_at),
+          };
+        })
+
         set({
-          entries: { ...entries, [spaceId]: [] },
+          entries: { ...entries, [spaceId]: mappedEntries },
           lastLoadedEntriesAt: { ...lastLoadedEntriesAt, [spaceId]: Date.now() },
         })
+
+        // Try to load profiles separately and update entries
+        const userIds = [...new Set(mappedEntries.map(e => e.userId))]
+        if (userIds.length > 0) {
+          console.log("[ENTRY] Loading profiles for users:", userIds)
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("id, username, tag")
+            .in("id", userIds)
+
+          if (profiles) {
+            const profileMap = profiles.reduce((acc, profile) => {
+              acc[profile.id] = profile
+              return acc
+            }, {} as Record<string, any>)
+
+            // Update entries with profile data
+            const updatedEntries = mappedEntries.map(entry => ({
+              ...entry,
+              username: profileMap[entry.userId]?.username || "Unknown",
+              tag: profileMap[entry.userId]?.tag
+            }))
+
+            set({
+              entries: { ...entries, [spaceId]: updatedEntries }
+            })
+            console.log("[ENTRY] ✅ Updated entries with profile data")
+          }
+        }
+
         return
       }
 
