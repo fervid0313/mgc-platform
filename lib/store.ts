@@ -972,7 +972,6 @@ export const useAppStore = create<AppState>((set, get) => ({
           id, 
           space_id, 
           user_id, 
-          username, 
           content, 
           image, 
           pnl, 
@@ -1135,6 +1134,36 @@ export const useAppStore = create<AppState>((set, get) => ({
         lastLoadedEntriesAt: { ...lastLoadedEntriesAt, [spaceId]: Date.now() },
       })
 
+      // Load profiles separately and update entries
+      const userIds = [...new Set(mappedEntries.map(e => e.userId))]
+      if (userIds.length > 0) {
+        console.log("[ENTRY] Loading profiles for users:", userIds)
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, username, tag")
+          .in("id", userIds)
+
+        if (profiles) {
+          const profileMap = profiles.reduce((acc, profile) => {
+            acc[profile.id] = profile
+            return acc
+          }, {} as Record<string, any>)
+
+          // Update entries with profile data
+          const updatedEntries = mappedEntries.map(entry => ({
+            ...entry,
+            username: profileMap[entry.userId]?.username || "Unknown",
+            tag: profileMap[entry.userId]?.tag
+          }))
+
+          set({
+            entries: { ...entries, [spaceId]: updatedEntries }
+          })
+          console.log("[ENTRY] ✅ Updated entries with profile data")
+        }
+      }
+
+      return
     } catch (err) {
       console.error("[ENTRY] 💥 Unexpected error:", err)
       set({
