@@ -951,17 +951,13 @@ export const useAppStore = create<AppState>((set, get) => ({
           content, 
           image, 
           pnl, 
-          created_at,
-          profiles!inner (
-            username,
-            tag
-          )
+          created_at
         `)
         .eq("space_id", actualSpaceId)
         .order("created_at", { ascending: false })
         .limit(10)
 
-      console.log("[ENTRY] Profile join result:", { 
+      console.log("[ENTRY] Entries loaded without profiles:", { 
         count: testData?.length || 0, 
         error: testError,
         errorMessage: testError?.message,
@@ -971,8 +967,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           pnlValue: e.pnl,
           hasImage: !!e.image,
           imageLength: e.image?.length || 0,
-          username: e.profiles?.username,
-          tag: e.profiles?.tag
+          userId: e.user_id
         })) || []
       })
 
@@ -1083,8 +1078,8 @@ export const useAppStore = create<AppState>((set, get) => ({
           id: e.id,
           spaceId,
           userId: e.user_id,
-          username: e.profiles?.username || "Unknown",
-          tag: e.profiles?.tag,
+          username: "Loading...", // Will be updated when profiles load
+          tag: undefined,
           content: e.content,
           tags: [],
           tradeType: "general" as any,
