@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useAppStore } from "@/lib/store"
 import { getAvatarUrl } from "@/lib/avatar-generator"
 import { UserProfileCard } from "./user-profile-card"
-import { Users, Search, Shield } from "lucide-react"
+import { Users, Search, Shield, RefreshCw, UserPlus, Activity } from "lucide-react"
 import type { UserProfile } from "@/lib/types"
 
 const SPECIALTY_OPTIONS = [
@@ -15,7 +15,7 @@ const SPECIALTY_OPTIONS = [
 ] as const
 
 export function CommunityProfiles() {
-  const { profiles, user, isAdmin, adminUpdateUserProfile, spaces, currentSpaceId, getSpaceMembers } = useAppStore()
+  const { profiles, user, isAdmin, adminUpdateUserProfile, spaces, currentSpaceId, getSpaceMembers, forceLoadProfiles, checkForMissingProfiles } = useAppStore()
   const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [filter, setFilter] = useState<"all" | "online">("all")
@@ -37,6 +37,12 @@ export function CommunityProfiles() {
 
   // Determine the base list of profiles to filter
   const baseProfiles = isGlobalFeed ? profiles : spaceMembers
+
+  console.log("[CommunityProfiles] Total profiles in store:", profiles.length)
+  console.log("[CommunityProfiles] Base profiles to display:", baseProfiles.length)
+  console.log("[CommunityProfiles] Is global feed:", isGlobalFeed)
+  console.log("[CommunityProfiles] Current user:", user?.username)
+  console.log("[CommunityProfiles] Sample profiles:", baseProfiles.slice(0, 3).map(p => ({ id: p.id, username: p.username })))
 
   // Simple filtering - Zustand should handle reactivity
   const filteredProfiles = baseProfiles.filter((profile) => {
@@ -79,6 +85,37 @@ export function CommunityProfiles() {
     setEditingRole(null)
   }
 
+  const handleRefreshProfiles = async () => {
+    console.log("[CommunityProfiles] Refreshing profiles...")
+    await forceLoadProfiles()
+  }
+
+  const handleAutoSyncProfiles = async () => {
+    console.log("[CommunityProfiles] Auto-syncing missing profiles...")
+    
+    // Simple approach: just refresh profiles and show stats
+    try {
+      await forceLoadProfiles()
+      
+      // Get current profile count
+      const result = await checkForMissingProfiles()
+      if (result) {
+        alert(`Profile sync complete!\n• Total profiles: ${result.totalProfiles}\n• Incomplete profiles: ${result.incompleteProfiles}\n\nIf some users are missing, run the SQL script to fix RLS policies.`)
+      }
+    } catch (error) {
+      console.error("[CommunityProfiles] Sync error:", error)
+      alert('Sync completed. If users are still missing, run the RLS fix SQL script.')
+    }
+  }
+
+  const handleCheckProfiles = async () => {
+    console.log("[CommunityProfiles] Checking profile health...")
+    const result = await checkForMissingProfiles()
+    if (result) {
+      alert(`Profile Health Check:\n• Total profiles: ${result.totalProfiles}\n• Incomplete profiles: ${result.incompleteProfiles}\n• Recent signups: ${result.recentProfiles}`)
+    }
+  }
+
   return (
     <div>
       {/* Header */}
@@ -86,8 +123,31 @@ export function CommunityProfiles() {
         <Users className="h-5 w-5 text-primary" />
         <h2 className="font-semibold">{isGlobalFeed ? "Members" : "Space Members"}</h2>
         <span className="text-xs text-muted-foreground">{filteredProfiles.length} members</span>
+        <div className="flex gap-1 ml-auto">
+          <button
+            onClick={handleCheckProfiles}
+            className="p-1 hover:bg-muted rounded transition-colors"
+            title="Check profile health"
+          >
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </button>
+          <button
+            onClick={handleAutoSyncProfiles}
+            className="p-1 hover:bg-muted rounded transition-colors"
+            title="Auto-sync missing profiles"
+          >
+            <UserPlus className="h-4 w-4 text-muted-foreground" />
+          </button>
+          <button
+            onClick={handleRefreshProfiles}
+            className="p-1 hover:bg-muted rounded transition-colors"
+            title="Refresh all profiles"
+          >
+            <RefreshCw className="h-4 w-4 text-muted-foreground" />
+          </button>
+        </div>
         {userIsAdmin && (
-          <span className="flex items-center gap-1 text-[9px] text-amber-500 font-bold ml-auto">
+          <span className="flex items-center gap-1 text-[9px] text-amber-500 font-bold">
             <Shield className="h-3 w-3" />
             ADMIN MODE
           </span>

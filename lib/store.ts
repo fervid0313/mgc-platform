@@ -114,6 +114,8 @@ interface AppState {
 
   profiles: UserProfile[]
   loadProfiles: () => Promise<void>
+  forceLoadProfiles: () => Promise<void>
+  checkForMissingProfiles: () => Promise<{ totalProfiles: number; incompleteProfiles: number; recentProfiles: number } | undefined>
 
   // Space Members
   getSpaceMembers: (spaceId: string) => UserProfile[]
@@ -156,11 +158,47 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     // Get user profile
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", data.user.id)
       .single()
+
+    // If profile doesn't exist, create it
+    if (profileError && profileError.code === 'PGRST116') {
+      console.log("[AUTH] Profile not found, creating for existing user")
+      
+      const newProfile = {
+        id: data.user.id,
+        username: email.split("@")[0],
+        email: data.user.email!,
+        tag: generateTag(),
+        // socialLinks: {}, // Remove for now to handle schema issues
+      }
+      
+      const { error: createError } = await supabase
+        .from("profiles")
+        .insert(newProfile)
+      
+      if (createError) {
+        console.error("[AUTH] Failed to create missing profile:", createError)
+        // Continue with fallback data
+      } else {
+        console.log("[AUTH] ✅ Created missing profile for existing user")
+        // Verify the profile was created
+        const { data: verifyProfile } = await supabase
+          .from("profiles")
+          .select("username, tag")
+          .eq("id", data.user.id)
+          .single()
+        
+        if (verifyProfile) {
+          console.log("[AUTH] ✅ Verified new profile:", verifyProfile.username)
+        }
+      }
+    } else if (profileError) {
+      console.error("[AUTH] Profile fetch error:", profileError)
+    }
 
     const user: User = {
       id: data.user.id,
@@ -213,12 +251,76 @@ export const useAppStore = create<AppState>((set, get) => ({
       username,
       email,
       tag,
-      socialLinks: {},
+      // socialLinks: {}, // Remove for now to handle schema issues
     })
 
     if (profileError) {
       console.error("[AUTH] Profile creation error:", profileError)
-      return false
+      console.error("[AUTH] Profile creation error details:", {
+        message: profileError.message,
+        details: profileError.details,
+        hint: profileError.hint,
+        code: profileError.code
+      })
+      
+      // Try to create profile with fallback data
+      const fallbackProfile = {
+        id: data.user.id,
+        username: username || email.split("@")[0],
+        email,
+        tag: tag || generateTag(),
+        // socialLinks: {}, // Remove for now to handle schema issues
+      }
+      
+      console.log("[AUTH] Trying fallback profile creation:", fallbackProfile)
+      const { error: fallbackError } = await supabase
+        .from("profiles")
+        .upsert(fallbackProfile)
+      
+      if (fallbackError) {
+        console.error("[AUTH] Fallback profile creation failed:", fallbackError)
+        console.error("[AUTH] Fallback error details:", {
+          message: fallbackError.message,
+          details: fallbackError.details,
+          hint: fallbackError.hint,
+          code: fallbackError.code
+        })
+        
+        // Don't delete the user, just continue with signup
+        console.log("[AUTH] ⚠️ Continuing with signup despite profile creation failure")
+        // The profile will be created on login/initialization
+      } else {
+        console.log("[AUTH] ✅ Profile created with fallback data")
+      }
+    }
+
+    // Verify profile was created successfully
+    const { data: verifyProfile, error: verifyError } = await supabase
+      .from("profiles")
+      .select("id, username, email, tag")
+      .eq("id", data.user.id)
+      .single()
+
+    if (verifyError || !verifyProfile) {
+      console.error("[AUTH] ❌ Profile verification failed:", verifyError)
+      // One last attempt with minimal data
+      const { error: finalError } = await supabase
+        .from("profiles")
+        .upsert({
+          id: data.user.id,
+          username: email.split("@")[0],
+          email,
+          tag: generateTag(),
+        })
+      
+      if (finalError) {
+        console.error("[AUTH] ❌ Final profile creation failed:", finalError)
+        // Don't fail signup, but log the issue
+      } else {
+        console.log("[AUTH] ✅ Profile created in final attempt")
+      }
+    } else {
+      console.log("[AUTH] ✅ Profile verified successfully:", verifyProfile.username)
     }
 
     const user: User = {
@@ -304,11 +406,54 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     if (session?.user) {
       // Get user profile
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", session.user.id)
         .single()
+
+      // If profile doesn't exist, create it
+      if (profileError && profileError.code === 'PGRST116') {
+        console.log("[AUTH] Profile not found during init, creating for existing user")
+        
+        const newProfile = {
+          id: session.user.id,
+          username: session.user.email!.split("@")[0],
+          email: session.user.email!,
+          tag: generateTag(),
+          // socialLinks: {}, // Remove for now to handle schema issues
+        }
+        
+        const { error: createError } = await supabase
+          .from("profiles")
+          .insert(newProfile)
+        
+        if (createError) {
+          console.error("[AUTH] Failed to create missing profile during init:", createError)
+          console.error("[AUTH] Init profile creation error details:", {
+            message: createError.message,
+            details: createError.details,
+            hint: createError.hint,
+            code: createError.code
+          })
+          
+          // Try to check what's happening with the profiles table
+          try {
+            const { data: testSelect, error: testError } = await supabase
+              .from("profiles")
+              .select("count")
+              .single()
+            
+            console.log("[AUTH] Test select result:", testSelect, testError)
+          } catch (e) {
+            console.error("[AUTH] Test select failed:", e)
+          }
+          
+          // Continue with fallback data
+        }
+      } else if (profileError) {
+        console.error("[AUTH] Profile fetch error during init:", profileError)
+      }
 
       const user: User = {
         id: session.user.id,
@@ -835,12 +980,19 @@ export const useAppStore = create<AppState>((set, get) => ({
         console.error("[ENTRY] ❌ Profile join failed, trying fallback:", testError.message)
         
         // Fallback: Load entries without profiles, then load profiles separately
+        console.log("[ENTRY] 🔄 Executing fallback query for space:", actualSpaceId)
         const { data: fallbackData, error: fallbackError } = await supabase
           .from("entries")
           .select("id, space_id, user_id, content, image, pnl, created_at")
           .eq("space_id", actualSpaceId)
           .order("created_at", { ascending: false })
           .limit(10)
+
+        console.log("[ENTRY] 📊 Fallback query result:", { 
+          count: fallbackData?.length || 0, 
+          error: fallbackError,
+          errorMessage: fallbackError?.message
+        })
 
         if (fallbackError) {
           console.error("[ENTRY] ❌ Even fallback failed:", fallbackError.message)
@@ -1163,6 +1315,20 @@ export const useAppStore = create<AppState>((set, get) => ({
     const profileSelectFull = "id, username, tag, email, avatar, bio, trading_style, win_rate, total_trades, social_links, created_at"
     const profileSelectFallback = "id, username, tag, email, avatar, bio, win_rate, social_links, created_at"
 
+    // First, try to get all profiles (this will show us what we have)
+    console.log("[PROFILES] Loading all profiles...")
+    const { data: existingProfiles, error: existingError } = await supabase
+      .from("profiles")
+      .select("id, username, email")
+      .order("created_at", { ascending: false })
+    
+    if (existingError) {
+      console.error("[PROFILES] Error getting existing profiles:", existingError)
+    } else {
+      console.log("[PROFILES] Existing profiles in database:", existingProfiles?.length || 0)
+      console.log("[PROFILES] Sample existing profiles:", existingProfiles?.slice(0, 3).map(p => ({ id: p.id, username: p.username, email: p.email })))
+    }
+
     let query = supabase
       .from("profiles")
       .select(profileSelectFull)
@@ -1220,8 +1386,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     }))
 
     console.log("[PROFILES] Raw data from DB:", profilesData?.slice(0, 3))
+    console.log("[PROFILES] Total profiles loaded:", profilesData?.length || 0)
     console.log("[PROFILES] Mapped profiles:", mappedProfiles.slice(0, 3))
+    console.log("[PROFILES] Total mapped profiles:", mappedProfiles.length)
     console.log("[PROFILES] Profiles with missing username:", mappedProfiles.filter(p => !p.username || p.username === "Unknown"))
+    console.log("[PROFILES] All profile IDs:", mappedProfiles.map(p => ({ id: p.id, username: p.username })))
 
     set({ profiles: mappedProfiles, lastLoadedProfilesAt: Date.now() })
 
@@ -1244,6 +1413,51 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     set({ entries: updatedEntries })
     console.log("[PROFILES] ✅ Loaded and processed", mappedProfiles.length, "profiles")
+  },
+
+  forceLoadProfiles: async () => {
+    console.log("[PROFILES] Force loading profiles (bypassing cache)")
+    // Reset cache timestamp to force reload
+    set({ lastLoadedProfilesAt: 0 })
+    await get().loadProfiles()
+  },
+
+  checkForMissingProfiles: async () => {
+    console.log("[PROFILES] Checking for users without profiles...")
+    const supabase = createClient()
+    
+    // Get current profiles
+    const { data: profiles, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id, email, username, created_at")
+      .order("created_at", { ascending: false })
+    
+    if (profilesError) {
+      console.error("[PROFILES] Error checking profiles:", profilesError)
+      return
+    }
+    
+    console.log(`[PROFILES] Currently have ${profiles?.length || 0} profiles`)
+    
+    // Log recent profiles for verification
+    const recentProfiles = profiles?.slice(0, 5) || []
+    console.log("[PROFILES] Recent profiles:", recentProfiles.map(p => ({
+      username: p.username,
+      email: p.email,
+      created: p.created_at
+    })))
+    
+    // Check for any profiles with missing data
+    const incompleteProfiles = profiles?.filter(p => !p.username || p.username === "Unknown") || []
+    if (incompleteProfiles.length > 0) {
+      console.warn("[PROFILES] Found incomplete profiles:", incompleteProfiles)
+    }
+    
+    return {
+      totalProfiles: profiles?.length || 0,
+      incompleteProfiles: incompleteProfiles.length,
+      recentProfiles: recentProfiles.length
+    }
   },
 
   getSpaceMembers: (spaceId: string) => {
