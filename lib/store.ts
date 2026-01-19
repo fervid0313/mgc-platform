@@ -795,11 +795,23 @@ export const useAppStore = create<AppState>((set, get) => ({
     console.log("[ENTRY] Current space ID in store:", get().currentSpaceId)
 
     try {
-      // Test with full columns - ADD BACK pnl AND image
-      console.log("[ENTRY] Testing with full columns...")
+      // Load entries with user profiles
+      console.log("[ENTRY] Loading entries with profiles...")
       const { data: testData, error: testError } = await supabase
         .from("entries")
-        .select("id, space_id, user_id, content, image, pnl, created_at")
+        .select(`
+          id, 
+          space_id, 
+          user_id, 
+          content, 
+          image, 
+          pnl, 
+          created_at,
+          profiles!inner (
+            username,
+            tag
+          )
+        `)
         .eq("space_id", actualSpaceId)
         .order("created_at", { ascending: false })
         .limit(10)
@@ -808,17 +820,19 @@ export const useAppStore = create<AppState>((set, get) => ({
         count: testData?.length || 0, 
         error: testError,
         errorMessage: testError?.message,
-        sampleData: testData?.map(e => ({
+        sampleData: testData?.map((e: any) => ({
           id: e.id,
-          hasPnl: e.pnl !== null && e.pnl !== undefined,
+          hasPnl: e.pnl !== null,
           pnlValue: e.pnl,
           hasImage: !!e.image,
-          imageLength: e.image?.length || 0
+          imageLength: e.image?.length || 0,
+          username: e.profiles?.username,
+          tag: e.profiles?.tag
         })) || []
       })
 
       if (testError) {
-        console.error("[ENTRY] ❌ Even minimal query failed:", testError.message)
+        console.error("[ENTRY] ❌ Query failed:", testError.message)
         set({
           entries: { ...entries, [spaceId]: [] },
           lastLoadedEntriesAt: { ...lastLoadedEntriesAt, [spaceId]: Date.now() },
@@ -826,7 +840,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         return
       }
 
-      // If full query works, use it
+      // Map entries with profile data
       const mappedEntries = (testData || []).filter(e => e != null).map((e: any) => {
         const hasImage = !!e.image;
         const hasPnl = e.pnl !== null && e.pnl !== undefined && e.pnl !== '';
@@ -836,12 +850,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (hasPnl) {
           console.log("[ENTRY] 💰 Found pnl:", e.pnl, "type:", typeof e.pnl);
         }
-        console.log("[ENTRY] 📝 Found entry:", e.id, e.content?.substring(0, 30) + "...");
+        console.log("[ENTRY] 📝 Found entry:", e.id, e.content?.substring(0, 30) + "...", "by", e.profiles?.username);
         return {
           id: e.id,
           spaceId,
           userId: e.user_id,
-          username: "Unknown",
+          username: e.profiles?.username || "Unknown",
+          tag: e.profiles?.tag,
           content: e.content,
           tags: [],
           tradeType: "general" as any,
