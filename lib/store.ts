@@ -87,6 +87,13 @@ interface AppState {
   removeConnection: (connectionId: string) => Promise<boolean>
   loadSocialConnections: () => Promise<void>
 
+  // Space Invitations
+  spaceInvitations: any[]
+  inviteToSpace: (spaceId: string, inviteeEmail: string, message?: string) => Promise<boolean>
+  acceptSpaceInvitation: (invitationId: string) => Promise<boolean>
+  declineSpaceInvitation: (invitationId: string) => Promise<boolean>
+  loadSpaceInvitations: () => Promise<void>
+
   getCollectiveVibe: () => MentalState | null
   getVibeThemeClass: () => string | null
 
@@ -173,6 +180,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     void Promise.allSettled([
       get().loadProfiles(),
       get().loadSocialConnections(),
+      get().loadSpaceInvitations(),
     ])
 
     return true
@@ -247,6 +255,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     void Promise.allSettled([
       get().loadProfiles(),
       get().loadSocialConnections(),
+      get().loadSpaceInvitations(),
     ])
 
     return true
@@ -317,6 +326,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       void Promise.allSettled([
         get().loadProfiles(),
         get().loadSocialConnections(),
+        get().loadSpaceInvitations(),
       ])
     } else {
       set({ isLoading: false })
@@ -466,6 +476,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   // Social Connections
   socialConnections: {},
+
+  // Space Invitations
+  spaceInvitations: [],
 
   addEntry: async (
     content: string,
@@ -957,6 +970,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       createdAt: new Date(p.created_at),
     }))
 
+    console.log("[PROFILES] Raw data from DB:", profilesData?.slice(0, 3))
+    console.log("[PROFILES] Mapped profiles:", mappedProfiles.slice(0, 3))
+    console.log("[PROFILES] Profiles with missing username:", mappedProfiles.filter(p => !p.username || p.username === "Unknown"))
+
     set({ profiles: mappedProfiles, lastLoadedProfilesAt: Date.now() })
 
     // Backfill usernames in entries after profiles load
@@ -966,6 +983,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (!entry.username || entry.username === "Unknown") {
           const profile = mappedProfiles.find(p => p.id === entry.userId)
           if (profile) {
+            console.log("[PROFILES] Backfilling username for entry:", entry.id, "with:", profile.username)
             return { ...entry, username: profile.username }
           }
         }
@@ -976,6 +994,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }, {} as Record<string, JournalEntry[]>)
 
     set({ entries: updatedEntries })
+    console.log("[PROFILES] ✅ Loaded and processed", mappedProfiles.length, "profiles")
   },
 
   getSpaceMembers: (spaceId: string) => {
@@ -1399,6 +1418,153 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     set({ socialConnections: { [user.id]: connections } })
     console.log("[CONNECTION] ✅ Stored in state:", { [user.id]: connections })
+  },
+
+  // Space Invitations
+  inviteToSpace: async (spaceId: string, inviteeEmail: string, message?: string) => {
+    const { user } = get()
+    if (!user || !user.id) {
+      console.log("[INVITATION] No user found, skipping invite")
+      return false
+    }
+
+    console.log("[INVITATION] Inviting to space:", spaceId, "email:", inviteeEmail)
+    const supabase = createClient()
+    
+    const { error } = await supabase
+      .from("space_invitations")
+      .insert({
+        space_id: spaceId,
+        inviter_id: user.id,
+        invitee_email: inviteeEmail,
+        message,
+        status: "pending",
+      })
+
+    if (error) {
+      console.error("[INVITATION] Invite error:", error)
+      return false
+    }
+
+    console.log("[INVITATION] ✅ Invitation sent successfully")
+    await get().loadSpaceInvitations()
+    return true
+  },
+
+  acceptSpaceInvitation: async (invitationId: string) => {
+    const { user } = get()
+    if (!user || !user.id) {
+      console.log("[INVITATION] No user found, skipping accept")
+      return false
+    }
+
+    console.log("[INVITATION] Accepting invitation:", invitationId)
+    const supabase = createClient()
+    
+    // Get invitation details
+    const { data: invitation, error: fetchError } = await supabase
+      .from("space_invitations")
+      .select("*")
+      .eq("id", invitationId)
+      .single()
+
+    if (fetchError || !invitation) {
+      console.error("[INVITATION] Fetch error:", fetchError)
+      return false
+    }
+
+    // Update invitation status
+    const { error: updateError } = await supabase
+      .from("space_invitations")
+      .update({ status: "accepted" })
+      .eq("id", invitationId)
+
+    if (updateError) {
+      console.error("[INVITATION] Update error:", updateError)
+      return false
+    }
+
+    // Join the space
+    const { error: joinError } = await supabase
+      .from("space_members")
+      .insert({
+        space_id: invitation.space_id,
+        user_id: user.id,
+      })
+
+    if (joinError) {
+      console.error("[INVITATION] Join error:", joinError)
+      return false
+    }
+
+    console.log("[INVITATION] ✅ Invitation accepted and space joined")
+    await get().loadSpaceInvitations()
+    await get().loadProfiles()
+    return true
+  },
+
+  declineSpaceInvitation: async (invitationId: string) => {
+    const { user } = get()
+    if (!user || !user.id) {
+      console.log("[INVITATION] No user found, skipping decline")
+      return false
+    }
+
+    console.log("[INVITATION] Declining invitation:", invitationId)
+    const supabase = createClient()
+    
+    const { error } = await supabase
+      .from("space_invitations")
+      .update({ status: "declined" })
+      .eq("id", invitationId)
+
+    if (error) {
+      console.error("[INVITATION] Decline error:", error)
+      return false
+    }
+
+    console.log("[INVITATION] ✅ Invitation declined")
+    await get().loadSpaceInvitations()
+    return true
+  },
+
+  loadSpaceInvitations: async () => {
+    const { user } = get()
+    if (!user || !user.id) {
+      console.log("[INVITATION] No user found, skipping load")
+      return
+    }
+
+    console.log("[INVITATION] Loading invitations for user:", user.id)
+    const supabase = createClient()
+    
+    const { data, error } = await supabase
+      .from("space_invitations")
+      .select(`
+        *,
+        spaces:space_id (
+          id,
+          name,
+          description
+        ),
+        inviter:inviter_id (
+          id,
+          username,
+          tag
+        )
+      `)
+      .or(`invitee_id.eq.${user.id},inviter_id.eq.${user.id}`)
+      .eq("status", "pending")
+
+    if (error) {
+      console.error("[INVITATION] Load error:", error)
+      return
+    }
+
+    const invitations = data || []
+    console.log("[INVITATION] ✅ Loaded invitations:", invitations.length, invitations)
+
+    set({ spaceInvitations: invitations })
   },
 }))
 
