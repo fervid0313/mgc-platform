@@ -1394,26 +1394,29 @@ export const useAppStore = create<AppState>((set, get) => ({
       return
     }
 
-    const mappedProfiles = (profilesData || []).filter(p => p != null).map((p: any) => ({
-      id: p.id,
-      username: p.username || "Unknown",
-      tag: p.tag || "0000",
-      email: p.email || "",
-      avatar: p.avatar,
-      bio: p.bio || "",
-      tradingStyle: p.trading_style,
-      winRate: p.win_rate,
-      totalTrades: p.total_trades,
-      socialLinks: p.social_links || {},
-      createdAt: new Date(p.created_at),
-    }))
+    const mappedProfiles = (profilesData || []).filter(p => p != null).map((p: any) => {
+      console.log("[PROFILES] Mapping profile:", { id: p.id, username: p.username, email: p.email })
+      return {
+        id: p.id,
+        username: p.username || "Unknown",
+        tag: p.tag || "0000",
+        email: p.email || "",
+        avatar: p.avatar,
+        bio: p.bio || "",
+        tradingStyle: p.trading_style,
+        winRate: p.win_rate,
+        totalTrades: p.total_trades,
+        socialLinks: p.social_links || {},
+        createdAt: new Date(p.created_at),
+      }
+    })
 
     console.log("[PROFILES] Raw data from DB:", profilesData?.slice(0, 3))
     console.log("[PROFILES] Total profiles loaded:", profilesData?.length || 0)
     console.log("[PROFILES] Mapped profiles:", mappedProfiles.slice(0, 3))
     console.log("[PROFILES] Total mapped profiles:", mappedProfiles.length)
     console.log("[PROFILES] Profiles with missing username:", mappedProfiles.filter(p => !p.username || p.username === "Unknown"))
-    console.log("[PROFILES] All profile IDs:", mappedProfiles.map(p => ({ id: p.id, username: p.username })))
+    console.log("[PROFILES] All profile IDs and usernames:", mappedProfiles.map(p => ({ id: p.id, username: p.username })))
 
     set({ profiles: mappedProfiles, lastLoadedProfilesAt: Date.now() })
 
