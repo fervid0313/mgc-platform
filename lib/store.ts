@@ -124,6 +124,7 @@ interface AppState {
   findUserByTag: (usernameWithTag: string) => Promise<UserProfile | undefined>
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>
   adminUpdateUserProfile: (userId: string, updates: Partial<UserProfile>) => void
+  getUsernameFromAuth: (userId: string) => Promise<string | null>
 
   // Comments and Likes
   comments: Record<string, Comment[]>
@@ -246,13 +247,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     // Create profile
+    console.log("[AUTH] Attempting to create profile for user:", data.user.id, "username:", username, "email:", email)
     const { error: profileError } = await supabase.from("profiles").insert({
       id: data.user.id,
       username,
       email,
       tag,
-      // socialLinks: {}, // Remove for now to handle schema issues
+      socialLinks: {}, // Add back since schema cache expects it
     })
+
+    console.log("[AUTH] Profile creation result:", { profileError, success: !profileError })
+    console.log("[AUTH] Username used in profile creation:", username)
 
     if (profileError) {
       console.error("[AUTH] Profile creation error:", profileError)
@@ -263,19 +268,34 @@ export const useAppStore = create<AppState>((set, get) => ({
         code: profileError.code
       })
       
+      // Try to check if the user exists in auth
+      console.log("[AUTH] Checking if auth user exists...")
+      const { data: authUser, error: authError } = await supabase.auth.getUser(data.user.id)
+      console.log("[AUTH] Auth user check:", { authUser, authError })
+      
+      // Try to check current profiles
+      console.log("[AUTH] Checking current profiles...")
+      const { data: currentProfiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, username, email")
+        .limit(5)
+      console.log("[AUTH] Current profiles:", { currentProfiles, profilesError })
+      
       // Try to create profile with fallback data
       const fallbackProfile = {
         id: data.user.id,
-        username: username || email.split("@")[0],
+        username: username || email.split("@")[0], // Keep the entered username, fallback to email prefix only if empty
         email,
         tag: tag || generateTag(),
-        // socialLinks: {}, // Remove for now to handle schema issues
+        socialLinks: {}, // Add back since schema cache expects it
       }
       
-      console.log("[AUTH] Trying fallback profile creation:", fallbackProfile)
+      console.log("[AUTH] Trying fallback profile creation with username:", username, "fallbackProfile:", fallbackProfile)
       const { error: fallbackError } = await supabase
         .from("profiles")
         .upsert(fallbackProfile)
+      
+      console.log("[AUTH] Fallback creation result:", { fallbackError, success: !fallbackError })
       
       if (fallbackError) {
         console.error("[AUTH] Fallback profile creation failed:", fallbackError)
@@ -304,13 +324,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (verifyError || !verifyProfile) {
       console.error("[AUTH] ❌ Profile verification failed:", verifyError)
       // One last attempt with minimal data
+      console.log("[AUTH] Final attempt with username:", username)
       const { error: finalError } = await supabase
         .from("profiles")
         .upsert({
           id: data.user.id,
-          username: email.split("@")[0],
+          username: username, // Use the entered username
           email,
           tag: generateTag(),
+          socialLinks: {}, // Add back since schema cache expects it
         })
       
       if (finalError) {
@@ -326,10 +348,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     const user: User = {
       id: data.user.id,
       email: data.user.email!,
-      username,
+      username: username, // Use the entered username
       tag,
       createdAt: new Date(),
     }
+
+    console.log("[AUTH] User object created with username:", user.username)
 
     // Join Global Feed space
     await supabase.from("space_members").insert({
@@ -356,7 +380,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     // Load data
     void Promise.allSettled([
-      get().loadProfiles(),
+      get().forceLoadProfiles(), // Force reload to show new user immediately
       get().loadSocialConnections(),
       get().loadSpaceInviteLinks(),
       get().loadSpaces(),
@@ -940,14 +964,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     console.log("[ENTRY] Current space ID in store:", get().currentSpaceId)
 
     try {
-      // First try to load entries with user profiles
-      console.log("[ENTRY] Loading entries with profiles...")
+      // First try to load entries without user profiles (deployment safe)
+      console.log("[ENTRY] Loading entries without profiles...")
       const { data: testData, error: testError } = await supabase
         .from("entries")
         .select(`
           id, 
           space_id, 
           user_id, 
+          username, 
           content, 
           image, 
           pnl, 
@@ -1210,27 +1235,29 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     // Map entries with schema tolerance
-    const mappedEntries = newEntries.filter(e => e != null).map((e: any) => ({
-      id: e.id,
-      spaceId,
-      userId: e.user_id,
-      username: e.username || "Unknown",
-      content: e.content,
-      tags: e.tags || [],
-      tradeType: e.trade_type,
-      profitLoss: (e.pnl !== null && e.pnl !== undefined && e.pnl !== '') ? 
-            (() => {
-              try {
-                return parseFloat(e.pnl);
-              } catch (error) {
-                console.warn("[ENTRY] ⚠️ Invalid pnl value in loadMore:", e.pnl, error);
-                return undefined;
-              }
-            })() : undefined,
-      image: e.image,
-      mentalState: e.mental_state,
-      createdAt: new Date(e.created_at),
-    }))
+    const mappedEntries = newEntries.filter(e => e != null).map((e: any) => {
+      return {
+        id: e.id,
+        spaceId,
+        userId: e.user_id,
+        username: e.username || "Unknown",
+        content: e.content,
+        tags: e.tags || [],
+        tradeType: e.trade_type,
+        profitLoss: (e.pnl !== null && e.pnl !== undefined && e.pnl !== '') ? 
+              (() => {
+                try {
+                  return parseFloat(e.pnl);
+                } catch (error) {
+                  console.warn("[ENTRY] ⚠️ Invalid pnl value in loadMore:", e.pnl, error);
+                  return undefined;
+                }
+              })() : undefined,
+        image: e.image,
+        mentalState: e.mental_state,
+        createdAt: new Date(e.created_at),
+      }
+    })
 
     const currentEntries = entries[spaceId] || []
     const newCursor = mappedEntries.length > 0 
@@ -1310,25 +1337,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     const profileSelectFull = "id, username, tag, email, avatar, bio, trading_style, win_rate, total_trades, social_links, created_at"
     const profileSelectFallback = "id, username, tag, email, avatar, bio, win_rate, social_links, created_at"
 
-    // First, try to get all profiles (this will show us what we have)
+    // First, try to get all profiles
     console.log("[PROFILES] Loading all profiles...")
-    const { data: existingProfiles, error: existingError } = await supabase
-      .from("profiles")
-      .select("id, username, email")
-      .order("created_at", { ascending: false })
-    
-    if (existingError) {
-      console.error("[PROFILES] Error getting existing profiles:", existingError)
-    } else {
-      console.log("[PROFILES] Existing profiles in database:", existingProfiles?.length || 0)
-      console.log("[PROFILES] Sample existing profiles:", existingProfiles?.slice(0, 3).map(p => ({ id: p.id, username: p.username, email: p.email })))
-    }
-
     let query = supabase
       .from("profiles")
       .select(profileSelectFull)
       .order("created_at", { ascending: false })
       .limit(500)
+    
 
     const { data: profilesData, error: profilesError } = await query
 
@@ -1366,26 +1382,30 @@ export const useAppStore = create<AppState>((set, get) => ({
       return
     }
 
-    const mappedProfiles = (profilesData || []).filter(p => p != null).map((p: any) => ({
-      id: p.id,
-      username: p.username || "Unknown",
-      tag: p.tag || "0000",
-      email: p.email || "",
-      avatar: p.avatar,
-      bio: p.bio || "",
-      tradingStyle: p.trading_style,
-      winRate: p.win_rate,
-      totalTrades: p.total_trades,
-      socialLinks: p.social_links || {},
-      createdAt: new Date(p.created_at),
-    }))
+    const mappedProfiles = (profilesData || []).filter(p => p != null).map((p: any) => {
+      console.log("[PROFILES] Mapping profile:", { id: p.id, username: p.username, email: p.email })
+      
+      return {
+        id: p.id,
+        username: p.username || "Unknown",
+        tag: p.tag || "0000",
+        email: p.email || "",
+        avatar: p.avatar,
+        bio: p.bio || "",
+        tradingStyle: p.trading_style,
+        winRate: p.win_rate,
+        totalTrades: p.total_trades,
+        socialLinks: p.social_links || {},
+        createdAt: new Date(p.created_at),
+      }
+    })
 
     console.log("[PROFILES] Raw data from DB:", profilesData?.slice(0, 3))
     console.log("[PROFILES] Total profiles loaded:", profilesData?.length || 0)
     console.log("[PROFILES] Mapped profiles:", mappedProfiles.slice(0, 3))
     console.log("[PROFILES] Total mapped profiles:", mappedProfiles.length)
     console.log("[PROFILES] Profiles with missing username:", mappedProfiles.filter(p => !p.username || p.username === "Unknown"))
-    console.log("[PROFILES] All profile IDs:", mappedProfiles.map(p => ({ id: p.id, username: p.username })))
+    console.log("[PROFILES] All profile IDs and usernames:", mappedProfiles.map(p => ({ id: p.id, username: p.username })))
 
     set({ profiles: mappedProfiles, lastLoadedProfilesAt: Date.now() })
 
@@ -1397,7 +1417,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           const profile = mappedProfiles.find(p => p.id === entry.userId)
           if (profile) {
             console.log("[PROFILES] Backfilling username for entry:", entry.id, "with:", profile.username)
-            return { ...entry, username: profile.username }
+            return { ...entry, username: profile.username, tag: profile.tag }
           }
         }
         return entry
@@ -1408,6 +1428,21 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     set({ entries: updatedEntries })
     console.log("[PROFILES] ✅ Loaded and processed", mappedProfiles.length, "profiles")
+  },
+
+  getUsernameFromAuth: async (userId: string) => {
+    const supabase = createClient()
+    try {
+      const { data: authUser, error } = await supabase.auth.admin.getUserById(userId)
+      if (error || !authUser) {
+        console.error("[AUTH] Error getting user from auth:", error)
+        return null
+      }
+      return authUser.user.user_metadata?.username || null
+    } catch (error) {
+      console.error("[AUTH] Error in getUsernameFromAuth:", error)
+      return null
+    }
   },
 
   forceLoadProfiles: async () => {
