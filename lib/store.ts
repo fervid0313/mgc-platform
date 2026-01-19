@@ -1519,6 +1519,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     set({ spaceInviteLinks: inviteLinks });
   },
-});
+}))
 
 export const appStore = useAppStore;
