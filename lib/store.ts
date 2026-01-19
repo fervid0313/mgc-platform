@@ -50,6 +50,11 @@ interface AppState {
   logout: () => void
   initializeAuth: () => Promise<void>
 
+  // Debug
+  debugJournal: () => Promise<void>
+  debugExistingEntries: () => Promise<void>
+  debugAllEntries: () => Promise<void>
+
   lastLoadedProfilesAt: number
   lastLoadedEntriesAt: Record<string, number>
 
@@ -145,6 +150,243 @@ export const useAppStore = create<AppState>((set, get) => ({
   isAuthenticated: false,
   isLoading: true,
   isAdmin: () => get().user?.email === ADMIN_EMAIL,
+
+  // Debug function for testing journal functionality
+  debugJournal: async () => {
+    console.log("🔍 DEBUG: Starting journal functionality test...")
+    const state = get()
+    
+    console.log("📊 Current state:", {
+      isAuthenticated: state.isAuthenticated,
+      currentSpaceId: state.currentSpaceId,
+      userId: state.user?.id,
+      username: state.user?.username,
+      entriesCount: state.currentSpaceId ? (state.entries[state.currentSpaceId] || []).length : 0
+    })
+
+    if (!state.isAuthenticated) {
+      console.log("❌ Not authenticated - cannot test journal functionality")
+      return
+    }
+
+    if (!state.currentSpaceId) {
+      console.log("❌ No current space selected")
+      return
+    }
+
+    try {
+      // Test 1: Load entries
+      console.log("🔄 Test 1: Loading entries...")
+      await state.loadEntries(state.currentSpaceId)
+      
+      const entries = state.entries[state.currentSpaceId] || []
+      console.log("✅ Entries loaded:", entries.length)
+      
+      // Test 2: Create a test entry
+      console.log("📝 Test 2: Creating test entry...")
+      const testContent = `Debug test entry at ${new Date().toISOString()}`
+      
+      await state.addEntry(
+        testContent,
+        ["debug"],
+        "general",
+        undefined,
+        undefined,
+        "calm"
+      )
+      
+      console.log("✅ Test entry created")
+      
+      // Test 3: Reload entries to verify
+      console.log("🔄 Test 3: Reloading entries to verify...")
+      await state.forceLoadEntries(state.currentSpaceId)
+      
+      const newEntries = state.entries[state.currentSpaceId] || []
+      console.log("✅ Entries reloaded:", newEntries.length)
+      
+      const testEntry = newEntries.find(e => e.content.includes("Debug test entry"))
+      if (testEntry) {
+        console.log("✅ Test entry found:", testEntry.id)
+      } else {
+        console.log("❌ Test entry not found in reloaded data")
+      }
+      
+      console.log("🎉 DEBUG: Journal functionality test completed")
+      
+    } catch (error) {
+      console.error("💥 DEBUG: Journal functionality test failed:", error)
+    }
+  },
+
+  // Debug function to check existing entries in database
+  debugExistingEntries: async () => {
+    console.log("🔍 DEBUG: Checking existing entries in database...")
+    const state = get()
+    
+    if (!state.isAuthenticated) {
+      console.log("❌ Not authenticated")
+      return
+    }
+
+    const supabase = createClient()
+    const actualSpaceId = state.currentSpaceId === "space-global" 
+      ? "00000000-0000-0000-0000-000000000001" 
+      : state.currentSpaceId
+
+    console.log("📊 Checking space:", {
+      currentSpaceId: state.currentSpaceId,
+      actualSpaceId: actualSpaceId,
+      spaceName: state.spaces.find(s => s.id === state.currentSpaceId)?.name
+    })
+
+    try {
+      // Check all entries in the space
+      const { data: allEntries, error: allError } = await supabase
+        .from("entries")
+        .select("*")
+        .eq("space_id", actualSpaceId)
+
+      if (allError) {
+        console.error("❌ Error fetching all entries:", allError)
+        return
+      }
+
+      console.log("✅ All entries in database:", allEntries?.length || 0)
+      allEntries?.forEach((entry, index) => {
+        console.log(`  ${index + 1}. ID: ${entry.id}, User: ${entry.user_id}, Content: ${entry.content?.substring(0, 50)}..., Created: ${entry.created_at}`)
+      })
+
+      // Check entries currently loaded in store
+      const storeEntries = state.entries[state.currentSpaceId || ""] || []
+      console.log("📊 Entries currently in store:", storeEntries.length)
+      storeEntries.forEach((entry, index) => {
+        console.log(`  ${index + 1}. ID: ${entry.id}, User: ${entry.username}, Content: ${entry.content?.substring(0, 50)}...`)
+      })
+
+      // Check for mismatch
+      if (allEntries && storeEntries) {
+        const dbIds = new Set(allEntries.map(e => e.id))
+        const storeIds = new Set(storeEntries.map(e => e.id))
+        
+        const missingInStore = allEntries.filter(e => !storeIds.has(e.id))
+        const extraInStore = storeEntries.filter(e => !dbIds.has(e.id))
+        
+        if (missingInStore.length > 0) {
+          console.log("⚠️ Entries in database but not in store:", missingInStore.length)
+          missingInStore.forEach(entry => {
+            console.log(`  Missing: ${entry.id} - ${entry.content?.substring(0, 30)}...`)
+          })
+        }
+        
+        if (extraInStore.length > 0) {
+          console.log("⚠️ Entries in store but not in database:", extraInStore.length)
+        }
+        
+        if (missingInStore.length === 0 && extraInStore.length === 0) {
+          console.log("✅ Store and database are in sync")
+        }
+      }
+
+    } catch (error) {
+      console.error("💥 Error checking existing entries:", error)
+    }
+  },
+
+  // Debug function to check ALL spaces and ALL entries
+  debugAllEntries: async () => {
+    console.log("🔍 DEBUG: Checking ALL entries across ALL spaces...")
+    const state = get()
+    
+    if (!state.isAuthenticated) {
+      console.log("❌ Not authenticated")
+      return
+    }
+
+    const supabase = createClient()
+
+    try {
+      // Get all spaces user has access to
+      console.log("📊 Checking all spaces user has access to...")
+      const { data: memberships, error: membershipError } = await supabase
+        .from("space_members")
+        .select("space_id")
+        .eq("user_id", state.user!.id)
+
+      if (membershipError) {
+        console.error("❌ Error fetching memberships:", membershipError)
+        return
+      }
+
+      const spaceIds = memberships?.map(m => m.space_id) || []
+      console.log("✅ User has access to spaces:", spaceIds.length)
+
+      // Get all entries for all spaces
+      let totalEntries = 0
+      const entriesBySpace: Record<string, any[]> = {}
+
+      for (const spaceId of spaceIds) {
+        const { data: entries, error: entriesError } = await supabase
+          .from("entries")
+          .select("*")
+          .eq("space_id", spaceId)
+          .order("created_at", { ascending: false })
+
+        if (entriesError) {
+          console.error(`❌ Error fetching entries for space ${spaceId}:`, entriesError)
+          continue
+        }
+
+        entriesBySpace[spaceId] = entries || []
+        totalEntries += (entries || []).length
+        
+        console.log(`📝 Space ${spaceId}: ${(entries || []).length} entries`)
+        ;(entries || []).forEach((entry, index) => {
+          console.log(`  ${index + 1}. ID: ${entry.id}, Content: ${entry.content?.substring(0, 50)}..., Created: ${new Date(entry.created_at).toLocaleString()}`)
+        })
+      }
+
+      console.log(`🎯 Total entries across all spaces: ${totalEntries}`)
+
+      // Also check if there are any entries by this user in the global space
+      const globalSpaceId = "00000000-0000-0000-0000-000000000001"
+      const { data: globalEntries, error: globalError } = await supabase
+        .from("entries")
+        .select("*")
+        .eq("space_id", globalSpaceId)
+        .eq("user_id", state.user!.id)
+        .order("created_at", { ascending: false })
+
+      if (globalError) {
+        console.error("❌ Error fetching global entries:", globalError)
+      } else {
+        console.log(`🌍 Global feed entries by you: ${(globalEntries || []).length}`)
+        ;(globalEntries || []).forEach((entry, index) => {
+          console.log(`  ${index + 1}. ID: ${entry.id}, Content: ${entry.content?.substring(0, 50)}..., Created: ${new Date(entry.created_at).toLocaleString()}`)
+        })
+      }
+
+      // Check recent entries across all spaces (last 24 hours)
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      const { data: recentEntries, error: recentError } = await supabase
+        .from("entries")
+        .select("*")
+        .eq("user_id", state.user!.id)
+        .gte("created_at", oneDayAgo)
+        .order("created_at", { ascending: false })
+
+      if (recentError) {
+        console.error("❌ Error fetching recent entries:", recentError)
+      } else {
+        console.log(`⏰ Your entries in last 24 hours: ${(recentEntries || []).length}`)
+        ;(recentEntries || []).forEach((entry, index) => {
+          console.log(`  ${index + 1}. ID: ${entry.id}, Space: ${entry.space_id}, Content: ${entry.content?.substring(0, 50)}...`)
+        })
+      }
+
+    } catch (error) {
+      console.error("💥 Error checking all entries:", error)
+    }
+  },
 
   login: async (email: string, password: string) => {
     const supabase = createClient()
@@ -950,8 +1192,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   loadEntries: async (spaceId: string) => {
     const { lastLoadedEntriesAt, entries } = get()
-    if (Date.now() - (lastLoadedEntriesAt[spaceId] || 0) < 1_000) {
-      console.log("[ENTRY] ⏱️ Using cached entries (loaded < 1s ago)")
+    
+    // Reduced cache time to 500ms for more responsive updates
+    if (Date.now() - (lastLoadedEntriesAt[spaceId] || 0) < 500) {
+      console.log("[ENTRY] ⏱️ Using cached entries (loaded < 500ms ago)")
       return
     }
 
@@ -960,13 +1204,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       ? "00000000-0000-0000-0000-000000000001" 
       : spaceId
 
-    console.log("[ENTRY] Loading entries for:", spaceId, "→", actualSpaceId)
-    console.log("[ENTRY] Current space ID in store:", get().currentSpaceId)
+    console.log("[ENTRY] 🔄 Loading entries for space:", spaceId, "→", actualSpaceId)
 
     try {
-      // First try to load entries without user profiles (deployment safe)
-      console.log("[ENTRY] Loading entries without profiles...")
-      const { data: testData, error: testError } = await supabase
+      // Simplified query - just get the basic entry data
+      const { data: entriesData, error: entriesError } = await supabase
         .from("entries")
         .select(`
           id, 
@@ -974,176 +1216,102 @@ export const useAppStore = create<AppState>((set, get) => ({
           user_id, 
           content, 
           image, 
-          pnl, 
+          pnl,
+          tags,
+          trade_type,
+          mental_state,
           created_at
         `)
         .eq("space_id", actualSpaceId)
         .order("created_at", { ascending: false })
-        .limit(10)
+        .limit(20)
 
-      console.log("[ENTRY] Entries loaded without profiles:", { 
-        count: testData?.length || 0, 
-        error: testError,
-        errorMessage: testError?.message,
-        sampleData: testData?.map((e: any) => ({
-          id: e.id,
-          hasPnl: e.pnl !== null,
-          pnlValue: e.pnl,
-          hasImage: !!e.image,
-          imageLength: e.image?.length || 0,
-          userId: e.user_id
-        })) || []
-      })
-
-      if (testError) {
-        console.error("[ENTRY] ❌ Profile join failed, trying fallback:", testError.message)
-        
-        // Fallback: Load entries without profiles, then load profiles separately
-        console.log("[ENTRY] 🔄 Executing fallback query for space:", actualSpaceId)
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from("entries")
-          .select("id, space_id, user_id, content, image, pnl, created_at")
-          .eq("space_id", actualSpaceId)
-          .order("created_at", { ascending: false })
-          .limit(10)
-
-        console.log("[ENTRY] 📊 Fallback query result:", { 
-          count: fallbackData?.length || 0, 
-          error: fallbackError,
-          errorMessage: fallbackError?.message
+      if (entriesError) {
+        console.error("[ENTRY] ❌ Failed to load entries:", entriesError)
+        console.error("[ENTRY] Error details:", {
+          message: entriesError.message,
+          code: entriesError.code,
+          details: entriesError.details
         })
-
-        if (fallbackError) {
-          console.error("[ENTRY] ❌ Even fallback failed:", fallbackError.message)
-          set({
-            entries: { ...entries, [spaceId]: [] },
-            lastLoadedEntriesAt: { ...lastLoadedEntriesAt, [spaceId]: Date.now() },
-          })
-          return
-        }
-
-        console.log("[ENTRY] ✅ Fallback loaded", fallbackData?.length || 0, "entries")
         
-        // Map entries with basic data
-        const mappedEntries = (fallbackData || []).filter(e => e != null).map((e: any) => {
+        // Set empty entries on error
+        set({
+          entries: { ...entries, [spaceId]: [] },
+          lastLoadedEntriesAt: { ...lastLoadedEntriesAt, [spaceId]: Date.now() },
+        })
+        return
+      }
+
+      console.log("[ENTRY] ✅ Raw entries loaded:", entriesData?.length || 0)
+
+      // Map entries safely with better error handling
+      const mappedEntries: JournalEntry[] = (entriesData || []).filter(e => e != null).map((e: any): JournalEntry => {
+        try {
           return {
             id: e.id,
             spaceId,
             userId: e.user_id,
             username: "Loading...", // Will be updated when profiles load
-            tag: undefined,
-            content: e.content,
-            tags: [],
-            tradeType: "general" as any,
-            profitLoss: (e.pnl !== null && e.pnl !== undefined && e.pnl !== '') ? 
+            content: e.content || "",
+            tags: Array.isArray(e.tags) ? e.tags : [],
+            tradeType: e.trade_type || "general",
+            profitLoss: e.pnl !== null && e.pnl !== undefined && e.pnl !== "" ? 
               (() => {
                 try {
-                  return parseFloat(e.pnl);
+                  const parsed = parseFloat(e.pnl);
+                  return isNaN(parsed) ? undefined : parsed;
                 } catch (error) {
                   console.warn("[ENTRY] ⚠️ Invalid pnl value:", e.pnl, error);
                   return undefined;
                 }
               })() : undefined,
             image: e.image,
-            mentalState: undefined,
+            mentalState: e.mental_state,
             createdAt: new Date(e.created_at),
           };
-        })
-
-        set({
-          entries: { ...entries, [spaceId]: mappedEntries },
-          lastLoadedEntriesAt: { ...lastLoadedEntriesAt, [spaceId]: Date.now() },
-        })
-
-        // Try to load profiles separately and update entries
-        const userIds = [...new Set(mappedEntries.map(e => e.userId))]
-        if (userIds.length > 0) {
-          console.log("[ENTRY] Loading profiles for users:", userIds)
-          const { data: profiles } = await supabase
-            .from("profiles")
-            .select("id, username, tag")
-            .in("id", userIds)
-
-          if (profiles) {
-            const profileMap = profiles.reduce((acc, profile) => {
-              acc[profile.id] = profile
-              return acc
-            }, {} as Record<string, any>)
-
-            // Update entries with profile data
-            const updatedEntries = mappedEntries.map(entry => ({
-              ...entry,
-              username: profileMap[entry.userId]?.username || "Unknown",
-              tag: profileMap[entry.userId]?.tag
-            }))
-
-            set({
-              entries: { ...entries, [spaceId]: updatedEntries }
-            })
-            console.log("[ENTRY] ✅ Updated entries with profile data")
-          }
+        } catch (mapError) {
+          console.error("[ENTRY] 💥 Error mapping entry:", e, mapError);
+          // Return a fallback entry instead of null
+          return {
+            id: e.id || "unknown",
+            spaceId,
+            userId: e.user_id || "unknown",
+            username: "Error",
+            content: "Error loading entry",
+            tags: [],
+            tradeType: "general",
+            profitLoss: undefined,
+            image: undefined,
+            mentalState: undefined,
+            createdAt: new Date(),
+          };
         }
-
-        return
-      }
-
-      // Map entries with profile data
-      const mappedEntries = (testData || []).filter(e => e != null).map((e: any) => {
-        const hasImage = !!e.image;
-        const hasPnl = e.pnl !== null && e.pnl !== undefined && e.pnl !== '';
-        if (hasImage) {
-          console.log("[ENTRY] 📸 Found image:", e.image?.substring(0, 50) + "...");
-        }
-        if (hasPnl) {
-          console.log("[ENTRY] 💰 Found pnl:", e.pnl, "type:", typeof e.pnl);
-        }
-        console.log("[ENTRY] 📝 Found entry:", e.id, e.content?.substring(0, 30) + "...", "by", e.profiles?.username);
-        return {
-          id: e.id,
-          spaceId,
-          userId: e.user_id,
-          username: "Loading...", // Will be updated when profiles load
-          tag: undefined,
-          content: e.content,
-          tags: [],
-          tradeType: "general" as any,
-          profitLoss: (e.pnl !== null && e.pnl !== undefined && e.pnl !== '') ? 
-            (() => {
-              try {
-                return parseFloat(e.pnl);
-              } catch (error) {
-                console.warn("[ENTRY] ⚠️ Invalid pnl value:", e.pnl, error);
-                return undefined;
-              }
-            })() : undefined,
-          image: e.image,
-          mentalState: undefined,
-          createdAt: new Date(e.created_at),
-        };
       })
 
-      console.log("[ENTRY] ✅ Loaded", mappedEntries.length, "entries (minimal)")
-      console.log("[ENTRY] 📊 Sample entries:", mappedEntries.map(e => ({
-        id: e.id,
-        content: e.content?.substring(0, 30) + "...",
-        spaceId: e.spaceId,
-        createdAt: e.createdAt
-      })))
+      console.log("[ENTRY] ✅ Mapped entries:", mappedEntries.length)
+
+      // Update state with mapped entries
       set({
         entries: { ...entries, [spaceId]: mappedEntries },
         lastLoadedEntriesAt: { ...lastLoadedEntriesAt, [spaceId]: Date.now() },
       })
 
-      // Load profiles separately and update entries
+      // Load profiles separately to update usernames
       const userIds = [...new Set(mappedEntries.map(e => e.userId))]
       if (userIds.length > 0) {
-        console.log("[ENTRY] Loading profiles for users:", userIds)
-        const { data: profiles } = await supabase
+        console.log("[ENTRY] 📝 Loading profiles for users:", userIds)
+        
+        const { data: profiles, error: profilesError } = await supabase
           .from("profiles")
           .select("id, username, tag")
           .in("id", userIds)
 
-        if (profiles) {
+        if (profilesError) {
+          console.error("[ENTRY] ⚠️ Failed to load profiles:", profilesError)
+          // Keep entries with "Loading..." usernames if profiles fail
+        } else if (profiles) {
+          console.log("[ENTRY] ✅ Profiles loaded:", profiles.length)
+          
           const profileMap = profiles.reduce((acc, profile) => {
             acc[profile.id] = profile
             return acc
@@ -1159,13 +1327,12 @@ export const useAppStore = create<AppState>((set, get) => ({
           set({
             entries: { ...entries, [spaceId]: updatedEntries }
           })
-          console.log("[ENTRY] ✅ Updated entries with profile data")
+          console.log("[ENTRY] ✅ Updated entries with usernames")
         }
       }
 
-      return
     } catch (err) {
-      console.error("[ENTRY] 💥 Unexpected error:", err)
+      console.error("[ENTRY] 💥 Unexpected error loading entries:", err)
       set({
         entries: { ...entries, [spaceId]: [] },
         lastLoadedEntriesAt: { ...lastLoadedEntriesAt, [spaceId]: Date.now() },

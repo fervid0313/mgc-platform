@@ -27,9 +27,14 @@ export default function Home() {
   // Attach store to window for debugging
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      (window as any).store = appStore
+      const storeState = appStore.getState()
+      ;(window as any).store = appStore
+      ;(window as any).debugJournal = () => storeState.debugJournal()
+      ;(window as any).debugExistingEntries = () => storeState.debugExistingEntries()
+      ;(window as any).debugAllEntries = () => storeState.debugAllEntries()
       console.log("[PAGE] Store attached to window:", typeof (window as any).store)
-      console.log("[PAGE] Store methods:", Object.keys(appStore.getState()))
+      console.log("[PAGE] Store methods:", Object.keys(storeState))
+      console.log("[PAGE] Debug functions available: window.debugJournal(), window.debugExistingEntries(), window.debugAllEntries()")
     }
   }, [])
 
