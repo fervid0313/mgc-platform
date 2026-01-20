@@ -10,7 +10,7 @@ export function InviteButton() {
   const currentSpace = spaces.find((s) => s.id === currentSpaceId)
 
   const handleCopy = async () => {
-    const inviteLink = `https://midnight.app/join?s=${currentSpace?.name ? currentSpace.name.replace(/\s/g, "") : ""}`
+    const inviteLink = `https://midnight.app/join?s=${currentSpace?.name?.replace(/\s/g, "") || ""}`
     await navigator.clipboard.writeText(inviteLink)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)

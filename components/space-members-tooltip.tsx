@@ -70,7 +70,7 @@ export function SpaceMembersTooltip({ spaceId, memberCount, children }: SpaceMem
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium truncate">{member.username || "Unknown"}</p>
                       <p className="text-[10px] text-muted-foreground truncate">
-                        {member.tradingStyle ? member.tradingStyle.replace("-", " ") : "Member"}
+                        {member.tradingStyle?.replace("-", " ") || "Member"}
                       </p>
                     </div>
                   </div>

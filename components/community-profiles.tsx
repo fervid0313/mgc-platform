@@ -257,7 +257,7 @@ export function CommunityProfiles() {
                     <span className="text-muted-foreground font-mono text-xs ml-1">#{profile.tag || "0000"}</span>
                   </p>
                   <p className="text-[10px] text-muted-foreground truncate">
-                    {profile.tradingStyle ? profile.tradingStyle.replace("-", " ") : "Member"}
+                    {profile.tradingStyle?.replace("-", " ") || "Member"}
                   </p>
                 </div>
               </button>
@@ -290,7 +290,7 @@ export function CommunityProfiles() {
                 </div>
               ) : (
                 <span className="text-[9px] text-muted-foreground font-medium px-2 py-0.5 bg-secondary/20 rounded-full">
-                  {profile.tradingStyle ? profile.tradingStyle.replace("-", " ") : "Member"}
+                  {profile.tradingStyle?.replace("-", " ") || "Member"}
                 </span>
               )}
             </div>

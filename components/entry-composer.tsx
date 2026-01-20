@@ -87,7 +87,7 @@ export function EntryComposer() {
         placeholder={
           tradeType === "general"
             ? `What's on your mind today? Emotions, habits, reflections...`
-            : `Log your ${tradeType ? tradeType.replace("-", " ") : "trade"} in ${currentSpace?.name || "this space"}...`
+            : `Log your ${tradeType?.replace("-", " ") || "trade"} in ${currentSpace?.name || "this space"}...`
         }
         className="w-full bg-transparent border-none outline-none text-base font-medium placeholder:text-muted-foreground resize-none h-24 mb-4"
       />
