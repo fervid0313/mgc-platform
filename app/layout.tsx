@@ -4,6 +4,7 @@ import { Plus_Jakarta_Sans } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { ClientErrorDetector } from "@/components/client-error-detector"
+import "@/lib/string-safety"
 import "./globals.css"
 
 // Force cache busting
