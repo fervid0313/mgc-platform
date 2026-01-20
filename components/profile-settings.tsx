@@ -41,7 +41,7 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !file.name.trim()) return
+    if (!file || !file.name?.trim()) return
 
     if (file.size > 5 * 1024 * 1024) {
       alert("Image must be less than 5MB")
