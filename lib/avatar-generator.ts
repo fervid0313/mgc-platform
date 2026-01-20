@@ -52,6 +52,9 @@ const colorPalettes = [
 export function generateAvatarUrl(username: string, size: number = 100): string {
   // Generate consistent hash from username
   let hash = 0
+  if (!username || typeof username !== 'string') {
+    username = 'user'
+  }
   for (let i = 0; i < username.length; i++) {
     const char = username.charCodeAt(i)
     hash = ((hash << 5) - hash) + char
