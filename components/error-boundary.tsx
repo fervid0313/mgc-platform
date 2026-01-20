@@ -31,6 +31,15 @@ export class ErrorBoundary extends React.Component<Props, State> {
       url: window.location.href,
     }
 
+    // Special handling for charAt errors
+    if (error.message.includes('charAt') || error.message.includes('null')) {
+      console.log('🔧 Detected charAt/null error - attempting auto-recovery...')
+      // Auto-reload after 1 second for charAt errors
+      setTimeout(() => {
+        window.location.reload()
+      }, 1000)
+    }
+
     // Fire-and-forget SMS alert
     fetch("/api/alert-sms", {
       method: "POST",

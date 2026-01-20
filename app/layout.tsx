@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next"
 import { Plus_Jakarta_Sans } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { ErrorBoundary } from "@/components/error-boundary"
+import { ClientErrorDetector } from "@/components/client-error-detector"
 import "./globals.css"
 
 // Force cache busting
@@ -64,6 +65,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${plusJakarta.variable} font-sans antialiased`}>
+        <ClientErrorDetector />
         <ErrorBoundary>
           {children}
         </ErrorBoundary>
