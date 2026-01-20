@@ -43,7 +43,7 @@ export function CommunityProfiles() {
   useEffect(() => {
     const fetchAuthUsernames = async () => {
       const profilesWithEmailUsername = baseProfiles.filter(p => 
-        p.username === p.email || p.username.includes('@')
+        p.username === p.email || p.username?.includes('@')
       )
       
       if (profilesWithEmailUsername.length > 0) {
@@ -77,7 +77,7 @@ export function CommunityProfiles() {
   // Create a helper function to get the display username
   const getDisplayUsername = (profile: UserProfile) => {
     // If profile has email as username, try to get auth username
-    if (profile.username === profile.email || profile.username.includes('@')) {
+    if (profile.username === profile.email || profile.username?.includes('@')) {
       return authUsernames[profile.id] || profile.username
     }
     return profile.username

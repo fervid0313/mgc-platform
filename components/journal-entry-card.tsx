@@ -144,7 +144,7 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
         {/* Debug: Check if image exists */}
         {process.env.NODE_ENV === 'development' && (
           <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-            Debug: {entry.image ? 'Image exists: ' + entry.image?.substring(0, 50) + '...' : 'No image'}
+            Debug: {entry.image ? 'Image exists: ' + entry.image.substring(0, 50) + '...' : 'No image'}
           </div>
         )}
 

@@ -15,11 +15,11 @@ export function JournalFeed() {
     entriesKeys: Object.keys(entries),
     currentSpaceName: currentSpace?.name,
     isGlobalFeed,
-    sampleEntry: spaceEntries[0] ? {
-      id: spaceEntries[0].id,
-      hasPnl: spaceEntries[0].profitLoss !== undefined,
-      pnlValue: spaceEntries[0].profitLoss,
-      hasImage: !!spaceEntries[0].image,
+    sampleEntry: spaceEntries?.[0] ? {
+      id: spaceEntries[0]?.id,
+      hasPnl: spaceEntries[0]?.profitLoss !== undefined,
+      pnlValue: spaceEntries[0]?.profitLoss,
+      hasImage: !!spaceEntries[0]?.image,
       content: spaceEntries[0]?.content?.substring(0, 30) + "..." || "No content"
     } : 'No entries'
   })
