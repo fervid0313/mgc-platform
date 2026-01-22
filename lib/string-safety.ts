@@ -1,6 +1,7 @@
 // Global String.prototype safety wrapper
-// Enable in all environments but only log in development
+// Temporarily disabled for build troubleshooting
 
+/*
 const originalCharAt = String.prototype.charAt
 String.prototype.charAt = function(pos) {
   // More comprehensive null/undefined checks
@@ -162,3 +163,4 @@ String.prototype.includes = function(...args: any[]) {
 if (process.env.NODE_ENV === 'development') {
   console.log('🔧 Enhanced Global String safety wrappers initialized')
 }
+*/
