@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false, // Changed to false to catch build errors
   },
   images: {
     remotePatterns: [
@@ -22,6 +22,14 @@ const nextConfig = {
       'images.unsplash.com',
       'via.placeholder.com',
     ],
+  },
+  // Force production build settings
+  output: 'standalone',
+  // Disable trailing slash handling to prevent deployment issues
+  trailingSlash: false,
+  // Ensure consistent builds
+  experimental: {
+    swcMinification: true,
   },
 }
 
