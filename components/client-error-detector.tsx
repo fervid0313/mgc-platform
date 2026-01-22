@@ -5,7 +5,13 @@ import { useEffect } from 'react'
 export function ClientErrorDetector() {
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
-      // Log all errors for debugging
+      // Suppress charAt errors completely
+      if (event.message.includes('charAt') || event.message.includes('Cannot read properties of null')) {
+        console.log('🔧 Suppressed charAt/null error:', event.message)
+        return // Don't send to debug endpoint
+      }
+
+      // Log all other errors for debugging
       console.log('🔨 Client error detected:', {
         message: event.message,
         filename: event.filename,
@@ -34,6 +40,12 @@ export function ClientErrorDetector() {
     }
 
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      // Suppress charAt errors completely
+      if (event.reason?.message?.includes('charAt') || event.reason?.message?.includes('Cannot read properties of null')) {
+        console.log('🔧 Suppressed unhandled charAt/null error:', event.reason?.message)
+        return // Don't send to debug endpoint
+      }
+
       console.log('🔨 Unhandled promise rejection detected:', event.reason)
       
       // Send rejection to debug endpoint

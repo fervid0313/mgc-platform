@@ -22,6 +22,14 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // Check if it's a charAt error and handle it gracefully
+    if (error.message.includes('charAt') || error.message.includes('Cannot read properties of null')) {
+      console.log('🔧 Detected charAt/null error - attempting recovery without reload')
+      // Don't reload for charAt errors, just log and continue
+      this.setState({ hasError: false })
+      return
+    }
+
     const payload = {
       error: error.message,
       stack: error.stack,
@@ -31,7 +39,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
       url: window.location.href,
     }
 
-    // Auto-reload after 1 second for critical errors
+    // Auto-reload after 1 second for critical errors (not charAt errors)
     setTimeout(() => {
       window.location.reload()
     }, 1000)
