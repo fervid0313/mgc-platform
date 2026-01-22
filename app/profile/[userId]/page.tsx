@@ -235,8 +235,20 @@ export default function UserProfilePage() {
                         {entry.tags.length > 0 && (
                           <span className="flex items-center gap-1">
                             <Tag className="h-3 w-3" />
-                            {entry.tags.slice(0, 3).join(", ")}
-                            {entry.tags.length > 3 && `+${entry.tags.length - 3}`}
+                            {(() => {
+                              try {
+                                return entry.tags.slice(0, 3).join(", ")
+                              } catch (e) {
+                                return ''
+                              }
+                            })()}
+                            {(() => {
+                              try {
+                                return entry.tags.length > 3 ? `+${entry.tags.length - 3}` : ''
+                              } catch (e) {
+                                return ''
+                              }
+                            })()}
                           </span>
                         )}
                       </div>
