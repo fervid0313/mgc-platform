@@ -1,166 +1,102 @@
-// Global String.prototype safety wrapper
-// Temporarily disabled for build troubleshooting
+// String safety utility functions
+// Use these instead of direct string operations to prevent charAt errors
 
-/*
-const originalCharAt = String.prototype.charAt
-String.prototype.charAt = function(pos) {
-  // More comprehensive null/undefined checks
-  if (this == null || this === undefined || this === '') {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('🔧 String.charAt called on null/undefined/empty, returning empty string')
-    }
+export function safeCharAt(str: string | null | undefined, pos: number): string {
+  if (str == null || str === undefined || str === '') {
     return ''
   }
   
-  // Also check if this is actually a string
-  if (typeof this !== 'string') {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('🔧 String.charAt called on non-string type, converting to string first')
-    }
+  if (typeof str !== 'string') {
     try {
-      return String(this).charAt(pos)
+      return String(str).charAt(pos)
     } catch (e) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('🔧 String.charAt conversion failed, returning empty string')
-      }
       return ''
     }
   }
   
-  return originalCharAt.call(this, pos)
+  return str.charAt(pos)
 }
 
-const originalToUpperCase = String.prototype.toUpperCase
-String.prototype.toUpperCase = function() {
-  if (this == null || this === undefined || this === '') {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('🔧 String.toUpperCase called on null/undefined/empty, returning empty string')
-    }
+export function safeToUpperCase(str: string | null | undefined): string {
+  if (str == null || str === undefined || str === '') {
     return ''
   }
   
-  if (typeof this !== 'string') {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('🔧 String.toUpperCase called on non-string type, converting to string first')
-    }
+  if (typeof str !== 'string') {
     try {
-      return String(this).toUpperCase()
+      return String(str).toUpperCase()
     } catch (e) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('🔧 String.toUpperCase conversion failed, returning empty string')
-      }
       return ''
     }
   }
   
-  return originalToUpperCase.call(this)
+  return str.toUpperCase()
 }
 
-const originalSlice = String.prototype.slice
-String.prototype.slice = function(...args: any[]) {
-  if (this == null || this === undefined || this === '') {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('🔧 String.slice called on null/undefined/empty, returning empty string')
-    }
+export function safeSlice(str: string | null | undefined, start?: number, end?: number): string {
+  if (str == null || str === undefined || str === '') {
     return ''
   }
   
-  if (typeof this !== 'string') {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('🔧 String.slice called on non-string type, converting to string first')
-    }
+  if (typeof str !== 'string') {
     try {
-      return String(this).slice(args[0], args[1])
+      return String(str).slice(start || 0, end)
     } catch (e) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('🔧 String.slice conversion failed, returning empty string')
-      }
       return ''
     }
   }
   
-  return originalSlice.call(this, args as any)
+  return str.slice(start || 0, end)
 }
 
-const originalSubstring = String.prototype.substring
-String.prototype.substring = function(...args: any[]) {
-  if (this == null || this === undefined || this === '') {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('🔧 String.substring called on null/undefined/empty, returning empty string')
-    }
+export function safeSubstring(str: string | null | undefined, start?: number, end?: number): string {
+  if (str == null || str === undefined || str === '') {
     return ''
   }
   
-  if (typeof this !== 'string') {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('🔧 String.substring called on non-string type, converting to string first')
-    }
+  if (typeof str !== 'string') {
     try {
-      return String(this).substring(args[0], args[1])
+      return String(str).substring(start || 0, end)
     } catch (e) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('🔧 String.substring conversion failed, returning empty string')
-      }
       return ''
     }
   }
   
-  return originalSubstring.call(this, args as any)
+  return str.substring(start || 0, end)
 }
 
-const originalReplace = String.prototype.replace
-String.prototype.replace = function(...args: any[]) {
-  if (this == null || this === undefined || this === '') {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('🔧 String.replace called on null/undefined/empty, returning empty string')
-    }
+export function safeReplace(str: string | null | undefined, searchValue: string | RegExp, replaceValue: string): string {
+  if (str == null || str === undefined || str === '') {
     return ''
   }
   
-  if (typeof this !== 'string') {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('🔧 String.replace called on non-string type, converting to string first')
-    }
+  if (typeof str !== 'string') {
     try {
-      return String(this).replace(args[0], args[1])
+      return String(str).replace(searchValue, replaceValue)
     } catch (e) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('🔧 String.replace conversion failed, returning empty string')
-      }
       return ''
     }
   }
   
-  return originalReplace.apply(this, args as any)
+  return str.replace(searchValue, replaceValue)
 }
 
-const originalIncludes = String.prototype.includes
-String.prototype.includes = function(...args: any[]) {
-  if (this == null || this === undefined || this === '') {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('🔧 String.includes called on null/undefined/empty, returning false')
-    }
+export function safeIncludes(str: string | null | undefined, searchValue: string | number, position?: number): boolean {
+  if (str == null || str === undefined || str === '') {
     return false
   }
   
-  if (typeof this !== 'string') {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn('🔧 String.includes called on non-string type, converting to string first')
-    }
+  if (typeof str !== 'string') {
     try {
-      return String(this).includes(args[0], args[1])
+      return String(str).includes(String(searchValue), position)
     } catch (e) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('🔧 String.includes conversion failed, returning false')
-      }
       return false
     }
   }
   
-  return originalIncludes.call(this, args as any)
+  return str.includes(searchValue, position)
 }
 
 if (process.env.NODE_ENV === 'development') {
-  console.log('🔧 Enhanced Global String safety wrappers initialized')
+  console.log('🔧 String safety utility functions initialized')
 }
-*/

@@ -1,6 +1,9 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { useAppStore } from "@/lib/store"
+import { getAvatarUrl } from "@/lib/avatar-generator"
+import { safeSubstring } from "@/lib/string-safety"
 import { JournalEntryCard } from "./journal-entry-card"
 
 export function JournalFeed() {
@@ -23,7 +26,7 @@ export function JournalFeed() {
       content: (() => {
               try {
                 return spaceEntries[0]?.content && typeof spaceEntries[0].content === 'string' 
-                  ? spaceEntries[0].content.substring(0, 30) + "..." 
+                  ? safeSubstring(spaceEntries[0].content, 0, 30) + "..." 
                   : "No content"
               } catch (e) {
                 return "No content"

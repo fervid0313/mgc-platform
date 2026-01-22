@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation"
 import { useAppStore } from "@/lib/store"
 import { getAvatarUrl } from "@/lib/avatar-generator"
 import { UserProfileCard } from "./user-profile-card"
-import { Users, Search, RefreshCw, UserPlus, Activity, ExternalLink } from "lucide-react"
+import { Users, Search, Shield, RefreshCw, UserPlus, Activity, ExternalLink } from "lucide-react"
 import type { UserProfile } from "@/lib/types"
+import { safeCharAt, safeSlice } from "@/lib/string-safety"
 
 export function CommunityProfiles() {
   const { profiles, user, spaces, currentSpaceId, getSpaceMembers, forceLoadProfiles, checkForMissingProfiles, getUsernameFromAuth } = useAppStore()
@@ -216,7 +217,7 @@ export function CommunityProfiles() {
           >
             {(() => {
               try {
-                return f ? (typeof f === 'string' && f.length > 0 ? f.charAt(0).toUpperCase() + f.slice(1) : f) : ''
+                return f ? (typeof f === 'string' && f.length > 0 ? safeCharAt(f, 0).toUpperCase() + safeSlice(f, 1) : f) : ''
               } catch (e) {
                 return f || ''
               }

@@ -1,9 +1,11 @@
 "use client"
 
+import { useState } from "react"
 import type React from "react"
 import type { JournalEntry } from "@/lib/types"
 import { useAppStore } from "@/lib/store"
 import { getAvatarUrl } from "@/lib/avatar-generator"
+import { safeSubstring } from "@/lib/string-safety"
 import {
   TrendingUp,
   TrendingDown,
@@ -16,7 +18,6 @@ import {
 } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import Image from "next/image"
-import { useState } from "react"
 
 interface JournalEntryCardProps {
   entry: JournalEntry
@@ -131,7 +132,7 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
           <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
             Debug: {(() => {
               try {
-                return entry.image && typeof entry.image === 'string' ? 'Image exists: ' + entry.image.substring(0, 50) + '...' : 'No image'
+                return entry.image && typeof entry.image === 'string' ? 'Image exists: ' + safeSubstring(entry.image, 0, 50) + '...' : 'No image'
               } catch (e) {
                 return 'No image'
               }
