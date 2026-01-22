@@ -1,126 +1,128 @@
 // Global String.prototype safety wrapper
-// This catches any remaining charAt operations that might cause errors
+// Only enable in development to avoid build warnings
 
-const originalCharAt = String.prototype.charAt
-String.prototype.charAt = function(pos) {
-  // More comprehensive null/undefined checks
-  if (this == null || this === undefined || this === '') {
-    console.warn('🔧 String.charAt called on null/undefined/empty, returning empty string')
-    return ''
-  }
-  
-  // Also check if this is actually a string
-  if (typeof this !== 'string') {
-    console.warn('🔧 String.charAt called on non-string type, converting to string first')
-    try {
-      return String(this).charAt(pos)
-    } catch (e) {
-      console.warn('🔧 String.charAt conversion failed, returning empty string')
+if (process.env.NODE_ENV === 'development') {
+  const originalCharAt = String.prototype.charAt
+  String.prototype.charAt = function(pos) {
+    // More comprehensive null/undefined checks
+    if (this == null || this === undefined || this === '') {
+      console.warn(' String.charAt called on null/undefined/empty, returning empty string')
       return ''
     }
+    
+    // Also check if this is actually a string
+    if (typeof this !== 'string') {
+      console.warn(' String.charAt called on non-string type, converting to string first')
+      try {
+        return String(this).charAt(pos)
+      } catch (e) {
+        console.warn(' String.charAt conversion failed, returning empty string')
+        return ''
+      }
+    }
+    
+    return originalCharAt.call(this, pos)
   }
-  
-  return originalCharAt.call(this, pos)
-}
 
-const originalToUpperCase = String.prototype.toUpperCase
-String.prototype.toUpperCase = function() {
-  if (this == null || this === undefined || this === '') {
-    console.warn('🔧 String.toUpperCase called on null/undefined/empty, returning empty string')
-    return ''
-  }
-  
-  if (typeof this !== 'string') {
-    console.warn('🔧 String.toUpperCase called on non-string type, converting to string first')
-    try {
-      return String(this).toUpperCase()
-    } catch (e) {
-      console.warn('🔧 String.toUpperCase conversion failed, returning empty string')
+  const originalToUpperCase = String.prototype.toUpperCase
+  String.prototype.toUpperCase = function() {
+    if (this == null || this === undefined || this === '') {
+      console.warn(' String.toUpperCase called on null/undefined/empty, returning empty string')
       return ''
     }
+    
+    if (typeof this !== 'string') {
+      console.warn(' String.toUpperCase called on non-string type, converting to string first')
+      try {
+        return String(this).toUpperCase()
+      } catch (e) {
+        console.warn(' String.toUpperCase conversion failed, returning empty string')
+        return ''
+      }
+    }
+    
+    return originalToUpperCase.call(this)
   }
-  
-  return originalToUpperCase.call(this)
-}
 
-const originalSlice = String.prototype.slice
-String.prototype.slice = function(...args) {
-  if (this == null || this === undefined || this === '') {
-    console.warn('🔧 String.slice called on null/undefined/empty, returning empty string')
-    return ''
-  }
-  
-  if (typeof this !== 'string') {
-    console.warn('🔧 String.slice called on non-string type, converting to string first')
-    try {
-      return String(this).slice(...args)
-    } catch (e) {
-      console.warn('🔧 String.slice conversion failed, returning empty string')
+  const originalSlice = String.prototype.slice
+  String.prototype.slice = function(...args: any[]) {
+    if (this == null || this === undefined || this === '') {
+      console.warn(' String.slice called on null/undefined/empty, returning empty string')
       return ''
     }
+    
+    if (typeof this !== 'string') {
+      console.warn(' String.slice called on non-string type, converting to string first')
+      try {
+        return String(this).slice(args[0], args[1])
+      } catch (e) {
+        console.warn(' String.slice conversion failed, returning empty string')
+        return ''
+      }
+    }
+    
+    return originalSlice.call(this, args as any)
   }
-  
-  return originalSlice.call(this, ...args)
-}
 
-const originalSubstring = String.prototype.substring
-String.prototype.substring = function(...args) {
-  if (this == null || this === undefined || this === '') {
-    console.warn('🔧 String.substring called on null/undefined/empty, returning empty string')
-    return ''
-  }
-  
-  if (typeof this !== 'string') {
-    console.warn('🔧 String.substring called on non-string type, converting to string first')
-    try {
-      return String(this).substring(...args)
-    } catch (e) {
-      console.warn('🔧 String.substring conversion failed, returning empty string')
+  const originalSubstring = String.prototype.substring
+  String.prototype.substring = function(...args: any[]) {
+    if (this == null || this === undefined || this === '') {
+      console.warn(' String.substring called on null/undefined/empty, returning empty string')
       return ''
     }
+    
+    if (typeof this !== 'string') {
+      console.warn(' String.substring called on non-string type, converting to string first')
+      try {
+        return String(this).substring(args[0], args[1])
+      } catch (e) {
+        console.warn(' String.substring conversion failed, returning empty string')
+        return ''
+      }
+    }
+    
+    return originalSubstring.call(this, args as any)
   }
-  
-  return originalSubstring.call(this, ...args)
-}
 
-const originalReplace = String.prototype.replace
-String.prototype.replace = function(...args: any[]) {
-  if (this == null || this === undefined || this === '') {
-    console.warn('🔧 String.replace called on null/undefined/empty, returning empty string')
-    return ''
-  }
-  
-  if (typeof this !== 'string') {
-    console.warn('🔧 String.replace called on non-string type, converting to string first')
-    try {
-      return String(this).replace(args[0], args[1])
-    } catch (e) {
-      console.warn('🔧 String.replace conversion failed, returning empty string')
+  const originalReplace = String.prototype.replace
+  String.prototype.replace = function(...args: any[]) {
+    if (this == null || this === undefined || this === '') {
+      console.warn(' String.replace called on null/undefined/empty, returning empty string')
       return ''
     }
+    
+    if (typeof this !== 'string') {
+      console.warn(' String.replace called on non-string type, converting to string first')
+      try {
+        return String(this).replace(args[0], args[1])
+      } catch (e) {
+        console.warn(' String.replace conversion failed, returning empty string')
+        return ''
+      }
+    }
+    
+    return originalReplace.apply(this, args as any)
   }
-  
-  return originalReplace.apply(this, args as any)
-}
 
-const originalIncludes = String.prototype.includes
-String.prototype.includes = function(...args: any[]) {
-  if (this == null || this === undefined || this === '') {
-    console.warn('🔧 String.includes called on null/undefined/empty, returning false')
-    return false
-  }
-  
-  if (typeof this !== 'string') {
-    console.warn('🔧 String.includes called on non-string type, converting to string first')
-    try {
-      return String(this).includes(args[0], args[1])
-    } catch (e) {
-      console.warn('🔧 String.includes conversion failed, returning false')
+  const originalIncludes = String.prototype.includes
+  String.prototype.includes = function(...args: any[]) {
+    if (this == null || this === undefined || this === '') {
+      console.warn(' String.includes called on null/undefined/empty, returning false')
       return false
     }
+    
+    if (typeof this !== 'string') {
+      console.warn(' String.includes called on non-string type, converting to string first')
+      try {
+        return String(this).includes(args[0], args[1])
+      } catch (e) {
+        console.warn(' String.includes conversion failed, returning false')
+        return false
+      }
+    }
+    
+    return originalIncludes.call(this, args as any)
   }
-  
-  return originalIncludes.call(this, args as any)
-}
 
-console.log('🔧 Enhanced Global String safety wrappers initialized')
+  console.log(' Enhanced Global String safety wrappers initialized (development mode)')
+}
