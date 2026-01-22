@@ -2,6 +2,7 @@
   "name": "my-v0-project",
   "version": "0.1.0",
   "private": true,
+  "description": "MGS Trading Platform - Clean build with charAt error fixes",
   "scripts": {
     "build": "next build",
     "dev": "next dev",
