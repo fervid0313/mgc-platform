@@ -21,6 +21,21 @@ import {
 } from "./types"
 import { createClient } from "@/lib/supabase/client"
 
+function safeParsePnL(value: any): number | undefined {
+  if (value === null || value === undefined || value === "") {
+    return undefined;
+  }
+  
+  const strValue = String(value).trim();
+  
+  if (strValue === "") {
+    return undefined;
+  }
+  
+  const parsed = parseFloat(strValue);
+  return isNaN(parsed) ? undefined : parsed;
+}
+
 const ADMIN_EMAIL = "fervid2023@gmail.com"
 
 const globalFeedSpace: Space = {
@@ -1255,16 +1270,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             content: e.content || "",
             tags: Array.isArray(e.tags) ? e.tags : [],
             tradeType: e.trade_type || "general",
-            profitLoss: e.pnl !== null && e.pnl !== undefined && e.pnl !== "" ? 
-              (() => {
-                try {
-                  const parsed = parseFloat(e.pnl);
-                  return isNaN(parsed) ? undefined : parsed;
-                } catch (error) {
-                  console.warn("[ENTRY] ⚠️ Invalid pnl value:", e.pnl, error);
-                  return undefined;
-                }
-              })() : undefined,
+            profitLoss: safeParsePnL(e.pnl),
             image: e.image,
             mentalState: e.mental_state,
             createdAt: new Date(e.created_at),
@@ -1446,15 +1452,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         content: e.content,
         tags: e.tags || [],
         tradeType: e.trade_type,
-        profitLoss: (e.pnl !== null && e.pnl !== undefined && e.pnl !== '') ? 
-              (() => {
-                try {
-                  return parseFloat(e.pnl);
-                } catch (error) {
-                  console.warn("[ENTRY] ⚠️ Invalid pnl value in loadMore:", e.pnl, error);
-                  return undefined;
-                }
-              })() : undefined,
+        profitLoss: safeParsePnL(e.pnl),
         image: e.image,
         mentalState: e.mental_state,
         createdAt: new Date(e.created_at),
