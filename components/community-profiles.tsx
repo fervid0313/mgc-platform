@@ -1,28 +1,21 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { useAppStore } from "@/lib/store"
 import { getAvatarUrl } from "@/lib/avatar-generator"
 import { UserProfileCard } from "./user-profile-card"
-import { Users, Search, Shield, RefreshCw, UserPlus, Activity } from "lucide-react"
+import { Users, Search, RefreshCw, UserPlus, Activity, ExternalLink } from "lucide-react"
 import type { UserProfile } from "@/lib/types"
 
-const SPECIALTY_OPTIONS = [
-  { value: "day-trader", label: "Day Trader" },
-  { value: "swing-trader", label: "Swing Trader" },
-  { value: "investor", label: "Investor" },
-  { value: "ecommerce", label: "E-Commerce" },
-] as const
-
 export function CommunityProfiles() {
-  const { profiles, user, isAdmin, adminUpdateUserProfile, spaces, currentSpaceId, getSpaceMembers, forceLoadProfiles, checkForMissingProfiles, getUsernameFromAuth } = useAppStore()
+  const { profiles, user, spaces, currentSpaceId, getSpaceMembers, forceLoadProfiles, checkForMissingProfiles, getUsernameFromAuth } = useAppStore()
+  const router = useRouter()
   const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [filter, setFilter] = useState<"all" | "online">("all")
-  const [editingRole, setEditingRole] = useState<string | null>(null)
   const [spaceMembers, setSpaceMembers] = useState<UserProfile[]>([])
   const [authUsernames, setAuthUsernames] = useState<Record<string, string>>({})
-  const userIsAdmin = isAdmin()
 
   const isGlobalFeed = currentSpaceId === "space-global"
 
@@ -120,11 +113,6 @@ export function CommunityProfiles() {
 
   console.log("[CommunityProfiles] Final filtered profiles:", filteredProfiles.map(p => p.username))
 
-  const handleAssignSpecialty = (userId: string, specialty: UserProfile["tradingStyle"]) => {
-    adminUpdateUserProfile(userId, { tradingStyle: specialty })
-    setEditingRole(null)
-  }
-
   const handleRefreshProfiles = async () => {
     console.log("[CommunityProfiles] Refreshing profiles...")
     await forceLoadProfiles()
@@ -186,12 +174,6 @@ export function CommunityProfiles() {
             <RefreshCw className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
-        {userIsAdmin && (
-          <span className="flex items-center gap-1 text-[9px] text-amber-500 font-bold">
-            <Shield className="h-3 w-3" />
-            ADMIN MODE
-          </span>
-        )}
       </div>
 
       {/* Search and Filter */}
@@ -237,8 +219,8 @@ export function CommunityProfiles() {
             >
               <button onClick={() => {
                 console.log("[UI] 🚨🚨🚨🚨 COMMUNITY PROFILE CLICKED:", profile.username, profile.id)
-                setSelectedProfile(profile)
-              }} className="flex items-center gap-3 flex-1 text-left">
+                router.push(`/profile/${profile.id}`)
+              }} className="flex items-center gap-3 flex-1 text-left hover:bg-secondary/50 p-2 rounded-lg transition-colors">
                 <div className="relative">
                   <div className="w-10 h-10 rounded-full overflow-hidden">
                     <img
@@ -252,47 +234,22 @@ export function CommunityProfiles() {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">
-                    {getDisplayUsername(profile) || "Unknown"}
-                    <span className="text-muted-foreground font-mono text-xs ml-1">#{profile.tag || "0000"}</span>
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-sm truncate">
+                      {getDisplayUsername(profile) || "Unknown"}
+                      <span className="text-muted-foreground font-mono text-xs ml-1">#{profile.tag || "0000"}</span>
+                    </p>
+                    <ExternalLink className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                  </div>
                   <p className="text-[10px] text-muted-foreground truncate">
                     {profile.tradingStyle?.replace("-", " ") || "Member"}
                   </p>
                 </div>
               </button>
 
-              {userIsAdmin ? (
-                <div className="relative">
-                  {editingRole === profile.id ? (
-                    <select
-                      value={profile.tradingStyle || ""}
-                      onChange={(e) => handleAssignSpecialty(profile.id, e.target.value as UserProfile["tradingStyle"])}
-                      onBlur={() => setEditingRole(null)}
-                      autoFocus
-                      className="text-[9px] bg-secondary border border-border rounded px-2 py-1 focus:outline-none focus:border-primary"
-                    >
-                      <option value="">No Specialty</option>
-                      {SPECIALTY_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <button
-                      onClick={() => setEditingRole(profile.id)}
-                      className="text-[9px] text-amber-500 font-medium px-2 py-0.5 bg-amber-500/10 rounded-full hover:bg-amber-500/20 transition-colors"
-                    >
-                      Assign Role
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <span className="text-[9px] text-muted-foreground font-medium px-2 py-0.5 bg-secondary/20 rounded-full">
-                  {profile.tradingStyle?.replace("-", " ") || "Member"}
-                </span>
-              )}
+              <span className="text-[9px] text-muted-foreground font-medium px-2 py-0.5 bg-secondary/20 rounded-full">
+                {profile.tradingStyle?.replace("-", " ") || "Member"}
+              </span>
             </div>
           ))
         )}

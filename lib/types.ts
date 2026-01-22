@@ -90,16 +90,6 @@ export interface UserProfile {
 }
 
 
-export interface Comment {
-  id: string
-  entryId: string
-  userId: string
-  username: string
-  avatar?: string
-  content: string
-  createdAt: Date
-}
-
 export interface Like {
   id: string
   entryId: string

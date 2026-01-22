@@ -2,9 +2,9 @@
 
 import { useState } from "react"
 import { useAppStore } from "@/lib/store"
-import { LogOut, User, Shield, Plus } from "lucide-react"
+import { LogOut, Shield, Plus, User } from "lucide-react"
 import { VibeIndicator } from "./vibe-indicator"
-import { ProfileSettings } from "./profile-settings"
+import { ProfileDetails } from "./profile-details"
 import { JoinPublicGroup } from "./join-public-group"
 import { CreateSpaceModal } from "./create-space-modal"
 import { useEffect } from "react"
@@ -13,7 +13,7 @@ export function Navbar() {
   const { toggleSidebar, spaces, currentSpaceId, user, logout, getCollectiveVibe, isAdmin } = useAppStore()
   const currentSpace = spaces.find((s) => s.id === currentSpaceId)
   const vibe = getCollectiveVibe()
-  const [showProfileSettings, setShowProfileSettings] = useState(false)
+  const [showProfileDetails, setShowProfileDetails] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const userIsAdmin = isAdmin()
 
@@ -66,9 +66,9 @@ export function Navbar() {
           )}
           {user && (
             <button
-              onClick={() => setShowProfileSettings(true)}
+              onClick={() => setShowProfileDetails(true)}
               className="p-2 rounded-xl text-muted-foreground hover:bg-secondary transition-colors icon-glow"
-              title="Edit Profile"
+              title="Profile Details"
             >
               <User className="h-4 w-4" />
             </button>
@@ -85,7 +85,7 @@ export function Navbar() {
         </div>
       </nav>
 
-      <ProfileSettings isOpen={showProfileSettings} onClose={() => setShowProfileSettings(false)} />
+      <ProfileDetails isOpen={showProfileDetails} onClose={() => setShowProfileDetails(false)} />
       <CreateSpaceModal open={showCreateModal} onClose={() => setShowCreateModal(false)} />
     </>
   )

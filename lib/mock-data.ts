@@ -1,14 +1,14 @@
-import type { Space, JournalEntry, Invitation, UserProfile, Comment, Like } from "./types"
+import type { Space, JournalEntry, Invitation, UserProfile, Like } from "./types"
 
 export const mockSpaces: Space[] = [
   {
     id: "space-global",
     name: "Global Feed",
-    description: "Public space for the entire MGS community",
-    ownerId: "system",
+    description: "Share your trading journey with the community",
     isPrivate: false,
+    memberCount: 0,
+    ownerId: "system",
     createdAt: new Date(),
-    memberCount: 9999,
   },
 ]
 
@@ -19,7 +19,5 @@ export const mockEntries: Record<string, JournalEntry[]> = {
 export const mockInvitations: Invitation[] = []
 
 export const mockProfiles: UserProfile[] = []
-
-export const mockComments: Record<string, Comment[]> = {}
 
 export const mockLikes: Record<string, Like[]> = {}

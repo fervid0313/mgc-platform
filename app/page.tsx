@@ -9,14 +9,16 @@ import { EntryComposer } from "@/components/entry-composer"
 import { AuthScreen } from "@/components/auth-screen"
 import { CommunityProfiles } from "@/components/community-profiles"
 import { ViewToggle } from "@/components/view-toggle"
+import { FAQ } from "@/components/faq"
 import { InviteToSpaceButton } from "@/components/invite-to-space-button"
 import { JoinPrivateSpaceButton } from "@/components/join-private-space-button"
-import { Loader2 } from "lucide-react"
+import { Loader2, ExternalLink } from "lucide-react"
 
 export default function Home() {
   const { isAuthenticated, isLoading, initializeAuth, sidebarOpen, spaces, currentSpaceId, loadEntries } =
     useAppStore()
   const [showCommunity, setShowCommunity] = useState(false)
+  const [showFAQ, setShowFAQ] = useState(false)
 
   const currentSpace = spaces.find((s) => s.id === currentSpaceId)
 
@@ -65,9 +67,29 @@ export default function Home() {
           <Navbar />
 
           <main className="flex-1 max-w-2xl mx-auto w-full px-5 pt-8 pb-32">
-            <ViewToggle showCommunity={showCommunity} onToggleCommunity={() => setShowCommunity(!showCommunity)} />
+            {/* Discord Button */}
+            <div className="flex justify-center mb-6">
+              <a
+                href="https://discord.gg/yhrgr3emk2"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-6 py-3 bg-black hover:bg-gray-900 text-white font-medium rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl border-2 border-white hover:border-white/80"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Join our Discord!
+              </a>
+            </div>
 
-            {showCommunity ? (
+            <ViewToggle 
+              showCommunity={showCommunity} 
+              showFAQ={showFAQ}
+              onToggleCommunity={() => setShowCommunity(!showCommunity)}
+              onToggleFAQ={() => setShowFAQ(!showFAQ)}
+            />
+
+            {showFAQ ? (
+              <FAQ />
+            ) : showCommunity ? (
               <>
                 <JoinPrivateSpaceButton />
                 <CommunityProfiles />

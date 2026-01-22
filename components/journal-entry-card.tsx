@@ -12,8 +12,6 @@ import {
   Flame,
   AlertTriangle,
   Heart,
-  MessageCircle,
-  Send,
   Trash2,
 } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
@@ -44,8 +42,6 @@ const mentalStateConfig: Record<string, { icon: React.ReactNode; color: string }
 export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntryCardProps) {
   const timeAgo = formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true })
   const [showLightbox, setShowLightbox] = useState(false)
-  const [showComments, setShowComments] = useState(false)
-  const [newComment, setNewComment] = useState("")
 
   const {
     user,
@@ -53,8 +49,6 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
     removeLike,
     hasLiked,
     getLikeCount,
-    getComments,
-    addComment,
     getProfile,
     isAdmin,
     deleteEntry,
@@ -62,18 +56,9 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
 
   const liked = hasLiked(entry.id)
   const likeCount = getLikeCount(entry.id)
-  const comments = getComments(entry.id)
   const isOwnPost = user?.id === entry.userId
   const authorProfile = getProfile(entry.userId)
   const userIsAdmin = isAdmin()
-
-  const handleSubmitComment = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (newComment && newComment.trim()) {
-      addComment(entry.id, newComment)
-      setNewComment("")
-    }
-  }
 
   const handleLike = () => {
     if (liked) {
@@ -221,58 +206,6 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
               <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />
               <span>{likeCount}</span>
             </button>
-
-            <button
-              onClick={() => setShowComments(!showComments)}
-              className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-primary transition-colors icon-glow"
-            >
-              <MessageCircle className="h-4 w-4" />
-              <span>{comments.length}</span>
-            </button>
-
-          </div>
-        )}
-
-        {isGlobal && showComments && (
-          <div className="pt-3 space-y-3">
-            {comments.length > 0 && (
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {comments.map((comment) => (
-                  <div key={comment.id} className="flex gap-2 text-xs">
-                    <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0">
-                      <img
-                        src={getAvatarUrl(comment.username || "user", comment.avatar, 24)}
-                        alt={comment.username || "Comment"}
-                        width={24}
-                        height={24}
-                        className="rounded-full object-cover"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <span className="font-bold text-primary">@{comment.username || "unknown"}</span>
-                      <span className="text-muted-foreground ml-2">{comment.content}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmitComment} className="flex gap-2">
-              <input
-                type="text"
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Add a comment..."
-                className="flex-1 bg-muted/50 border border-border rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
-              />
-              <button
-                type="submit"
-                disabled={!newComment || !newComment.trim()}
-                className="p-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed icon-glow"
-              >
-                <Send className="h-4 w-4" />
-              </button>
-            </form>
           </div>
         )}
       </div>

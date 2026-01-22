@@ -9,7 +9,6 @@ import type {
   MentalState,
   MilestoneLevel,
   UserProfile,
-  Comment,
   Like,
 } from "./types"
 import {
@@ -127,21 +126,15 @@ interface AppState {
 
   getProfile: (userId: string) => UserProfile | undefined
   findUserByTag: (usernameWithTag: string) => Promise<UserProfile | undefined>
-  updateProfile: (updates: Partial<UserProfile>) => Promise<void>
-  adminUpdateUserProfile: (userId: string, updates: Partial<UserProfile>) => void
   getUsernameFromAuth: (userId: string) => Promise<string | null>
 
-  // Comments and Likes
-  comments: Record<string, Comment[]>
+  // Likes only (comments removed)
   likes: Record<string, Like[]>
   loadCommentsAndLikes: (spaceId: string) => Promise<void>
-  addComment: (entryId: string, content: string) => Promise<void>
-  deleteComment: (commentId: string, entryId: string) => Promise<void>
   addLike: (entryId: string) => Promise<void>
   removeLike: (entryId: string) => Promise<void>
   hasLiked: (entryId: string) => boolean
   getLikeCount: (entryId: string) => number
-  getComments: (entryId: string) => Comment[]
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -915,9 +908,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         entries: Object.fromEntries(
           Object.entries(state.entries).filter(([key]) => key !== spaceId)
         ),
-        comments: Object.fromEntries(
-          Object.entries(state.comments).filter(([key]) => key !== spaceId)
-        ),
         likes: Object.fromEntries(
           Object.entries(state.likes).filter(([key]) => key !== spaceId)
         ),
@@ -1248,13 +1238,20 @@ export const useAppStore = create<AppState>((set, get) => ({
       console.log("[ENTRY] ✅ Raw entries loaded:", entriesData?.length || 0)
 
       // Map entries safely with better error handling
+      const existingProfiles = get().profiles
+      const profileMap = existingProfiles.reduce((acc, profile) => {
+        acc[profile.id] = profile
+        return acc
+      }, {} as Record<string, any>)
+
       const mappedEntries: JournalEntry[] = (entriesData || []).filter(e => e != null).map((e: any): JournalEntry => {
         try {
+          const existingProfile = profileMap[e.user_id]
           return {
             id: e.id,
             spaceId,
             userId: e.user_id,
-            username: "Loading...", // Will be updated when profiles load
+            username: existingProfile?.username || "Loading...", // Use existing profile or fallback
             content: e.content || "",
             tags: Array.isArray(e.tags) ? e.tags : [],
             tradeType: e.trade_type || "general",
@@ -1615,8 +1612,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ profiles: mappedProfiles, lastLoadedProfilesAt: Date.now() })
 
     // Backfill usernames in entries after profiles load
-    const { entries } = get()
-    const updatedEntries = Object.entries(entries).reduce((acc, [spaceId, spaceEntries]) => {
+    const currentEntries = get().entries
+    const updatedEntries = Object.entries(currentEntries).reduce((acc, [spaceId, spaceEntries]) => {
       const entriesWithUsernames = spaceEntries.map(entry => {
         if (!entry.username || entry.username === "Unknown") {
           const profile = mappedProfiles.find(p => p.id === entry.userId)
@@ -1633,6 +1630,31 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     set({ entries: updatedEntries })
     console.log("[PROFILES] ✅ Loaded and processed", mappedProfiles.length, "profiles")
+    
+    // Additional pass: Update any remaining "Unknown" usernames
+    const { entries, currentSpaceId } = get()
+    if (currentSpaceId && entries[currentSpaceId]) {
+      const stillUnknown = entries[currentSpaceId].filter(e => e.username === "Unknown" || e.username === "Loading...")
+      if (stillUnknown.length > 0) {
+        console.log("[PROFILES] 🔄 Found", stillUnknown.length, "entries still with unknown usernames, updating...")
+        
+        const finalUpdatedEntries = entries[currentSpaceId].map(entry => {
+          const profile = mappedProfiles.find(p => p.id === entry.userId)
+          if (profile && (entry.username === "Unknown" || entry.username === "Loading...")) {
+            return { ...entry, username: profile.username }
+          }
+          return entry
+        })
+        
+        set({
+          entries: {
+            ...entries,
+            [currentSpaceId]: finalUpdatedEntries
+          }
+        })
+        console.log("[PROFILES] ✅ Updated remaining unknown usernames")
+      }
+    }
   },
 
   getUsernameFromAuth: async (userId: string) => {
@@ -1717,53 +1739,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     return profile
   },
 
-  updateProfile: async (updates: Partial<UserProfile>) => {
-    const { user } = get()
-    if (!user) {
-      console.log("[PROFILE] No user found, skipping update")
-      return
-    }
-
-    console.log("[PROFILE] Updating profile for user:", user.id, "with updates:", updates)
-    const supabase = createClient()
-    
-    // Only update basic fields that work
-    const basicUpdates = {
-      username: updates.username,
-      bio: updates.bio,
-      tradingStyle: updates.tradingStyle,
-      avatar: updates.avatar,
-    }
-    
-    console.log("[PROFILE] Basic updates:", basicUpdates)
-    
-    const { error } = await supabase
-      .from("profiles")
-      .update(basicUpdates)
-      .eq("id", user.id)
-
-    if (error) {
-      console.error("[PROFILE] Update error:", error)
-      return
-    }
-
-    console.log("[PROFILE] ✅ Profile updated successfully")
-    set((state) => ({
-      profiles: state.profiles.map(p =>
-        p.id === user.id ? { ...p, ...updates } : p
-      ),
-    }))
-    console.log("[PROFILE] ✅ Profile updated in local state")
-  },
-
-  adminUpdateUserProfile: (userId: string, updates: Partial<UserProfile>) => {
-    set((state) => ({
-      profiles: state.profiles.map(p =>
-        p.id === userId ? { ...p, ...updates } : p
-      ),
-    }))
-  },
-
   // Comments and Likes
   comments: {},
   likes: {},
@@ -1774,152 +1749,28 @@ export const useAppStore = create<AppState>((set, get) => ({
       ? "00000000-0000-0000-0000-000000000001" 
       : spaceId
 
-    console.log("[COMMENTS/LIKES] Loading for space:", spaceId, "→", actualSpaceId)
-    console.log("[COMMENTS/LIKES] Entry IDs:", Object.values(get().entries[spaceId] || []).map(e => e.id))
+    console.log("[LIKES] Loading for space:", spaceId, "→", actualSpaceId)
+    console.log("[LIKES] Entry IDs:", Object.values(get().entries[spaceId] || []).map(e => e.id))
 
-    const [commentsResult, likesResult] = await Promise.allSettled([
-      supabase
-        .from("comments")
-        .select(`
-          *,
-          profiles (
-            username,
-            tag
-          )
-        `)
-        .in("entry_id", 
-          Object.values(get().entries[spaceId] || []).map(e => e.id)
-        ),
-      supabase
-        .from("likes")
-        .select("*")
-        .in("entry_id", 
-          Object.values(get().entries[spaceId] || []).map(e => e.id)
-        ),
-    ])
+    // Only load likes (comments removed)
+    const likesResult = await supabase
+      .from("likes")
+      .select("*")
+      .in("entry_id", 
+        Object.values(get().entries[spaceId] || []).map(e => e.id)
+      )
 
-    const comments = commentsResult.status === "fulfilled" 
-      ? (commentsResult.value.data || []).filter(c => c != null).map((c: any) => {
-          const profile = c.profiles
-          let displayName = "Unknown"
-          
-          if (profile) {
-            // NEVER show email as username
-            if (profile.username && !profile.username.includes('@')) {
-              displayName = profile.username
-            } else {
-              displayName = "User" + (profile.tag?.slice(-4) || "0000")
-            }
-          }
-          
-          return {
-            id: c.id,
-            entryId: c.entry_id,
-            userId: c.user_id,
-            username: displayName,
-            content: c.content,
-            createdAt: new Date(c.created_at),
-          }
-        })
-      : []
+    const likes = (likesResult.data || []).filter(l => l != null).map((l: any) => ({
+      id: l.id,
+      entryId: l.entry_id,
+      userId: l.user_id,
+      createdAt: new Date(l.created_at),
+    }))
 
-    const likes = likesResult.status === "fulfilled"
-      ? (likesResult.value.data || []).filter(l => l != null).map((l: any) => ({
-          id: l.id,
-          entryId: l.entry_id,
-          userId: l.user_id,
-          createdAt: new Date(l.created_at),
-        }))
-      : []
-
-    console.log("[COMMENTS/LIKES] Loaded comments:", comments.length, comments)
-    console.log("[COMMENTS/LIKES] Loaded likes:", likes.length, likes)
+    console.log("[LIKES] Loaded likes:", likes.length, likes)
 
     set({
-      comments: { ...get().comments, [spaceId]: comments },
       likes: { ...get().likes, [spaceId]: likes },
-    })
-  },
-
-  addComment: async (entryId: string, content: string) => {
-    const { user } = get()
-    if (!user) return
-
-    const supabase = createClient()
-    console.log("[COMMENT] Attempting to insert comment:", { entryId, userId: user.id, content })
-    
-    const { data, error } = await supabase
-      .from("comments")
-      .insert({
-        entry_id: entryId,
-        user_id: user.id,
-        content,
-      })
-      .select()
-      .single()
-
-    console.log("[COMMENT] Database response:", { data, error })
-
-    if (error || !data) {
-      console.error("[COMMENT] Add error:", error)
-      console.error("[COMMENT] Error details:", {
-        message: error?.message,
-        code: error?.code,
-        details: error?.details
-      })
-      return
-    }
-
-    console.log("[COMMENT] Successfully saved to database:", data)
-
-    const comment: Comment = {
-      id: data.id,
-      entryId: data.entry_id,
-      userId: data.user_id,
-      username: user.username,
-      content: data.content,
-      createdAt: new Date(data.created_at),
-    }
-
-    set((state) => {
-      const spaceId = Object.keys(state.entries).find(sid =>
-        state.entries[sid]?.some(e => e.id === entryId)
-      )
-      if (!spaceId) return state
-
-      return {
-        comments: {
-          ...state.comments,
-          [spaceId]: [...(state.comments[spaceId] || []), comment],
-        },
-      }
-    })
-  },
-
-  deleteComment: async (commentId: string, entryId: string) => {
-    const supabase = createClient()
-    const { error } = await supabase
-      .from("comments")
-      .delete()
-      .eq("id", commentId)
-
-    if (error) {
-      console.error("[COMMENT] Delete error:", error)
-      return
-    }
-
-    set((state) => {
-      const spaceId = Object.keys(state.entries).find(sid =>
-        state.entries[sid]?.some(e => e.id === entryId)
-      )
-      if (!spaceId) return state
-
-      return {
-        comments: {
-          ...state.comments,
-          [spaceId]: state.comments[spaceId]?.filter(c => c.id !== commentId) || [],
-        },
-      }
     })
   },
 
@@ -2012,12 +1863,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { likes, currentSpaceId } = get()
     if (!currentSpaceId) return 0
     return likes[currentSpaceId]?.filter(l => l.entryId === entryId).length || 0
-  },
-
-  getComments: (entryId: string) => {
-    const { comments, currentSpaceId } = get()
-    if (!currentSpaceId) return []
-    return comments[currentSpaceId]?.filter(c => c.entryId === entryId) || []
   },
 
   // Social Connections
