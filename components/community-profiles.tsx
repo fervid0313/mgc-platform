@@ -202,7 +202,7 @@ export function CommunityProfiles() {
                 : "bg-secondary/30 text-muted-foreground hover:text-foreground"
             }`}
           >
-            {f?.charAt(0)?.toUpperCase() + f?.slice(1) || ''}
+            {f && typeof f === 'string' ? f.charAt(0).toUpperCase() + f.slice(1) : ''}
           </button>
         ))}
       </div>

@@ -20,7 +20,9 @@ export function JournalFeed() {
       hasPnl: spaceEntries[0]?.profitLoss !== undefined,
       pnlValue: spaceEntries[0]?.profitLoss,
       hasImage: !!spaceEntries[0]?.image,
-      content: spaceEntries[0]?.content?.substring(0, 30) + "..." || "No content"
+      content: spaceEntries[0]?.content && typeof spaceEntries[0].content === 'string' 
+        ? spaceEntries[0].content.substring(0, 30) + "..." 
+        : "No content"
     } : 'No entries'
   })
 
