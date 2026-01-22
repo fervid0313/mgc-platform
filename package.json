@@ -1,8 +1,8 @@
 {
   "name": "my-v0-project",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
-  "description": "MGS Trading Platform - v0.1.1 - Force deployment with charAt fixes",
+  "description": "MGS Trading Platform - v0.1.2 - Force deploy at 2026-01-22T03:37:34.823Z",
   "scripts": {
     "build": "next build",
     "dev": "next dev",

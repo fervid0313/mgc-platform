@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cache Bust - Force New Deployment</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+</head>
+<body>
+    <h1>Cache Bust - v0.1.1</h1>
+    <p>This file forces a new deployment and cache invalidation.</p>
+    <script>
+        console.log('Cache bust file loaded - forcing new deployment');
+        // Force reload after 2 seconds
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000);
+    </script>
+</body>
+</html>
