@@ -57,30 +57,39 @@ export function SpaceMembersTooltip({ spaceId, memberCount, children }: SpaceMem
                 No members found
               </p>
             ) : (
-              <div className="space-y-1">
-                {members?.slice(0, 10)?.map((member) => (
-                  <div key={member.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-secondary/50">
-                    <div className="w-6 h-6 rounded-full overflow-hidden">
-                      <img
-                        src={getAvatarUrl(member.username || "user", member.avatar, 24)}
-                        alt={member.username || "Member"}
-                        className="w-full h-full rounded-full object-cover"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate">{member.username || "Unknown"}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">
-                        {member.tradingStyle?.replace("-", " ") || "Member"}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+              <>
+                <div className="space-y-1">
+                  {(() => {
+                    try {
+                      return members?.slice(0, 10)?.map((member) => (
+                        <div key={member.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-secondary/50">
+                          <div className="w-6 h-6 rounded-full overflow-hidden">
+                            <img
+                              src={getAvatarUrl(member.username || "user", member.avatar, 24)}
+                              alt={member.username || "Member"}
+                              className="w-full h-full rounded-full object-cover"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium truncate">{member.username || "Unknown"}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">
+                              {member.tradingStyle?.replace("-", " ") || "Member"}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    } catch (error) {
+                      console.error(error)
+                      return null
+                    }
+                  })()}
+                </div>
                 {members.length > 10 && (
                   <p className="text-xs text-muted-foreground text-center py-1">
                     +{members.length - 10} more members
                   </p>
                 )}
-              </div>
+              </>
             )}
           </div>
         </div>

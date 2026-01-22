@@ -64,8 +64,20 @@ export function CommunityProfiles() {
   console.log("[CommunityProfiles] Base profiles to display:", baseProfiles.length)
   console.log("[CommunityProfiles] Is global feed:", isGlobalFeed)
   console.log("[CommunityProfiles] Current user:", user?.username)
-  console.log("[CommunityProfiles] Sample profiles from store:", baseProfiles?.slice(0, 3)?.map(p => ({ id: p.id, username: p.username, email: p.email })) || [])
-  console.log("[CommunityProfiles] Sample profiles raw:", baseProfiles?.slice(0, 3) || [])
+  console.log("[CommunityProfiles] Sample profiles from store:", (() => {
+              try {
+                return baseProfiles?.slice(0, 3)?.map(p => ({ id: p.id, username: p.username, email: p.email })) || []
+              } catch (e) {
+                return []
+              }
+            })())
+  console.log("[CommunityProfiles] Sample profiles raw:", (() => {
+              try {
+                return baseProfiles?.slice(0, 3) || []
+              } catch (e) {
+                return []
+              }
+            })())
 
   // Create a helper function to get the display username
   const getDisplayUsername = (profile: UserProfile) => {
@@ -202,7 +214,13 @@ export function CommunityProfiles() {
                 : "bg-secondary/30 text-muted-foreground hover:text-foreground"
             }`}
           >
-            {f ? (typeof f === 'string' && f.length > 0 ? f.charAt(0).toUpperCase() + f.slice(1) : f) : ''}
+            {(() => {
+              try {
+                return f ? (typeof f === 'string' && f.length > 0 ? f.charAt(0).toUpperCase() + f.slice(1) : f) : ''
+              } catch (e) {
+                return f || ''
+              }
+            })()}
           </button>
         ))}
       </div>

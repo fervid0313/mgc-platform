@@ -37,7 +37,13 @@ export function VibeIndicator() {
   const spaceEntries = entries[currentSpaceId || ""] || []
 
   // Count recent mental states
-  const recentStates = spaceEntries?.slice(0, 10)?.filter((e) => e.mentalState) || []
+  const recentStates = (() => {
+    try {
+      return spaceEntries?.slice(0, 10)?.filter((e) => e.mentalState) || []
+    } catch (e) {
+      return []
+    }
+  })()
 
   if (!vibe || recentStates.length < 2) {
     return (
