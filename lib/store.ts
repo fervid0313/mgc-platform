@@ -94,6 +94,15 @@ interface AppState {
     image?: string,
     mentalState?: MentalState,
   ) => void
+  updateEntry: (
+    entryId: string,
+    content: string,
+    tags?: string[],
+    tradeType?: JournalEntry["tradeType"],
+    profitLoss?: number,
+    image?: string,
+    mentalState?: MentalState,
+  ) => void
   deleteEntry: (entryId: string, spaceId: string) => void
   loadEntries: (spaceId: string) => Promise<void>
   forceLoadEntries: (spaceId: string) => Promise<void>
@@ -1191,6 +1200,129 @@ export const useAppStore = create<AppState>((set, get) => ({
       entries: {
         ...state.entries,
         [spaceId]: state.entries[spaceId]?.filter((e) => e.id !== entryId) || [],
+      },
+    }))
+  },
+
+  updateEntry: async (
+    entryId: string,
+    content: string,
+    tags?: string[],
+    tradeType?: JournalEntry["tradeType"],
+    profitLoss?: number,
+    image?: string,
+    mentalState?: MentalState,
+  ) => {
+    const { currentSpaceId, user, entries } = get()
+    if (!currentSpaceId || !user || !user.id) {
+      console.error("[ENTRY] 🚨 MISSING REQUIRED DATA FOR UPDATE:", { 
+        hasCurrentSpaceId: !!currentSpaceId, 
+        hasUser: !!user, 
+        hasUserId: !!user?.id 
+      })
+      return
+    }
+
+    // Find the existing entry
+    const existingEntry = entries[currentSpaceId]?.find(e => e.id === entryId)
+    if (!existingEntry) {
+      console.error("[ENTRY] 🚨 Entry not found for update:", entryId)
+      return
+    }
+
+    // Create optimistic updated entry
+    const optimisticEntry: JournalEntry = {
+      ...existingEntry,
+      content,
+      tags: tags || [],
+      tradeType,
+      profitLoss,
+      image,
+      mentalState,
+    }
+
+    // Update entry optimistically
+    set({
+      entries: {
+        ...entries,
+        [currentSpaceId]: currentSpaceId ? entries[currentSpaceId]?.map(
+          (e) => e.id === entryId ? optimisticEntry : e
+        ) || [] : [],
+      },
+    })
+
+    const supabase = createClient()
+    const actualSpaceId = currentSpaceId === "space-global" 
+      ? "00000000-0000-0000-0000-000000000001" 
+      : currentSpaceId
+
+    const updateData = {
+      content,
+      tags: tags || [],
+      trade_type: tradeType,
+      pnl: profitLoss,
+      image,
+      mental_state: mentalState,
+    }
+
+    console.log("[ENTRY] 📝 Updating entry:", {
+      entryId,
+      actualSpaceId,
+      hasProfitLoss: profitLoss !== undefined,
+      profitLoss,
+      hasImage: !!image,
+      tradeType,
+      mentalState
+    })
+
+    const { data, error } = await supabase
+      .from("entries")
+      .update(updateData)
+      .eq("id", entryId)
+      .select()
+      .single()
+
+    if (error || !data) {
+      console.error("[ENTRY] Update error:", error)
+      // Revert to original entry on error
+      set({
+        entries: {
+          ...entries,
+          [currentSpaceId]: currentSpaceId ? entries[currentSpaceId]?.map(
+            (e) => e.id === entryId ? existingEntry : e
+          ) || [] : [],
+        },
+      })
+      return
+    }
+
+    console.log("[ENTRY] ✅ Entry updated successfully:", {
+      updatedId: data.id,
+      updatedPnl: data.pnl,
+      updatedImage: !!data.image
+    })
+
+    // Update with confirmed data
+    const confirmedEntry: JournalEntry = {
+      id: data.id,
+      spaceId: currentSpaceId,
+      userId: data.user_id,
+      username: user.username,
+      content: data.content,
+      tags: data.tags || [],
+      tradeType: data.trade_type,
+      profitLoss: data.pnl,
+      image: data.image,
+      mentalState: data.mental_state,
+      createdAt: new Date(data.created_at),
+    }
+
+    set((state) => ({
+      entries: {
+        ...state.entries,
+        [currentSpaceId]: currentSpaceId ? state.entries[currentSpaceId]?.map(
+          (e) => e.id === entryId ? confirmedEntry : e
+        ) || [] : [],
       },
     }))
   },

@@ -5,6 +5,7 @@ import { useAppStore } from "@/lib/store"
 import { X, Camera, User, Calendar, Tag, TrendingUp, TrendingDown, DollarSign, Image as ImageIcon } from "lucide-react"
 import { format } from "date-fns"
 import { getAvatarUrl } from "@/lib/avatar-generator"
+import { PnLCalendar } from "./pnl-calendar"
 
 interface ProfileDetailsProps {
   isOpen: boolean
@@ -132,205 +133,187 @@ export function ProfileDetails({ isOpen, onClose }: ProfileDetailsProps) {
 
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
-          {/* Profile Info */}
-          <div className="flex items-center gap-6 mb-8">
-            {/* Avatar with Upload */}
-            <div className="relative">
-              <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-border/50">
-                <img
-                  src={getAvatarUrl(profile.username || "user", profile.avatar, 96)}
-                  alt={profile.username || "Profile"}
-                  className="w-full h-full rounded-full object-cover"
-                />
-              </div>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="absolute bottom-0 right-0 p-2 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-colors border-2 border-background shadow-lg disabled:opacity-50"
-                title="Change profile picture"
-              >
-                {uploading ? (
-                  <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-                ) : (
-                  <Camera className="h-4 w-4" />
-                )}
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="hidden"
-              />
-            </div>
-
-            {/* User Info */}
-            <div className="flex-1">
-              <h3 className="text-2xl font-bold mb-1">{profile.username}</h3>
-              <p className="text-muted-foreground mb-2">@{profile.tag}</p>
-              {profile.bio && (
-                <p className="text-sm text-muted-foreground mb-2">{profile.bio}</p>
-              )}
-              <div className="flex items-center gap-2">
-                <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
-                  {profile.tradingStyle?.replace("-", " ") || "Member"}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Stats Overview */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-            <div className="bg-secondary/30 rounded-xl p-4 border border-border/50">
-              <div className="flex items-center gap-2 mb-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Total Trades</span>
-              </div>
-              <p className="text-2xl font-bold">{userEntries.length}</p>
-            </div>
-
-            <div className="bg-secondary/30 rounded-xl p-4 border border-border/50">
-              <div className="flex items-center gap-2 mb-2">
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Total P&L</span>
-              </div>
-              <p className={`text-2xl font-bold flex items-center gap-2 ${
-                totalPnL >= 0 ? "text-green-600" : "text-red-600"
-              }`}>
-                {totalPnL >= 0 ? <TrendingUp className="h-5 w-5" /> : <TrendingDown className="h-5 w-5" />}
-                ${Math.abs(totalPnL).toFixed(2)}
-              </p>
-            </div>
-
-            <div className="bg-secondary/30 rounded-xl p-4 border border-border/50">
-              <div className="flex items-center gap-2 mb-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Win Rate</span>
-              </div>
-              <p className="text-2xl font-bold">{winRate.toFixed(1)}%</p>
-            </div>
-
-            <div className="bg-secondary/30 rounded-xl p-4 border border-border/50">
-              <div className="flex items-center gap-2 mb-2">
-                <Tag className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Avg Trade</span>
-              </div>
-              <p className={`text-2xl font-bold ${
-                avgTrade >= 0 ? "text-green-600" : "text-red-600"
-              }`}>
-                ${Math.abs(avgTrade).toFixed(2)}
-              </p>
-            </div>
-
-            <div className="bg-secondary/30 rounded-xl p-4 border border-border/50">
-              <div className="flex items-center gap-2 mb-2">
-                <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">With Images</span>
-              </div>
-              <p className="text-2xl font-bold">{tradesWithImages}</p>
-            </div>
-          </div>
-
-          {/* Recent Trades */}
-          <div>
-            <h4 className="text-xl font-bold mb-4">Your Trading History</h4>
-            
-            {sortedEntries.length === 0 ? (
-              <div className="bg-secondary/30 rounded-xl p-8 text-center border border-border/50">
-                <div className="flex flex-col items-center gap-4">
-                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center">
-                    <Calendar className="h-8 w-8 text-muted-foreground" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Content - Left Side (2/3 width) */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Profile Info */}
+              <div className="flex items-center gap-6">
+                {/* Avatar with Upload */}
+                <div className="relative">
+                  <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-border/50">
+                    <img
+                      src={getAvatarUrl(profile.username || "user", profile.avatar, 80)}
+                      alt={profile.username || "Profile"}
+                      className="w-full h-full rounded-full object-cover"
+                    />
                   </div>
-                  <div>
-                    <p className="text-muted-foreground font-medium mb-2">No trades yet</p>
-                    <p className="text-sm text-muted-foreground/70">
-                      Start journaling your trades to see your trading history here.
-                    </p>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="absolute bottom-0 right-0 p-2 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-colors border-2 border-background shadow-lg disabled:opacity-50"
+                    title="Change profile picture"
+                  >
+                    {uploading ? (
+                      <div className="animate-spin h-3 w-3 border-2 border-current border-t-transparent rounded-full" />
+                    ) : (
+                      <Camera className="h-3 w-3" />
+                    )}
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </div>
+
+                {/* User Info */}
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold mb-1">{profile.username}</h3>
+                  <p className="text-muted-foreground mb-2">@{profile.tag}</p>
+                  {profile.bio && (
+                    <p className="text-sm text-muted-foreground mb-2">{profile.bio}</p>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">
+                      {profile.tradingStyle?.replace("-", " ") || "Member"}
+                    </span>
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {sortedEntries.map((entry) => (
-                  <div key={entry.id} className="bg-secondary/30 rounded-xl p-6 border border-border/50 hover:border-border transition-colors">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="px-2 py-1 bg-primary/10 text-primary rounded text-sm font-medium">
-                            {entry.tradeType}
-                          </span>
-                          {entry.profitLoss !== undefined && (
-                            <span className={`px-2 py-1 rounded text-sm font-medium ${
-                              entry.profitLoss >= 0 
-                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                            }`}>
-                              {entry.profitLoss >= 0 ? "+" : ""}${Math.abs(entry.profitLoss).toFixed(2)}
-                            </span>
-                          )}
-                        </div>
-                        
-                        <p className="text-foreground mb-3">{entry.content}</p>
-                        
-                        {/* Display image if present */}
-                        {entry.image && (
-                          <div className="mb-4">
-                            <div className="relative group">
-                              <img
-                                src={entry.image}
-                                alt="Trade screenshot"
-                                className="w-full max-w-md rounded-lg border border-border/30 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                                onClick={() => window.open(entry.image, '_blank')}
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none';
-                                  const parent = e.currentTarget.parentElement;
-                                  if (parent) {
-                                    parent.innerHTML = '<div class="text-sm text-muted-foreground flex items-center gap-2"><ImageIcon class="h-4 w-4" />Image failed to load</div>';
-                                  }
-                                }}
-                              />
-                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-lg transition-colors flex items-center justify-center">
-                                <ImageIcon className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                              </div>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                              <ImageIcon className="h-3 w-3" />
-                              Click image to view full size
-                            </p>
-                          </div>
-                        )}
-                        
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {format(new Date(entry.createdAt), "MMM d, yyyy")}
-                          </span>
-                          {entry.tags.length > 0 && (
-                            <span className="flex items-center gap-1">
-                              <Tag className="h-3 w-3" />
-                              {(() => {
-                              try {
-                                return entry.tags.slice(0, 3).join(", ")
-                              } catch (e) {
-                                return ''
-                              }
-                            })()}
-                              {(() => {
-                                try {
-                                  return entry.tags.length > 3 ? `+${entry.tags.length - 3}` : ''
-                                } catch (e) {
-                                  return ''
-                                }
-                              })()}
-                            </span>
-                          )}
-                        </div>
+
+              {/* Stats Overview - More Compact */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-secondary/30 rounded-lg p-3 border border-border/50">
+                  <div className="flex items-center gap-1 mb-1">
+                    <Calendar className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">Trades</span>
+                  </div>
+                  <p className="text-lg font-bold">{userEntries.length}</p>
+                </div>
+
+                <div className="bg-secondary/30 rounded-lg p-3 border border-border/50">
+                  <div className="flex items-center gap-1 mb-1">
+                    <DollarSign className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">P&L</span>
+                  </div>
+                  <p className={`text-lg font-bold flex items-center gap-1 ${
+                    totalPnL >= 0 ? "text-green-600" : "text-red-600"
+                  }`}>
+                    {totalPnL >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                    ${Math.abs(totalPnL).toFixed(0)}
+                  </p>
+                </div>
+
+                <div className="bg-secondary/30 rounded-lg p-3 border border-border/50">
+                  <div className="flex items-center gap-1 mb-1">
+                    <User className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">Win Rate</span>
+                  </div>
+                  <p className="text-lg font-bold">{winRate.toFixed(0)}%</p>
+                </div>
+
+                <div className="bg-secondary/30 rounded-lg p-3 border border-border/50">
+                  <div className="flex items-center gap-1 mb-1">
+                    <Tag className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">Avg</span>
+                  </div>
+                  <p className={`text-lg font-bold ${
+                    avgTrade >= 0 ? "text-green-600" : "text-red-600"
+                  }`}>
+                    ${Math.abs(avgTrade).toFixed(0)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Recent Trades */}
+              <div>
+                <h4 className="text-lg font-bold mb-3">Trading History</h4>
+                
+                {sortedEntries.length === 0 ? (
+                  <div className="bg-secondary/30 rounded-xl p-6 text-center border border-border/50">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
+                        <Calendar className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground font-medium mb-1">No trades yet</p>
+                        <p className="text-sm text-muted-foreground/70">
+                          Start journaling your trades to see your trading history here.
+                        </p>
                       </div>
                     </div>
                   </div>
-                ))}
+                ) : (
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {sortedEntries.slice(0, 10).map((entry) => (
+                      <div key={entry.id} className="bg-secondary/30 rounded-lg p-4 border border-border/50 hover:border-border transition-colors">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="px-2 py-1 bg-primary/10 text-primary rounded text-xs font-medium">
+                                {entry.tradeType}
+                              </span>
+                              {entry.profitLoss !== undefined && (
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                  entry.profitLoss >= 0 
+                                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                    : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                                }`}>
+                                  {entry.profitLoss >= 0 ? "+" : ""}${Math.abs(entry.profitLoss).toFixed(2)}
+                                </span>
+                              )}
+                            </div>
+                            
+                            <p className="text-sm text-foreground mb-2 line-clamp-2">{entry.content}</p>
+                            
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {format(new Date(entry.createdAt), "MMM d")}
+                              </span>
+                              {entry.tags.length > 0 && (
+                                <span className="flex items-center gap-1">
+                                  <Tag className="h-3 w-3" />
+                                  {(() => {
+                                  try {
+                                    return entry.tags.slice(0, 2).join(", ")
+                                  } catch (e) {
+                                    return ''
+                                  }
+                                })()}
+                                  {(() => {
+                                    try {
+                                      return entry.tags.length > 2 ? `+${entry.tags.length - 2}` : ''
+                                    } catch (e) {
+                                      return ''
+                                    }
+                                })()}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {sortedEntries.length > 10 && (
+                      <div className="text-center text-sm text-muted-foreground">
+                        Showing 10 of {sortedEntries.length} trades
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
+
+            {/* Right Sidebar - PnL Calendar (1/3 width) */}
+            <div className="lg:col-span-1">
+              <div className="sticky top-6">
+                <h4 className="text-lg font-bold mb-3">P&L Calendar</h4>
+                <PnLCalendar userId={user.id} compact={false} />
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -15,9 +15,11 @@ import {
   AlertTriangle,
   Heart,
   Trash2,
+  Edit3,
 } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import Image from "next/image"
+import { EntryEditor } from "./entry-editor"
 
 interface JournalEntryCardProps {
   entry: JournalEntry
@@ -43,6 +45,7 @@ const mentalStateConfig: Record<string, { icon: React.ReactNode; color: string }
 export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntryCardProps) {
   const timeAgo = formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true })
   const [showLightbox, setShowLightbox] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
 
   const {
     user,
@@ -112,6 +115,15 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
             )}
           </div>
           <div className="flex items-center gap-2">
+            {isOwnPost && (
+              <button
+                onClick={() => setShowEditModal(true)}
+                className="p-1 text-blue-500/60 hover:text-blue-500 transition-colors icon-glow"
+                title="Edit post"
+              >
+                <Edit3 className="h-4 w-4" />
+              </button>
+            )}
             {userIsAdmin && (
               <button
                 onClick={handleDelete}
@@ -263,6 +275,13 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
           </div>
         </div>
       )}
+
+      {/* Edit Modal */}
+      <EntryEditor
+        entry={entry}
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+      />
     </>
   )
 }

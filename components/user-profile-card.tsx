@@ -6,6 +6,7 @@ import { getAvatarUrl } from "@/lib/avatar-generator"
 import { Twitter, Hash, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
+import { PnLCalendar } from "./pnl-calendar"
 
 interface UserProfileCardProps {
   profile: UserProfile
@@ -20,7 +21,7 @@ const tradingStyleLabels = {
 }
 
 export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
-  const { user, socialConnections, profiles } = useAppStore()
+  const { user, socialConnections, profiles, entries, currentSpaceId } = useAppStore()
   const isOwnProfile = user?.id === profile?.id
   const [copied, setCopied] = useState(false)
 
@@ -31,11 +32,23 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
     return profiles.find(p => p.id === connectionId)
   }).filter(Boolean)
 
+  // Get user's entries for current space
+  const userEntries = currentSpaceId ? entries[currentSpaceId]?.filter(entry => entry.userId === profile.id) || [] : []
+  
+  // Calculate stats
+  const profitableTrades = userEntries.filter(entry => (entry.profitLoss || 0) > 0)
+  const totalPnL = userEntries.reduce((sum, entry) => sum + (entry.profitLoss || 0), 0)
+  const winRate = userEntries.length > 0 ? (profitableTrades.length / userEntries.length) * 100 : 0
+  const avgTrade = userEntries.length > 0 ? totalPnL / userEntries.length : 0
+
   console.log("[PROFILE] Debug:", {
     profileId: profile?.id,
     profileConnections: profileConnections,
     connectedUsersCount: connectedUsers.length,
-    connectedUsers: connectedUsers.map(u => ({ id: u?.id, username: u?.username, tag: u?.tag }))
+    connectedUsers: connectedUsers.map(u => ({ id: u?.id, username: u?.username, tag: u?.tag })),
+    userEntriesCount: userEntries.length,
+    totalPnL,
+    winRate
   })
 
   const copyTag = () => {
@@ -47,13 +60,13 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
   }
 
   return (
-    <div className="glass rounded-2xl p-8 max-w-2xl w-full relative">
+    <div className="glass rounded-2xl p-8 max-w-4xl w-full relative">
       {/* Header */}
-      <div className="flex items-start gap-6 mb-6">
+      <div className="flex items-center gap-6 mb-6">
         <div className="relative">
-          <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-4xl font-bold">
+          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-4xl font-bold">
             <img
-              src={getAvatarUrl(profile.username || "user", profile.avatar, 128)}
+              src={getAvatarUrl(profile.username || "user", profile.avatar, 96)}
               alt={profile?.username || "Profile"}
               className="w-full h-full rounded-full object-cover"
             />
@@ -81,83 +94,120 @@ export function UserProfileCard({ profile, onClose }: UserProfileCardProps) {
         </div>
       </div>
 
-      {/* Bio */}
-      {profile.bio && <p className="text-base text-muted-foreground mb-6 leading-relaxed">{profile.bio}</p>}
+      {/* Two Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Content - Left Side (2/3 width) */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Bio */}
+          {profile.bio && (
+            <div>
+              <h4 className="text-lg font-bold mb-2">About</h4>
+              <p className="text-base text-muted-foreground leading-relaxed">{profile.bio}</p>
+            </div>
+          )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        {profile.winRate !== undefined && profile.winRate > 0 && (
-          <div className="bg-secondary/30 rounded-xl p-4 text-center">
-            <p className="text-2xl font-bold text-green-400">{profile.winRate}%</p>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Win Rate</p>
-          </div>
-        )}
-        {profile.totalTrades !== undefined && profile.totalTrades > 0 && (
-          <div className="bg-secondary/30 rounded-xl p-4 text-center">
-            <p className="text-2xl font-bold">{profile.totalTrades.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Trades</p>
-          </div>
-        )}
-      </div>
-
-      {/* Connections Section */}
-      <div className="mb-6">
-        <h4 className="text-lg font-bold mb-4">Connections</h4>
-        {connectedUsers.length > 0 ? (
-          <div className="space-y-3">
-            {connectedUsers.map((connectedUser) => (
-              <div key={connectedUser?.id || 'unknown'} className="flex items-center justify-between p-3 bg-secondary/20 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-500/5 flex items-center justify-center text-sm font-bold">
-                    <img
-                      src={getAvatarUrl(connectedUser?.username || "user", connectedUser?.avatar, 40)}
-                      alt={connectedUser?.username || "Connection"}
-                      className="w-full h-full rounded-full object-cover"
-                    />
+          {/* Stats */}
+          <div>
+            <h4 className="text-lg font-bold mb-3">Trading Stats</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {userEntries.length > 0 && (
+                <>
+                  <div className="bg-secondary/30 rounded-lg p-3 text-center border border-border/50">
+                    <p className="text-lg font-bold">{userEntries.length}</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Trades</p>
                   </div>
-                  <div>
-                    <p className="font-medium">{connectedUser?.username || "Unknown"}</p>
-                    <p className="text-xs text-muted-foreground">#{connectedUser?.tag || "0000"}</p>
+                  <div className="bg-secondary/30 rounded-lg p-3 text-center border border-border/50">
+                    <p className={`text-lg font-bold ${totalPnL >= 0 ? "text-green-400" : "text-red-400"}`}>
+                      ${Math.abs(totalPnL).toFixed(0)}
+                    </p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Total P&L</p>
                   </div>
+                  <div className="bg-secondary/30 rounded-lg p-3 text-center border border-border/50">
+                    <p className="text-lg font-bold">{winRate.toFixed(0)}%</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Win Rate</p>
+                  </div>
+                  <div className="bg-secondary/30 rounded-lg p-3 text-center border border-border/50">
+                    <p className={`text-lg font-bold ${avgTrade >= 0 ? "text-green-400" : "text-red-400"}`}>
+                      ${Math.abs(avgTrade).toFixed(0)}
+                    </p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Avg Trade</p>
+                  </div>
+                </>
+              )}
+              {userEntries.length === 0 && (
+                <div className="col-span-2 md:col-span-4 bg-secondary/30 rounded-lg p-4 text-center border border-border/50">
+                  <p className="text-sm text-muted-foreground">No trading data available</p>
                 </div>
-                <span className="text-xs text-muted-foreground">Connected</span>
+              )}
+            </div>
+          </div>
+
+          {/* Connections Section */}
+          <div>
+            <h4 className="text-lg font-bold mb-3">Connections</h4>
+            {connectedUsers.length > 0 ? (
+              <div className="space-y-3">
+                {connectedUsers.map((connectedUser) => (
+                  <div key={connectedUser?.id || 'unknown'} className="flex items-center justify-between p-3 bg-secondary/20 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-500/5 flex items-center justify-center text-sm font-bold">
+                        <img
+                          src={getAvatarUrl(connectedUser?.username || "user", connectedUser?.avatar, 40)}
+                          alt={connectedUser?.username || "Connection"}
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      </div>
+                      <div>
+                        <p className="font-medium">{connectedUser?.username || "Unknown"}</p>
+                        <p className="text-xs text-muted-foreground">#{connectedUser?.tag || "0000"}</p>
+                      </div>
+                    </div>
+                    <span className="text-xs text-muted-foreground">Connected</span>
+                  </div>
+                ))}
               </div>
-            ))}
+            ) : (
+              <div className="text-center py-6 bg-secondary/20 rounded-xl">
+                <p className="text-muted-foreground text-sm">No connections yet</p>
+                <p className="text-xs text-muted-foreground/50 mt-2">Connect with others to build your network</p>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground text-sm">No connections yet</p>
-            <p className="text-xs text-muted-foreground/50 mt-2">Connect with others to build your network</p>
+
+          {/* Social Links */}
+          {profile.socialLinks && Object.values(profile.socialLinks).some((v) => v) && (
+            <div>
+              <h4 className="text-lg font-bold mb-3">Social Links</h4>
+              <div className="flex flex-wrap gap-3">
+                {profile.socialLinks.twitter && (
+                  <a
+                    href={`https://twitter.com/${profile.socialLinks.twitter}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors bg-secondary/30 px-4 py-2 rounded-full"
+                  >
+                    <Twitter className="h-4 w-4" />@{profile.socialLinks.twitter}
+                  </a>
+                )}
+                {profile.socialLinks.discord && (
+                  <span className="flex items-center gap-2 text-sm text-muted-foreground bg-secondary/30 px-4 py-2 rounded-full">
+                    <Hash className="h-4 w-4" />
+                    {profile.socialLinks.discord}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right Sidebar - PnL Calendar (1/3 width) */}
+        <div className="lg:col-span-1">
+          <div className="sticky top-6">
+            <h4 className="text-lg font-bold mb-3">P&L Calendar</h4>
+            <PnLCalendar userId={profile.id} compact={true} />
           </div>
-        )}
-        <div className="text-center mt-4">
-          <button className="text-sm text-primary hover:text-primary/80 transition-colors">
-            {connectedUsers.length > 0 ? "Manage connections →" : "Find connections →"}
-          </button>
         </div>
       </div>
-
-      {/* Social Links */}
-      {profile.socialLinks && Object.values(profile.socialLinks).some((v) => v) && (
-        <div className="flex flex-wrap gap-3 mb-6">
-          {profile.socialLinks.twitter && (
-            <a
-              href={`https://twitter.com/${profile.socialLinks.twitter}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors bg-secondary/30 px-4 py-2 rounded-full"
-            >
-              <Twitter className="h-4 w-4" />@{profile.socialLinks.twitter}
-            </a>
-          )}
-          {profile.socialLinks.discord && (
-            <span className="flex items-center gap-2 text-sm text-muted-foreground bg-secondary/30 px-4 py-2 rounded-full">
-              <Hash className="h-4 w-4" />
-              {profile.socialLinks.discord}
-            </span>
-          )}
-        </div>
-      )}
 
       {onClose && (
         <button
