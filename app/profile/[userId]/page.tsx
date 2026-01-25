@@ -51,16 +51,49 @@ export default function UserProfilePage() {
   const userId = params.userId as string
 
   useEffect(() => {
-    if (!userId || !currentSpaceId) return
+    console.log("[PROFILE] Component loading with userId:", userId)
+    console.log("[PROFILE] Available profiles:", profiles.length)
+    console.log("[PROFILE] Current space ID:", currentSpaceId)
+    
+    if (!userId) return
+
+    // Force load profiles if none are available (common in production)
+    if (profiles.length === 0) {
+      console.log("[PROFILE] No profiles available, attempting to force load...")
+      const { forceLoadProfiles } = useAppStore.getState()
+      forceLoadProfiles().then(() => {
+        console.log("[PROFILE] Force loaded profiles, retrying user lookup...")
+        const updatedProfiles = useAppStore.getState().profiles
+        const userProfile = updatedProfiles.find(p => p.id === userId)
+        console.log("[PROFILE] Found user profile after force load:", userProfile ? userProfile.username : "Not found")
+        
+        if (!userProfile) {
+          setLoading(false)
+          return
+        }
+        
+        // Continue with user stats calculation...
+        calculateUserStats(userProfile)
+      })
+      return
+    }
 
     const userProfile = profiles.find(p => p.id === userId)
+    console.log("[PROFILE] Found user profile:", userProfile ? userProfile.username : "Not found")
+    
     if (!userProfile) {
+      console.log("[PROFILE] User profile not found, setting loading to false")
       setLoading(false)
       return
     }
 
-    // Get all entries for this user in current space
-    const userEntries = entries[currentSpaceId]?.filter(entry => entry.userId === userId) || []
+    calculateUserStats(userProfile)
+  }, [userId, entries, profiles, currentSpaceId])
+
+  const calculateUserStats = (userProfile: any) => {
+    // Get all entries for this user in current space (if available)
+    const userEntries = currentSpaceId ? (entries[currentSpaceId]?.filter(entry => entry.userId === userId) || []) : []
+    console.log("[PROFILE] User entries found:", userEntries.length)
     
     // Calculate stats
     const profitableTrades = userEntries.filter(entry => (entry.profitLoss || 0) > 0)
@@ -84,7 +117,7 @@ export default function UserProfilePage() {
     })
 
     setLoading(false)
-  }, [userId, entries, profiles, currentSpaceId])
+  }
 
   const userProfile = profiles.find(p => p.id === userId)
 
