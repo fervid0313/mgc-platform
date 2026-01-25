@@ -10,6 +10,7 @@ import type {
   MilestoneLevel,
   UserProfile,
   Like,
+  Notification,
 } from "./types"
 import {
   calculateCollectiveVibe,
@@ -144,6 +145,25 @@ interface AppState {
   loadProfiles: () => Promise<void>
   forceLoadProfiles: () => Promise<void>
   checkForMissingProfiles: () => Promise<{ totalProfiles: number; incompleteProfiles: number; recentProfiles: number } | undefined>
+
+  // Online Status
+  onlineUsers: UserProfile[],
+  updateOnlineStatus: (userId: string, isOnline: boolean) => void
+  getOnlineUsers: () => UserProfile[]
+  simulateOnlineUsers: () => void
+  trackUserActivity: (userId: string) => void
+  checkUserInactivity: () => void
+  
+  // Real-time tracking
+  lastActivity: Record<string, number> // userId -> timestamp
+  activityCheckInterval: NodeJS.Timeout | null
+
+  // Notifications
+  notifications: Notification[]
+  addNotification: (notification: Omit<Notification, 'id' | 'createdAt'>) => void
+  markNotificationAsRead: (notificationId: string) => void
+  clearNotifications: () => void
+  getUnreadCount: () => number
 
   // Space Members
   getSpaceMembers: (spaceId: string) => UserProfile[]
@@ -1155,6 +1175,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       savedImage: !!data.image
     })
 
+    // Track user activity when they post
+    const { trackUserActivity } = get()
+    trackUserActivity(user.id)
+
     const realEntry: JournalEntry = {
       id: data.id,
       spaceId: currentSpaceId,
@@ -1658,6 +1682,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   profiles: [],
+  lastActivity: {},
+  activityCheckInterval: null,
+  notifications: [],
 
   loadProfiles: async () => {
     const { lastLoadedProfilesAt } = get()
@@ -1696,19 +1723,30 @@ export const useAppStore = create<AppState>((set, get) => ({
         return
       }
 
-      const mappedProfiles = (fallbackData || []).filter(p => p != null).map((p: any) => ({
-        id: p.id,
-        username: p.username || "Unknown",
-        tag: p.tag || "0000",
-        email: p.email || "",
-        avatar: p.avatar,
-        bio: p.bio || "",
-        tradingStyle: p.trading_style,
-        winRate: p.win_rate,
-        totalTrades: p.total_trades,
-        socialLinks: p.social_links || {},
-        createdAt: new Date(p.created_at),
-      }))
+      const mappedProfiles = (fallbackData || []).filter(p => p != null).map((p: any) => {
+        const profile = {
+          id: p.id,
+          username: p.username || "Unknown",
+          tag: p.tag || "0000",
+          email: p.email || "",
+          avatar: p.avatar,
+          bio: p.bio || "",
+          tradingStyle: p.trading_style,
+          winRate: p.win_rate,
+          totalTrades: p.total_trades,
+          socialLinks: p.social_links || {},
+          createdAt: new Date(p.created_at),
+        }
+        
+        // Debug avatar data
+        console.log("[PROFILE] Avatar for", profile.username, ":", {
+          hasAvatar: !!profile.avatar,
+          avatarUrl: profile.avatar,
+          avatarLength: profile.avatar?.length || 0
+        })
+        
+        return profile
+      })
 
       set({ profiles: mappedProfiles, lastLoadedProfilesAt: Date.now() })
       return
@@ -1717,7 +1755,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const mappedProfiles = (profilesData || []).filter(p => p != null).map((p: any) => {
       console.log("[PROFILES] Mapping profile:", { id: p.id, username: p.username, email: p.email })
       
-      return {
+      const profile = {
         id: p.id,
         username: p.username || "Unknown",
         tag: p.tag || "0000",
@@ -1730,6 +1768,15 @@ export const useAppStore = create<AppState>((set, get) => ({
         socialLinks: p.social_links || {},
         createdAt: new Date(p.created_at),
       }
+      
+      // Debug avatar data for main profiles too
+      console.log("[PROFILE] Avatar for", profile.username, ":", {
+        hasAvatar: !!profile.avatar,
+        avatarUrl: profile.avatar,
+        avatarLength: profile.avatar?.length || 0
+      })
+      
+      return profile
     })
 
     console.log("[PROFILES] Raw data from DB:", profilesData?.slice(0, 3))
@@ -1905,7 +1952,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   addLike: async (entryId: string) => {
-    const { user, likes } = get()
+    const { user, likes, entries, addNotification } = get()
     if (!user) return
 
     // Check if already liked
@@ -1918,6 +1965,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       l => l.entryId === entryId && l.userId === user.id
     )
     if (alreadyLiked) return
+
+    // Find the entry to get the author
+    const entry = entries[spaceId]?.find(e => e.id === entryId)
+    if (!entry) return
 
     const supabase = createClient()
     const { data, error } = await supabase
@@ -1947,6 +1998,20 @@ export const useAppStore = create<AppState>((set, get) => ({
         [spaceId]: [...(state.likes[spaceId] || []), like],
       },
     }))
+
+    // Create notification for the entry author (if not self-like)
+    if (entry.userId !== user.id) {
+      addNotification({
+        type: 'like',
+        fromUserId: user.id,
+        fromUsername: user.username,
+        fromAvatar: user.avatar,
+        targetEntryId: entryId,
+        targetEntryContent: entry.content,
+        message: `liked your entry`,
+        read: false
+      })
+    }
   },
 
   removeLike: async (entryId: string) => {
@@ -2257,6 +2322,140 @@ export const useAppStore = create<AppState>((set, get) => ({
     console.log("[INVITE_LINK] ✅ Loaded invite links:", inviteLinks.length, inviteLinks);
 
     set({ spaceInviteLinks: inviteLinks });
+  },
+
+  updateOnlineStatus: (userId: string, isOnline: boolean) => {
+    const { profiles } = get()
+    const updatedProfiles = profiles.map(profile => 
+      profile.id === userId ? { ...profile, isOnline } : profile
+    )
+    
+    const onlineUsers = updatedProfiles.filter(profile => profile.isOnline)
+    
+    set({ 
+      profiles: updatedProfiles,
+      onlineUsers 
+    })
+  },
+
+  getOnlineUsers: () => {
+    return get().onlineUsers
+  },
+
+  simulateOnlineUsers: () => {
+    const { profiles, entries } = get()
+    const currentTime = Date.now()
+    const fiveMinutesAgo = currentTime - (5 * 60 * 1000) // 5 minutes ago
+    const oneHourAgo = currentTime - (60 * 60 * 1000) // 1 hour ago
+    
+    // Get users with recent activity (entries in the last hour)
+    const activeUserIds = new Set<string>()
+    
+    // Check all spaces for recent entries
+    Object.values(entries).forEach(spaceEntries => {
+      spaceEntries.forEach(entry => {
+        const entryTime = new Date(entry.createdAt).getTime()
+        if (entryTime > oneHourAgo) {
+          activeUserIds.add(entry.userId)
+        }
+      })
+    })
+    
+    // Mark users as online based on recent activity
+    const updatedProfiles = profiles.map(profile => {
+      const hasRecentActivity = activeUserIds.has(profile.id)
+      const isOnline = hasRecentActivity || profile.id === get().user?.id // Always show current user as online
+      
+      return {
+        ...profile,
+        isOnline
+      }
+    })
+    
+    const onlineUsers = updatedProfiles.filter(profile => profile.isOnline)
+    
+    set({
+      profiles: updatedProfiles,
+      onlineUsers
+    })
+    
+    console.log("[ONLINE] Updated online status:", {
+      totalUsers: profiles.length,
+      onlineUsers: onlineUsers.length,
+      activeUsers: activeUserIds.size
+    })
+  },
+
+  trackUserActivity: (userId: string) => {
+    const currentTime = Date.now()
+    const { lastActivity } = get()
+    
+    // Update last activity timestamp
+    set({
+      lastActivity: {
+        ...lastActivity,
+        [userId]: currentTime
+      }
+    })
+    
+    // Mark user as online
+    const { updateOnlineStatus } = get()
+    updateOnlineStatus(userId, true)
+    
+    console.log("[ONLINE] Tracked activity for user:", userId)
+  },
+
+  checkUserInactivity: () => {
+    const { profiles, lastActivity, updateOnlineStatus, user } = get()
+    const currentTime = Date.now()
+    const fiveMinutesAgo = currentTime - (5 * 60 * 1000)
+    
+    // Check each user's last activity
+    profiles.forEach(profile => {
+      const lastSeen = lastActivity[profile.id] || 0
+      const isInactive = lastSeen < fiveMinutesAgo && profile.id !== user?.id
+      
+      if (isInactive && profile.isOnline) {
+        updateOnlineStatus(profile.id, false)
+        console.log("[ONLINE] User went offline:", profile.username)
+      }
+    })
+  },
+
+  // Notifications
+  addNotification: (notification) => {
+    const { user } = get()
+    if (!user) return
+    
+    const newNotification: Notification = {
+      ...notification,
+      id: `notification-${Date.now()}-${Math.random()}`,
+      createdAt: new Date()
+    }
+    
+    set((state) => ({
+      notifications: [newNotification, ...state.notifications]
+    }))
+    
+    console.log("[NOTIFICATION] Added:", newNotification)
+  },
+
+  markNotificationAsRead: (notificationId) => {
+    set((state) => ({
+      notifications: state.notifications.map(n => 
+        n.id === notificationId ? { ...n, read: true } : n
+      )
+    }))
+  },
+
+  clearNotifications: () => {
+    set((state) => ({
+      notifications: state.notifications.filter(n => !n.read)
+    }))
+  },
+
+  getUnreadCount: () => {
+    return get().notifications.filter(n => !n.read).length
   },
 }))
 

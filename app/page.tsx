@@ -8,6 +8,8 @@ import { JournalFeed } from "@/components/journal-feed"
 import { EntryComposer } from "@/components/entry-composer"
 import { AuthScreen } from "@/components/auth-screen"
 import { CommunityProfiles } from "@/components/community-profiles"
+import { OnlineUsers } from "@/components/online-users"
+import { InboxButton } from "@/components/inbox"
 import { ViewToggle } from "@/components/view-toggle"
 import { FAQ } from "@/components/faq"
 import { InviteToSpaceButton } from "@/components/invite-to-space-button"
@@ -107,6 +109,11 @@ export default function Home() {
 
       <div className="fixed bottom-10 right-6 lg:right-10">
         <span className="text-xs italic text-muted-foreground/50">Matthew 6:33</span>
+      </div>
+
+      {/* Online Users Widget */}
+      <div className="fixed top-32 right-4 lg:right-6 w-64 hidden lg:block">
+        <OnlineUsers />
       </div>
     </div>
   )

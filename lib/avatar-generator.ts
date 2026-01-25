@@ -92,9 +92,38 @@ export function generateAvatarUrl(username: string, size: number = 100): string 
 export function getAvatarUrl(username: string, customAvatar?: string, size: number = 100): string {
   // If custom avatar is provided, use it
   if (customAvatar && customAvatar.trim() !== '') {
+    // Check if it's a very large base64 image (over 50KB)
+    if (customAvatar.startsWith('data:image/') && customAvatar.length > 50000) {
+      console.log("[AVATAR] Large base64 image detected, using fallback for", username)
+      return generateAvatarUrl(username || 'user', size)
+    }
+    
+    // Check if base64 image is valid
+    if (customAvatar.startsWith('data:image/')) {
+      return customAvatar
+    }
+    
+    // If it's a regular URL, use it as-is
     return customAvatar
   }
   
   // Otherwise generate a default avatar based on username
   return generateAvatarUrl(username || 'user', size)
+}
+
+export function optimizeBase64Avatar(base64String: string, maxSizeKB: number = 50): string {
+  // This is a placeholder for base64 optimization
+  // In a real implementation, you would:
+  // 1. Parse the base64 to get the image
+  // 2. Compress/resize the image
+  // 3. Convert back to base64
+  
+  // For now, just return the original if it's under the limit
+  if (base64String.length <= maxSizeKB * 1024) {
+    return base64String
+  }
+  
+  // If too large, return a fallback avatar
+  console.log("[AVATAR] Base64 image too large, using fallback")
+  return generateAvatarUrl('user', 100)
 }
