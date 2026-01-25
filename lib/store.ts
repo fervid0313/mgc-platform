@@ -1685,6 +1685,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   lastActivity: {},
   activityCheckInterval: null,
   notifications: [],
+  onlineUsers: [],
 
   loadProfiles: async () => {
     const { lastLoadedProfilesAt } = get()
