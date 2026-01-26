@@ -10,7 +10,6 @@ import type {
   MilestoneLevel,
   UserProfile,
   Like,
-  Notification,
 } from "./types"
 import {
   calculateCollectiveVibe,
@@ -157,13 +156,6 @@ interface AppState {
   // Real-time tracking
   lastActivity: Record<string, number> // userId -> timestamp
   activityCheckInterval: NodeJS.Timeout | null
-
-  // Notifications
-  notifications: Notification[]
-  addNotification: (notification: Omit<Notification, 'id' | 'createdAt'>) => void
-  markNotificationAsRead: (notificationId: string) => void
-  clearNotifications: () => void
-  getUnreadCount: () => number
 
   // Space Members
   getSpaceMembers: (spaceId: string) => UserProfile[]
@@ -1385,7 +1377,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         `)
         .eq("space_id", actualSpaceId)
         .order("created_at", { ascending: false })
-        .limit(20)
+        .limit(200)
 
       if (entriesError) {
         console.error("[ENTRY] ❌ Failed to load entries:", entriesError)
@@ -1953,7 +1945,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   addLike: async (entryId: string) => {
-    const { user, likes, entries, addNotification } = get()
+    const { user, likes, entries } = get()
     if (!user) return
 
     // Check if already liked
@@ -2000,20 +1992,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       },
     }))
 
-    // Create notification for the entry author (if not self-like)
-    if (entry.userId !== user.id) {
-      addNotification({
-        type: 'like',
-        fromUserId: user.id,
-        fromUsername: user.username,
-        fromAvatar: user.avatar,
-        targetEntryId: entryId,
-        targetEntryContent: entry.content,
-        message: `liked your entry`,
-        read: false
-      })
-    }
-  },
+    },
 
   removeLike: async (entryId: string) => {
     const { user, likes } = get()
@@ -2423,41 +2402,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     })
   },
 
-  // Notifications
-  addNotification: (notification) => {
-    const { user } = get()
-    if (!user) return
-    
-    const newNotification: Notification = {
-      ...notification,
-      id: `notification-${Date.now()}-${Math.random()}`,
-      createdAt: new Date()
-    }
-    
-    set((state) => ({
-      notifications: [newNotification, ...state.notifications]
-    }))
-    
-    console.log("[NOTIFICATION] Added:", newNotification)
-  },
-
-  markNotificationAsRead: (notificationId) => {
-    set((state) => ({
-      notifications: state.notifications.map(n => 
-        n.id === notificationId ? { ...n, read: true } : n
-      )
-    }))
-  },
-
-  clearNotifications: () => {
-    set((state) => ({
-      notifications: state.notifications.filter(n => !n.read)
-    }))
-  },
-
-  getUnreadCount: () => {
-    return get().notifications.filter(n => !n.read).length
-  },
 }))
 
 export const appStore = useAppStore;

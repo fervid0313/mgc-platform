@@ -97,19 +97,6 @@ export interface Like {
   createdAt: Date
 }
 
-export interface Notification {
-  id: string
-  type: 'like' | 'comment' | 'follow' | 'mention'
-  fromUserId: string
-  fromUsername: string
-  fromAvatar?: string
-  targetEntryId: string
-  targetEntryContent?: string
-  message: string
-  read: boolean
-  createdAt: Date
-}
-
 export interface Invitation {
   id: string
   spaceId: string

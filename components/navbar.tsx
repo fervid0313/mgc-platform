@@ -7,7 +7,6 @@ import { VibeIndicator } from "./vibe-indicator"
 import { ProfileDetails } from "./profile-details"
 import { JoinPublicGroup } from "./join-public-group"
 import { CreateSpaceModal } from "./create-space-modal"
-import { InboxButton } from "./inbox"
 import { useEffect } from "react"
 
 export function Navbar() {
@@ -60,9 +59,6 @@ export function Navbar() {
             <div className="w-px h-6 bg-border" />
             <VibeIndicator />
           </div>
-          {user && (
-            <InboxButton />
-          )}
           {currentSpace && (
             <div className="text-[10px] font-bold text-foreground bg-primary/10 px-3 py-1 rounded-full border border-primary/20 uppercase hidden md:block">
               {currentSpace.name}

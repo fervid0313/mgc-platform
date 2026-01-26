@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, getDay } from "date-fns"
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, DollarSign, X, Calendar, Tag } from "lucide-react"
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, getDay, startOfWeek, endOfWeek, startOfYear, endOfYear, subDays, subWeeks, subMonths, subYears } from "date-fns"
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, DollarSign, X, Calendar, Tag, BarChart3, Target, Award } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 
 interface PnLCalendarProps {
@@ -22,6 +22,20 @@ interface DayDetails {
   entries: any[]
 }
 
+interface TimePeriodSummary {
+  period: string
+  totalPnL: number
+  trades: number
+  wins: number
+  losses: number
+  winRate: number
+  avgTrade: number
+  bestDay: { date: Date; pnl: number } | null
+  worstDay: { date: Date; pnl: number } | null
+  profitableDays: number
+  totalDays: number
+}
+
 export function PnLCalendar({ userId, compact = false, onTradeClick }: PnLCalendarProps) {
   const { entries, currentSpaceId } = useAppStore()
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -34,9 +48,32 @@ export function PnLCalendar({ userId, compact = false, onTradeClick }: PnLCalend
   const dailyPnL = useMemo(() => {
     const grouped: Record<string, { total: number; trades: number; wins: number; losses: number; entries: any[] }> = {}
     
+    console.log("[PnL CALENDAR] Processing entries:", {
+      totalEntries: userEntries.length,
+      currentSpaceId,
+      userId,
+      entriesWithPnL: userEntries.filter(e => e.profitLoss !== undefined && e.profitLoss !== null).length,
+      allEntryDates: userEntries.map(e => ({
+        id: e.id,
+        date: format(new Date(e.createdAt), "yyyy-MM-dd"),
+        profitLoss: e.profitLoss,
+        createdAt: e.createdAt
+      })).sort((a, b) => a.date.localeCompare(b.date)),
+      oldestEntry: userEntries.length > 0 ? format(new Date(Math.min(...userEntries.map(e => new Date(e.createdAt).getTime()))), "yyyy-MM-dd") : "No entries",
+      newestEntry: userEntries.length > 0 ? format(new Date(Math.max(...userEntries.map(e => new Date(e.createdAt).getTime()))), "yyyy-MM-dd") : "No entries"
+    })
+    
     userEntries.forEach(entry => {
       const dateKey = format(new Date(entry.createdAt), "yyyy-MM-dd")
       const pnl = entry.profitLoss || 0
+      
+      console.log("[PnL CALENDAR] Processing entry:", {
+        id: entry.id,
+        dateKey,
+        pnl,
+        profitLoss: entry.profitLoss,
+        tradeType: entry.tradeType
+      })
       
       if (!grouped[dateKey]) {
         grouped[dateKey] = { total: 0, trades: 0, wins: 0, losses: 0, entries: [] }
@@ -49,8 +86,181 @@ export function PnLCalendar({ userId, compact = false, onTradeClick }: PnLCalend
       if (pnl < 0) grouped[dateKey].losses += 1
     })
     
+    console.log("[PnL CALENDAR] Daily PnL grouped:", grouped)
+    
     return grouped
   }, [userEntries])
+
+  // Calculate time-based summaries
+  const timeSummaries = useMemo(() => {
+    const now = new Date()
+    const summaries: TimePeriodSummary[] = []
+
+    console.log("[PnL CALENDAR] Starting time summaries calculation")
+
+    // Daily Summary (Today)
+    const today = format(now, "yyyy-MM-dd")
+    const todayData = dailyPnL[today]
+    if (todayData) {
+      const todaySummary = {
+        period: "Today",
+        totalPnL: todayData.total,
+        trades: todayData.trades,
+        wins: todayData.wins,
+        losses: todayData.losses,
+        winRate: todayData.trades > 0 ? (todayData.wins / todayData.trades) * 100 : 0,
+        avgTrade: todayData.trades > 0 ? todayData.total / todayData.trades : 0,
+        bestDay: { date: now, pnl: todayData.total },
+        worstDay: { date: now, pnl: todayData.total },
+        profitableDays: todayData.total > 0 ? 1 : 0,
+        totalDays: 1
+      }
+      summaries.push(todaySummary)
+      console.log("[PnL CALENDAR] Today summary:", todaySummary)
+    }
+
+    // Weekly Summary (Last 7 days)
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 })
+    const weekEnd = endOfWeek(now, { weekStartsOn: 1 })
+    let weekTotal = 0, weekTrades = 0, weekWins = 0, weekLosses = 0, weekProfitableDays = 0
+    let weekBest: { date: Date; pnl: number } | null = null
+    let weekWorst: { date: Date; pnl: number } | null = null
+    
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(weekStart)
+      date.setDate(date.getDate() + i)
+      const dateKey = format(date, "yyyy-MM-dd")
+      const dayData = dailyPnL[dateKey]
+      
+      if (dayData && dayData.trades > 0) {
+        weekTotal += dayData.total
+        weekTrades += dayData.trades
+        weekWins += dayData.wins
+        weekLosses += dayData.losses
+        if (dayData.total > 0) weekProfitableDays++
+        
+        // Best day = highest P&L (most positive)
+        if (!weekBest || dayData.total > weekBest.pnl) {
+          weekBest = { date, pnl: dayData.total }
+        }
+        // Worst day = lowest P&L (most negative)
+        if (!weekWorst || dayData.total < weekWorst.pnl) {
+          weekWorst = { date, pnl: dayData.total }
+        }
+      }
+    }
+    
+    if (weekTrades > 0) {
+      const weekSummary = {
+        period: "This Week",
+        totalPnL: weekTotal,
+        trades: weekTrades,
+        wins: weekWins,
+        losses: weekLosses,
+        winRate: (weekWins / weekTrades) * 100,
+        avgTrade: weekTotal / weekTrades,
+        bestDay: weekBest,
+        worstDay: weekWorst,
+        profitableDays: weekProfitableDays,
+        totalDays: 7
+      }
+      summaries.push(weekSummary)
+      console.log("[PnL CALENDAR] Week summary:", weekSummary)
+    }
+
+    // Monthly Summary (Current month)
+    const monthStart = startOfMonth(now)
+    const monthEnd = endOfMonth(now)
+    let monthTotal = 0, monthTrades = 0, monthWins = 0, monthLosses = 0, monthProfitableDays = 0
+    let monthBest: { date: Date; pnl: number } | null = null
+    let monthWorst: { date: Date; pnl: number } | null = null
+    
+    for (let d = new Date(monthStart); d <= monthEnd; d.setDate(d.getDate() + 1)) {
+      const dateKey = format(d, "yyyy-MM-dd")
+      const dayData = dailyPnL[dateKey]
+      
+      if (dayData && dayData.trades > 0) {
+        monthTotal += dayData.total
+        monthTrades += dayData.trades
+        monthWins += dayData.wins
+        monthLosses += dayData.losses
+        if (dayData.total > 0) monthProfitableDays++
+        
+        if (!monthBest || dayData.total > monthBest.pnl) {
+          monthBest = { date: new Date(d), pnl: dayData.total }
+        }
+        if (!monthWorst || dayData.total < monthWorst.pnl) {
+          monthWorst = { date: new Date(d), pnl: dayData.total }
+        }
+      }
+    }
+    
+    if (monthTrades > 0) {
+      const monthSummary = {
+        period: "This Month",
+        totalPnL: monthTotal,
+        trades: monthTrades,
+        wins: monthWins,
+        losses: monthLosses,
+        winRate: (monthWins / monthTrades) * 100,
+        avgTrade: monthTotal / monthTrades,
+        bestDay: monthBest,
+        worstDay: monthWorst,
+        profitableDays: monthProfitableDays,
+        totalDays: Math.ceil((monthEnd.getTime() - monthStart.getTime()) / (1000 * 60 * 60 * 24)) + 1
+      }
+      summaries.push(monthSummary)
+      console.log("[PnL CALENDAR] Month summary:", monthSummary)
+    }
+
+    // Yearly Summary (Current year)
+    const yearStart = startOfYear(now)
+    const yearEnd = endOfYear(now)
+    let yearTotal = 0, yearTrades = 0, yearWins = 0, yearLosses = 0, yearProfitableDays = 0
+    let yearBest: { date: Date; pnl: number } | null = null
+    let yearWorst: { date: Date; pnl: number } | null = null
+    
+    for (let d = new Date(yearStart); d <= yearEnd; d.setDate(d.getDate() + 1)) {
+      const dateKey = format(d, "yyyy-MM-dd")
+      const dayData = dailyPnL[dateKey]
+      
+      if (dayData && dayData.trades > 0) {
+        yearTotal += dayData.total
+        yearTrades += dayData.trades
+        yearWins += dayData.wins
+        yearLosses += dayData.losses
+        if (dayData.total > 0) yearProfitableDays++
+        
+        if (!yearBest || dayData.total > yearBest.pnl) {
+          yearBest = { date: new Date(d), pnl: dayData.total }
+        }
+        if (!yearWorst || dayData.total < yearWorst.pnl) {
+          yearWorst = { date: new Date(d), pnl: dayData.total }
+        }
+      }
+    }
+    
+    if (yearTrades > 0) {
+      const yearSummary = {
+        period: "This Year",
+        totalPnL: yearTotal,
+        trades: yearTrades,
+        wins: yearWins,
+        losses: yearLosses,
+        winRate: (yearWins / yearTrades) * 100,
+        avgTrade: yearTotal / yearTrades,
+        bestDay: yearBest,
+        worstDay: yearWorst,
+        profitableDays: yearProfitableDays,
+        totalDays: Math.ceil((yearEnd.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24)) + 1
+      }
+      summaries.push(yearSummary)
+      console.log("[PnL CALENDAR] Year summary:", yearSummary)
+    }
+
+    console.log("[PnL CALENDAR] Final summaries:", summaries)
+    return summaries
+  }, [dailyPnL])
   
   // Calendar navigation
   const monthStart = startOfMonth(currentDate)
@@ -135,24 +345,24 @@ export function PnLCalendar({ userId, compact = false, onTradeClick }: PnLCalend
   
   return (
     <>
-      <div className={`bg-secondary/20 rounded-xl p-4 border-2 border-white/20 shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] ${compact ? 'text-xs' : ''}`} data-calendar-container>
+      <div className={`bg-secondary/20 rounded-xl p-3 border-2 border-white/20 shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] ${compact ? 'text-xs' : 'text-sm'}`} data-calendar-container>
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <button
               onClick={previousMonth}
-              className="p-1.5 hover:bg-secondary/50 rounded-lg transition-all duration-200 hover:scale-105"
+              className="p-1 hover:bg-secondary/50 rounded-lg transition-all duration-200 hover:scale-105"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-3 w-3" />
             </button>
             <h3 className={`font-bold ${compact ? 'text-xs' : 'text-sm'} bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent`}>
               {format(currentDate, compact ? "MMM yyyy" : "MMMM yyyy")}
             </h3>
             <button
               onClick={nextMonth}
-              className="p-1.5 hover:bg-secondary/50 rounded-lg transition-all duration-200 hover:scale-105"
+              className="p-1 hover:bg-secondary/50 rounded-lg transition-all duration-200 hover:scale-105"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-3 w-3" />
             </button>
           </div>
           
@@ -172,7 +382,7 @@ export function PnLCalendar({ userId, compact = false, onTradeClick }: PnLCalend
         
         {/* Month Stats */}
         {!compact && monthStats.trades > 0 && (
-          <div className="grid grid-cols-4 gap-2 mb-4 text-xs">
+          <div className="grid grid-cols-4 gap-2 mb-3 text-xs">
             <div className="text-center p-2 bg-gradient-to-br from-background/50 to-background/30 rounded-lg border-2 border-white/20 backdrop-blur-sm">
               <div className="font-bold text-sm">{monthStats.trades}</div>
               <div className="text-muted-foreground font-medium text-xs">Trades</div>
@@ -255,6 +465,77 @@ export function PnLCalendar({ userId, compact = false, onTradeClick }: PnLCalend
             </div>
             <div className="text-muted-foreground font-medium">
               {monthStats.winRate.toFixed(0)}% win rate
+            </div>
+          </div>
+        )}
+
+        {/* Time-Based Summary - Vertical Layout */}
+        {!compact && timeSummaries.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-white/10">
+            <div className="flex items-center gap-2 mb-3">
+              <BarChart3 className="h-3 w-3 text-primary" />
+              <h3 className="font-bold text-xs bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                P&L Summary
+              </h3>
+            </div>
+            
+            <div className="space-y-2">
+              {timeSummaries.map((summary) => (
+                <div 
+                  key={summary.period}
+                  className={`bg-gradient-to-br from-background/50 to-background/30 rounded-lg p-3 border-2 border-white/20 backdrop-blur-sm ${
+                    summary.totalPnL >= 0 ? 'ring-1 ring-green-500/30' : 'ring-1 ring-red-500/30'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        {summary.period}
+                      </span>
+                      <div className={`w-2 h-2 rounded-full ${
+                        summary.totalPnL >= 0 ? 'bg-green-500' : 'bg-red-500'
+                      }`} />
+                    </div>
+                    <div className={`font-bold text-lg flex items-center gap-1 ${
+                      summary.totalPnL >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {summary.totalPnL >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                      ${Math.abs(summary.totalPnL).toFixed(0)}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-4 gap-2 text-xs">
+                    <div className="text-center">
+                      <div className="font-bold text-foreground">{summary.trades}</div>
+                      <div className="text-muted-foreground text-xs">Trades</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-bold text-foreground">{summary.winRate.toFixed(0)}%</div>
+                      <div className="text-muted-foreground text-xs">Win Rate</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-bold text-foreground">${Math.abs(summary.avgTrade).toFixed(0)}</div>
+                      <div className="text-muted-foreground text-xs">Avg Trade</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-bold text-foreground">{summary.profitableDays}</div>
+                      <div className="text-muted-foreground text-xs">Winning Days</div>
+                    </div>
+                  </div>
+                  
+                  {summary.bestDay && summary.period !== "Today" && (
+                    <div className="mt-2 pt-2 border-t border-white/10">
+                      <div className="flex items-center gap-2">
+                        <Award className="h-3 w-3 text-green-500" />
+                        <span className="text-muted-foreground text-xs">Best Day:</span>
+                        <span className="text-green-600 font-medium text-xs">
+                          ${summary.bestDay.pnl >= 0 ? '+' : ''}{summary.bestDay.pnl.toFixed(0)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}

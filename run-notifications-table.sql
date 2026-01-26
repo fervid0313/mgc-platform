@@ -1,0 +1,65 @@
+-- Create notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  from_user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  type VARCHAR(50) NOT NULL DEFAULT 'like',
+  target_entry_id UUID REFERENCES entries(id) ON DELETE CASCADE,
+  target_entry_content TEXT,
+  message TEXT NOT NULL,
+  read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create indexes for performance
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read);
+
+-- Enable RLS (Row Level Security)
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can read own notifications" ON notifications;
+DROP POLICY IF EXISTS "Users can update own notifications" ON notifications;
+DROP POLICY IF EXISTS "Users can delete own notifications" ON notifications;
+DROP POLICY IF EXISTS "Allow notification insertion" ON notifications;
+
+-- Create policy for users to read their own notifications
+CREATE POLICY "Users can read own notifications" ON notifications
+  FOR SELECT USING (auth.uid() = user_id);
+
+-- Create policy for users to mark their own notifications as read
+CREATE POLICY "Users can update own notifications" ON notifications
+  FOR UPDATE USING (auth.uid() = user_id);
+
+-- Create policy for users to delete their own notifications
+CREATE POLICY "Users can delete own notifications" ON notifications
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- Create policy for service role to insert notifications (server-side)
+CREATE POLICY "Service role can insert notifications" ON notifications
+  FOR INSERT WITH CHECK (
+    (auth.jwt() ->> 'role') = 'service_role'
+  );
+
+-- Create policy for authenticated users to insert notifications
+CREATE POLICY "Authenticated users can insert notifications" ON notifications
+  FOR INSERT WITH CHECK (
+    auth.uid() IS NOT NULL
+  );
+
+-- Function to automatically update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Create trigger for notifications
+CREATE TRIGGER update_notifications_updated_at 
+  BEFORE UPDATE ON notifications 
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
