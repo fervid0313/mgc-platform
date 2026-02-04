@@ -409,7 +409,7 @@ export default function TradeAnalyticsPage() {
                     console.log("[ANALYTICS] Calendar props:", {
                       userId,
                       compact: false,
-                      hasUserEntries: userStats?.recentTrades?.length > 0,
+                      hasUserEntries: (userStats?.recentTrades?.length || 0) > 0,
                       totalEntries: userStats?.recentTrades?.length || 0
                     })
                     return null

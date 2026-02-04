@@ -13,14 +13,30 @@ const nextConfig = {
         protocol: 'http',
         hostname: '**',
       },
-    ],
-    domains: [
-      'localhost',
-      'mgstrades.com',
-      'www.mgstrades.com',
-      'supabase.co',
-      'images.unsplash.com',
-      'via.placeholder.com',
+      {
+        protocol: 'https',
+        hostname: 'localhost',
+      },
+      {
+        protocol: 'https',
+        hostname: 'mgstrades.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.mgstrades.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
+      },
     ],
   },
   // Force production build settings
@@ -28,9 +44,6 @@ const nextConfig = {
   // Disable trailing slash handling to prevent deployment issues
   trailingSlash: false,
   // Ensure consistent builds
-  experimental: {
-    swcMinification: true,
-  },
 }
 
 export default nextConfig
