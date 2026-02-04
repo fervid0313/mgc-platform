@@ -36,6 +36,18 @@ interface TimePeriodSummary {
   totalDays: number
 }
 
+interface WeeklyPnL {
+  weekStart: Date
+  weekEnd: Date
+  weekNumber: number
+  totalPnL: number
+  trades: number
+  wins: number
+  losses: number
+  winRate: number
+  avgTrade: number
+}
+
 export function PnLCalendar({ userId, compact = false, onTradeClick }: PnLCalendarProps) {
   const { entries, currentSpaceId } = useAppStore()
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -52,16 +64,15 @@ export function PnLCalendar({ userId, compact = false, onTradeClick }: PnLCalend
       totalEntries: userEntries.length,
       currentSpaceId,
       userId,
-      entriesWithPnL: userEntries.filter(e => e.profitLoss !== undefined && e.profitLoss !== null).length,
-      allEntryDates: userEntries.map(e => ({
+      entries: userEntries.map(e => ({
         id: e.id,
-        date: format(new Date(e.createdAt), "yyyy-MM-dd"),
-        profitLoss: e.profitLoss,
+        dateKey: format(new Date(e.createdAt), "yyyy-MM-dd"),
+        pnl: e.profitLoss,
         createdAt: e.createdAt
-      })).sort((a, b) => a.date.localeCompare(b.date)),
-      oldestEntry: userEntries.length > 0 ? format(new Date(Math.min(...userEntries.map(e => new Date(e.createdAt).getTime()))), "yyyy-MM-dd") : "No entries",
-      newestEntry: userEntries.length > 0 ? format(new Date(Math.max(...userEntries.map(e => new Date(e.createdAt).getTime()))), "yyyy-MM-dd") : "No entries"
+      }))
     })
+    
+    console.log("[PnL CALENDAR] UserEntries changed, recalculating daily P&L...")
     
     userEntries.forEach(entry => {
       const dateKey = format(new Date(entry.createdAt), "yyyy-MM-dd")
@@ -89,7 +100,207 @@ export function PnLCalendar({ userId, compact = false, onTradeClick }: PnLCalend
     console.log("[PnL CALENDAR] Daily PnL grouped:", grouped)
     
     return grouped
-  }, [userEntries])
+  }, [userEntries, currentSpaceId, userId])
+
+  // Calculate weekly P&L for individual weeks
+  const weeklyPnL = useMemo(() => {
+    console.log("[PnL CALENDAR] Weekly P&L - Recalculating weekly P&L...")
+    const weeks: WeeklyPnL[] = []
+    
+    // Get all dates that have trades
+    const datesWithTrades = Object.keys(dailyPnL)
+      .map(dateStr => new Date(dateStr))
+      .sort((a, b) => a.getTime() - b.getTime())
+    
+    console.log("[PnL CALENDAR] Weekly P&L - Dates with trades:", datesWithTrades.map(d => format(d, "yyyy-MM-dd")))
+    console.log("[PnL CALENDAR] Weekly P&L - Daily PnL data:", dailyPnL)
+    
+    // Fallback: If no daily P&L data, create weekly from raw entries
+    if (datesWithTrades.length === 0 && userEntries.length > 0) {
+      console.log("[PnL CALENDAR] Weekly P&L - No daily P&L data, using fallback calculation with raw entries")
+      
+      // Debug: Show all entries first - SIMPLE VERSION
+      console.log("[PnL CALENDAR] SIMPLE DEBUG - Total userEntries:", userEntries.length)
+      console.log("[PnL CALENDAR] SIMPLE DEBUG - Raw entries:", userEntries)
+      
+      // Group entries by week directly
+      const weekGroups: Record<string, WeeklyPnL> = {}
+      
+      userEntries.forEach((entry, index) => {
+        console.log(`[PnL CALENDAR] Processing entry ${index}:`, {
+          id: entry.id,
+          createdAt: entry.createdAt,
+          profitLoss: entry.profitLoss,
+          userId: entry.userId,
+          tradeType: entry.tradeType
+        })
+        
+        const entryDate = new Date(entry.createdAt)
+        const entryYear = entryDate.getFullYear()
+        
+        // Debug: Check if date is valid
+        if (isNaN(entryDate.getTime())) {
+          console.log("[PnL CALENDAR] Invalid date for entry:", entry.id, entry.createdAt)
+          return
+        }
+        
+        const weekStart = startOfWeek(entryDate, { weekStartsOn: 1 })
+        const weekEnd = endOfWeek(entryDate, { weekStartsOn: 1 })
+        const weekKey = format(weekStart, "yyyy-MM-dd")
+        
+        console.log("[PnL CALENDAR] Week calculation:", {
+          entryDate: format(entryDate, "yyyy-MM-dd"),
+          entryYear,
+          weekStart: format(weekStart, "yyyy-MM-dd"),
+          weekEnd: format(weekEnd, "yyyy-MM-dd"),
+          weekKey
+        })
+        
+        if (!weekGroups[weekKey]) {
+          weekGroups[weekKey] = {
+            weekStart,
+            weekEnd,
+            weekNumber: Math.ceil((entryDate.getTime() - startOfYear(entryDate).getTime()) / (7 * 24 * 60 * 60 * 1000)),
+            totalPnL: 0,
+            trades: 0,
+            wins: 0,
+            losses: 0,
+            winRate: 0,
+            avgTrade: 0
+          }
+          console.log("[PnL CALENDAR] Created new week group:", weekKey)
+        }
+        
+        const pnl = entry.profitLoss || 0
+        weekGroups[weekKey].totalPnL += pnl
+        weekGroups[weekKey].trades += 1
+        if (pnl > 0) weekGroups[weekKey].wins += 1
+        if (pnl < 0) weekGroups[weekKey].losses += 1
+        
+        console.log("[PnL CALENDAR] Updated week totals:", {
+          weekKey,
+          totalPnL: weekGroups[weekKey].totalPnL,
+          trades: weekGroups[weekKey].trades,
+          addedPnl: pnl
+        })
+      })
+      
+      // Calculate win rates and avg trades
+      Object.values(weekGroups).forEach(week => {
+        week.winRate = week.trades > 0 ? (week.wins / week.trades) * 100 : 0
+        week.avgTrade = week.trades > 0 ? week.totalPnL / week.trades : 0
+      })
+      
+      const fallbackWeeks = Object.values(weekGroups)
+        .sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime())
+        .slice(0, 8)
+      
+      // Check for Jan 19-25 week specifically (any year)
+      const jan19Week = fallbackWeeks.find(week => {
+        const weekStartStr = format(week.weekStart, "yyyy-MM-dd")
+        const weekEndStr = format(week.weekEnd, "yyyy-MM-dd")
+        return weekStartStr.includes("-01-20") && weekEndStr.includes("-01-26") || // Monday-Sunday
+               weekStartStr.includes("-01-19") && weekEndStr.includes("-01-25") // Sunday-Saturday
+      })
+      
+      // Check for any week that contains Jan 23
+      const jan23Week = fallbackWeeks.find(week => {
+        const weekStart = week.weekStart
+        const weekEnd = week.weekEnd
+        const jan23 = new Date(weekStart.getFullYear(), 0, 23) // Jan 23 of same year
+        return jan23 >= weekStart && jan23 <= weekEnd
+      })
+      
+      console.log("[PnL CALENDAR] Fallback weekly P&L data:", fallbackWeeks.map(w => ({
+        weekNumber: w.weekNumber,
+        weekStart: format(w.weekStart, "yyyy-MM-dd"),
+        weekEnd: format(w.weekEnd, "yyyy-MM-dd"),
+        totalPnL: w.totalPnL,
+        trades: w.trades,
+        isJan19Week: format(w.weekStart, "yyyy-MM-dd").includes("-01-20") || format(w.weekStart, "yyyy-MM-dd").includes("-01-19"),
+        containsJan23: new Date(w.weekStart.getFullYear(), 0, 23) >= w.weekStart && new Date(w.weekStart.getFullYear(), 0, 23) <= w.weekEnd
+      })))
+      
+      console.log("[PnL CALENDAR] Jan 19-25 week found:", !!jan19Week, jan19Week ? {
+        weekStart: format(jan19Week.weekStart, "yyyy-MM-dd"),
+        weekEnd: format(jan19Week.weekEnd, "yyyy-MM-dd"),
+        totalPnL: jan19Week.totalPnL,
+        trades: jan19Week.trades
+      } : "Not found")
+      
+      console.log("[PnL CALENDAR] Week containing Jan 23 found:", !!jan23Week, jan23Week ? {
+        weekStart: format(jan23Week.weekStart, "yyyy-MM-dd"),
+        weekEnd: format(jan23Week.weekEnd, "yyyy-MM-dd"),
+        totalPnL: jan23Week.totalPnL,
+        trades: jan23Week.trades
+      } : "Not found")
+      
+      return fallbackWeeks
+    }
+    
+    if (datesWithTrades.length === 0) {
+      console.log("[PnL CALENDAR] Weekly P&L - No dates with trades found and no entries")
+      return weeks
+    }
+    
+    // Group by week
+    const weekGroups: Record<string, WeeklyPnL> = {}
+    
+    datesWithTrades.forEach(date => {
+      const weekStart = startOfWeek(date, { weekStartsOn: 1 })
+      const weekKey = format(weekStart, "yyyy-MM-dd")
+      
+      console.log("[PnL CALENDAR] Processing date:", format(date, "yyyy-MM-dd"), "Week start:", format(weekStart, "yyyy-MM-dd"))
+      
+      if (!weekGroups[weekKey]) {
+        weekGroups[weekKey] = {
+          weekStart,
+          weekEnd: endOfWeek(date, { weekStartsOn: 1 }),
+          weekNumber: Math.ceil((date.getTime() - startOfYear(date).getTime()) / (7 * 24 * 60 * 60 * 1000)),
+          totalPnL: 0,
+          trades: 0,
+          wins: 0,
+          losses: 0,
+          winRate: 0,
+          avgTrade: 0
+        }
+        console.log("[PnL CALENDAR] Created new week group for:", weekKey, "Week number:", weekGroups[weekKey].weekNumber)
+      }
+      
+      const dateKey = format(date, "yyyy-MM-dd")
+      const dayData = dailyPnL[dateKey]
+      
+      console.log("[PnL CALENDAR] Day data for", dateKey, ":", dayData)
+      
+      if (dayData) {
+        weekGroups[weekKey].totalPnL += dayData.total
+        weekGroups[weekKey].trades += dayData.trades
+        weekGroups[weekKey].wins += dayData.wins
+        weekGroups[weekKey].losses += dayData.losses
+        console.log("[PnL CALENDAR] Updated week totals for", weekKey, "PnL:", weekGroups[weekKey].totalPnL, "Trades:", weekGroups[weekKey].trades)
+      }
+    })
+    
+    // Calculate win rates and avg trades for each week
+    Object.values(weekGroups).forEach(week => {
+      week.winRate = week.trades > 0 ? (week.wins / week.trades) * 100 : 0
+      week.avgTrade = week.trades > 0 ? week.totalPnL / week.trades : 0
+    })
+    
+    const finalWeeks = Object.values(weekGroups)
+      .sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime())
+      .slice(0, 8) // Show last 8 weeks
+    
+    console.log("[PnL CALENDAR] Final weekly P&L data:", finalWeeks.map(w => ({
+      weekNumber: w.weekNumber,
+      weekStart: format(w.weekStart, "yyyy-MM-dd"),
+      weekEnd: format(w.weekEnd, "yyyy-MM-dd"),
+      totalPnL: w.totalPnL,
+      trades: w.trades
+    })))
+    
+    return finalWeeks
+  }, [dailyPnL, currentSpaceId, userId, userEntries])
 
   // Calculate time-based summaries
   const timeSummaries = useMemo(() => {
@@ -534,6 +745,68 @@ export function PnLCalendar({ userId, compact = false, onTradeClick }: PnLCalend
                       </div>
                     </div>
                   )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Weekly P&L Section */}
+        {!compact && weeklyPnL.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-white/10">
+            <div className="flex items-center gap-2 mb-3">
+              <Calendar className="h-3 w-3 text-primary" />
+              <h3 className="font-bold text-xs bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                Weekly P&L
+              </h3>
+            </div>
+            
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {weeklyPnL.map((week) => (
+                <div 
+                  key={week.weekStart.toISOString()}
+                  className={`bg-gradient-to-br from-background/50 to-background/30 rounded-lg p-3 border-2 border-white/20 backdrop-blur-sm ${
+                    week.totalPnL >= 0 ? 'ring-1 ring-green-500/30' : 'ring-1 ring-red-500/30'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Week {week.weekNumber}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {format(week.weekStart, "MMM d")} - {format(week.weekEnd, "MMM d")}
+                      </span>
+                      <div className={`w-2 h-2 rounded-full ${
+                        week.totalPnL >= 0 ? 'bg-green-500' : 'bg-red-500'
+                      }`} />
+                    </div>
+                    <div className={`font-bold text-lg flex items-center gap-1 ${
+                      week.totalPnL >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {week.totalPnL >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                      ${Math.abs(week.totalPnL).toFixed(0)}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-4 gap-2 text-xs">
+                    <div className="text-center">
+                      <div className="font-bold text-foreground">{week.trades}</div>
+                      <div className="text-muted-foreground text-xs">Trades</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-bold text-foreground">{week.winRate.toFixed(0)}%</div>
+                      <div className="text-muted-foreground text-xs">Win Rate</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-bold text-foreground">${Math.abs(week.avgTrade).toFixed(0)}</div>
+                      <div className="text-muted-foreground text-xs">Avg Trade</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-bold text-foreground">{week.wins}</div>
+                      <div className="text-muted-foreground text-xs">Wins</div>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
