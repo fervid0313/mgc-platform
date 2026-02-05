@@ -10,7 +10,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Generate comprehensive economic events for the entire month
-    const events = generateCompleteMonthEvents(date)
+    const dateObj = new Date(date)
+    const events = generateWeekdayEvents(dateObj, dateObj.getDay())
     
     return NextResponse.json({
       date,
@@ -64,11 +65,31 @@ function generateWeekdayEvents(date: Date, dayOfWeek: number): any[] {
   const events: any[] = []
   const dayOfMonth = date.getDate()
   
+  // Only show events for February 2026
+  if (date.getMonth() !== 1 || date.getFullYear() !== 2026) {
+    return []
+  }
+  
   // Use deterministic logic based on date to generate consistent events
   const seed = dayOfMonth + dayOfWeek
   
   // Different event patterns based on day of week and date - USD ONLY
   switch (dayOfWeek) {
+    case 0: // Sunday
+      if (dayOfMonth === 1) {
+        events.push(generateEvent("OPEC-JMMC Meetings", "Low", "USD", "All Day", dayOfMonth))
+      }
+      if (dayOfMonth === 8) {
+        // No events for Feb 8
+      }
+      if (dayOfMonth === 15) {
+        // No events for Feb 15
+      }
+      if (dayOfMonth === 22) {
+        // No events for Feb 22
+      }
+      break
+      
     case 1: // Monday
       if (dayOfMonth === 2) {
         // Exact data for February 2, 2026
@@ -77,24 +98,20 @@ function generateWeekdayEvents(date: Date, dayOfWeek: number): any[] {
         events.push(generateEvent("ISM Manufacturing Prices", "Low", "USD", "9:00 AM", dayOfMonth))
         events.push(generateEvent("FOMC Member Bostic Speaks", "Medium", "USD", "11:30 AM", dayOfMonth))
         events.push(generateEvent("Loan Officer Survey", "Low", "USD", "1:00 PM", dayOfMonth))
-      } else {
-        // Regular Monday events
-        if ((seed % 3) !== 0) {
-          events.push(generateEvent("Final Manufacturing PMI", "Medium", "USD", "8:45 AM", dayOfMonth))
-        }
-        if ((seed % 2) === 0) {
-          events.push(generateEvent("ISM Manufacturing PMI", "High", "USD", "9:00 AM", dayOfMonth))
-        }
-        if ((seed % 4) === 0) {
-          events.push(generateEvent("ISM Manufacturing Prices", "Low", "USD", "9:00 AM", dayOfMonth))
-        }
-        if ((seed % 8) === 0) {
-          events.push(generateEvent("FOMC Member Bostic Speaks", "Medium", "USD", "1:00 PM", dayOfMonth))
-        }
+      }
+      if (dayOfMonth === 9) {
+        events.push(generateEvent("FOMC Member Waller Speaks", "Medium", "USD", "12:30 PM", dayOfMonth))
+        events.push(generateEvent("FOMC Member Bostic Speaks", "Medium", "USD", "2:15 PM", dayOfMonth))
+      }
+      if (dayOfMonth === 16) {
+        // No events for Feb 16
+      }
+      if (dayOfMonth === 23) {
+        // No events for Feb 23
       }
       break
       
-    case 2: // Tuesday - February 3, 2026 - exact ForexFactory data
+    case 2: // Tuesday
       if (dayOfMonth === 3) {
         // Exact data for February 3, 2026
         events.push(generateEvent("FOMC Member Barkin Speaks", "Medium", "USD", "7:00 AM", dayOfMonth))
@@ -102,36 +119,76 @@ function generateWeekdayEvents(date: Date, dayOfWeek: number): any[] {
         events.push(generateEvent("RCM/TIPP Economic Optimism", "Low", "USD", "9:01 AM", dayOfMonth))
         events.push(generateEvent("Wards Total Vehicle Sales", "Low", "USD", "All Day", dayOfMonth))
         events.push(generateEvent("API Weekly Statistical Bulletin", "Low", "USD", "3:30 PM", dayOfMonth))
-      } else {
-        // Regular Tuesday events
-        if ((seed % 4) !== 0) {
-          events.push(generateEvent("Building Permits", "Low", "USD", "8:30 AM", dayOfMonth))
-        }
-        if ((seed % 3) === 0) {
-          events.push(generateEvent("Industrial Production", "Medium", "USD", "9:15 AM", dayOfMonth))
-        }
+      }
+      if (dayOfMonth === 10) {
+        events.push(generateEvent("NFIB Small Business Index", "Low", "USD", "5:00 AM", dayOfMonth))
+        events.push(generateEvent("ADP Weekly Employment Change", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Core Retail Sales m/m", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Retail Sales m/m", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Employment Cost Index q/q", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Import Prices m/m", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Business Inventories m/m", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("JOLTS Job Openings", "Low", "USD", "9:00 AM", dayOfMonth))
+        events.push(generateEvent("FOMC Member Hammack Speaks", "Medium", "USD", "11:00 AM", dayOfMonth))
+        events.push(generateEvent("FOMC Member Logan Speaks", "Medium", "USD", "3:30 PM", dayOfMonth))
+        events.push(generateEvent("API Weekly Statistical Bulletin", "Low", "USD", "3:30 PM", dayOfMonth))
+      }
+      if (dayOfMonth === 17) {
+        events.push(generateEvent("ADP Weekly Employment Change", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Empire State Manufacturing Index", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Cleveland Fed Inflation Expectations", "Low", "USD", "9:00 AM", dayOfMonth))
+        events.push(generateEvent("NAHB Housing Market Index", "Low", "USD", "9:00 AM", dayOfMonth))
+      }
+      if (dayOfMonth === 24) {
+        events.push(generateEvent("ADP Weekly Employment Change", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("HPI m/m", "Low", "USD", "8:00 AM", dayOfMonth))
+        events.push(generateEvent("S&P/CS Composite-20 HPI y/y", "Low", "USD", "8:00 AM", dayOfMonth))
+        events.push(generateEvent("CB Consumer Confidence", "Low", "USD", "8:00 AM", dayOfMonth))
+        events.push(generateEvent("Richmond Manufacturing Index", "Low", "USD", "8:00 AM", dayOfMonth))
+        events.push(generateEvent("Final Wholesale Inventories m/m", "Low", "USD", "8:00 AM", dayOfMonth))
+        events.push(generateEvent("Trade Balance", "Low", "USD", "8:00 AM", dayOfMonth))
+        events.push(generateEvent("Pending Home Sales m/m", "Low", "USD", "8:00 AM", dayOfMonth))
+        events.push(generateEvent("CB Leading Index m/m", "Low", "USD", "8:00 AM", dayOfMonth))
+        events.push(generateEvent("Natural Gas Storage", "Low", "USD", "8:00 AM", dayOfMonth))
+        events.push(generateEvent("Crude Oil Inventories", "Low", "USD", "9:00 AM", dayOfMonth))
+        events.push(generateEvent("10-y Bond Auction", "Low", "USD", "12:01 PM", dayOfMonth))
+        events.push(generateEvent("Federal Budget Balance", "Low", "USD", "1:00 PM", dayOfMonth))
       }
       break
       
-    case 3: // Wednesday - February 4, 2026 - exact ForexFactory data
+    case 3: // Wednesday
       if (dayOfMonth === 4) {
         events.push(generateEvent("ADP Non-Farm Employment Change", "Medium", "USD", "7:15 AM", dayOfMonth))
         events.push(generateEvent("Final Services PMI", "Medium", "USD", "8:45 AM", dayOfMonth))
         events.push(generateEvent("ISM Services PMI", "High", "USD", "9:00 AM", dayOfMonth))
         events.push(generateEvent("Crude Oil Inventories", "Medium", "USD", "9:30 AM", dayOfMonth))
         events.push(generateEvent("FOMC Member Cook Speaks", "Medium", "USD", "5:30 PM", dayOfMonth))
-      } else {
-        // Regular Wednesday events
-        if ((seed % 3) !== 0) {
-          events.push(generateEvent("Core CPI", "High", "USD", "8:30 AM", dayOfMonth))
-        }
-        if ((seed % 2) === 0) {
-          events.push(generateEvent("ADP Non-Farm Employment", "High", "USD", "8:15 AM", dayOfMonth))
-        }
+      }
+      if (dayOfMonth === 11) {
+        events.push(generateEvent("Average Hourly Earnings m/m", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Non-Farm Employment Change", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Unemployment Rate", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Crude Oil Inventories", "Low", "USD", "9:30 AM", dayOfMonth))
+        events.push(generateEvent("10-y Bond Auction", "Low", "USD", "12:01 PM", dayOfMonth))
+        events.push(generateEvent("Federal Budget Balance", "Low", "USD", "1:00 PM", dayOfMonth))
+      }
+      if (dayOfMonth === 18) {
+        events.push(generateEvent("Core Durable Goods Orders m/m", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Durable Goods Orders m/m", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Building Permits", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Housing Starts", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Capacity Utilization Rate", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Industrial Production m/m", "Low", "USD", "8:15 AM", dayOfMonth))
+        events.push(generateEvent("FOMC Meeting Minutes", "Low", "USD", "1:00 PM", dayOfMonth))
+        events.push(generateEvent("TIC Long-Term Purchases", "Low", "USD", "3:30 PM", dayOfMonth))
+        events.push(generateEvent("API Weekly Statistical Bulletin", "Low", "USD", "3:30 PM", dayOfMonth))
+      }
+      if (dayOfMonth === 25) {
+        events.push(generateEvent("Crude Oil Inventories", "Low", "USD", "9:30 AM", dayOfMonth))
       }
       break
       
-    case 4: // Thursday - February 5, 2026 - exact ForexFactory data
+    case 4: // Thursday
       if (dayOfMonth === 5) {
         events.push(generateEvent("Challenger Job Cuts y/y", "Low", "USD", "6:30 AM", dayOfMonth))
         events.push(generateEvent("Unemployment Claims", "Medium", "USD", "7:30 AM", dayOfMonth))
@@ -139,60 +196,84 @@ function generateWeekdayEvents(date: Date, dayOfWeek: number): any[] {
         events.push(generateEvent("Natural Gas Storage", "Low", "USD", "9:30 AM", dayOfMonth))
         events.push(generateEvent("FOMC Member Bostic Speaks", "Medium", "USD", "9:50 AM", dayOfMonth))
         events.push(generateEvent("President Trump Speaks", "High", "USD", "6:00 PM", dayOfMonth))
-      } else {
-        // Regular Thursday events
-        if ((seed % 5) !== 0) {
-          events.push(generateEvent("Unemployment Claims", "Medium", "USD", "8:30 AM", dayOfMonth))
-        }
-        if ((seed % 3) === 0) {
-          events.push(generateEvent("Natural Gas Inventories", "Low", "USD", "10:30 AM", dayOfMonth))
-        }
-        if ((seed % 4) === 0) {
-          events.push(generateEvent("Trade Balance", "Medium", "USD", "8:30 AM", dayOfMonth))
-        }
+      }
+      if (dayOfMonth === 12) {
+        events.push(generateEvent("Unemployment Claims", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Philly Fed Manufacturing Index", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Goods Trade Balance", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Prelim Wholesale Inventories m/m", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Trade Balance", "Low", "USD", "8:00 AM", dayOfMonth))
+        events.push(generateEvent("Pending Home Sales m/m", "Low", "USD", "8:00 AM", dayOfMonth))
+        events.push(generateEvent("CB Leading Index m/m", "Low", "USD", "8:00 AM", dayOfMonth))
+        events.push(generateEvent("Natural Gas Storage", "Low", "USD", "8:00 AM", dayOfMonth))
+        events.push(generateEvent("Crude Oil Inventories", "Low", "USD", "9:00 AM", dayOfMonth))
+        events.push(generateEvent("30-y Bond Auction", "Low", "USD", "12:01 PM", dayOfMonth))
+        events.push(generateEvent("FOMC Member Logan Speaks", "Medium", "USD", "6:00 PM", dayOfMonth))
+        events.push(generateEvent("FOMC Member Miran Speaks", "Medium", "USD", "6:05 PM", dayOfMonth))
+      }
+      if (dayOfMonth === 19) {
+        events.push(generateEvent("Unemployment Claims", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Existing Home Sales", "Low", "USD", "9:00 AM", dayOfMonth))
+        events.push(generateEvent("Mortgage Delinquencies", "Low", "USD", "9:30 AM", dayOfMonth))
+        events.push(generateEvent("Natural Gas Storage", "Low", "USD", "9:30 AM", dayOfMonth))
+        events.push(generateEvent("30-y Bond Auction", "Low", "USD", "12:01 PM", dayOfMonth))
+        events.push(generateEvent("FOMC Member Logan Speaks", "Medium", "USD", "6:00 PM", dayOfMonth))
+      }
+      if (dayOfMonth === 26) {
+        events.push(generateEvent("Unemployment Claims", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Natural Gas Storage", "Low", "USD", "9:30 AM", dayOfMonth))
       }
       break
       
-    case 5: // Friday - February 6, 2026 - exact ForexFactory data
+    case 5: // Friday
       if (dayOfMonth === 6) {
         events.push(generateEvent("Prelim UoM Consumer Sentiment", "Low", "USD", "9:00 AM", dayOfMonth))
         events.push(generateEvent("Prelim UoM Inflation Expectations", "Low", "USD", "9:00 AM", dayOfMonth))
         events.push(generateEvent("FOMC Member Jefferson Speaks", "Medium", "USD", "11:00 AM", dayOfMonth))
         events.push(generateEvent("Consumer Credit m/m", "Low", "USD", "2:00 PM", dayOfMonth))
-      } else {
-        // Regular Friday events
-        // First Friday of month is always NFP day
-        if (dayOfMonth <= 7) {
-          events.push(generateEvent("Non-Farm Payrolls", "High", "USD", "8:30 AM", dayOfMonth))
-          events.push(generateEvent("Unemployment Rate", "High", "USD", "8:30 AM", dayOfMonth))
-          events.push(generateEvent("Average Hourly Earnings", "High", "USD", "8:30 AM", dayOfMonth))
-        } else {
-          // Other Fridays
-          if ((seed % 3) !== 0) {
-            events.push(generateEvent("Consumer Price Index", "High", "USD", "8:30 AM", dayOfMonth))
-          }
-          if ((seed % 6) === 0) {
-            events.push(generateEvent("Core PCE Price Index", "High", "USD", "8:30 AM", dayOfMonth))
-          }
-          if ((seed % 4) === 0) {
-            events.push(generateEvent("Retail Sales", "Medium", "USD", "8:30 AM", dayOfMonth))
-          }
-        }
+      }
+      if (dayOfMonth === 13) {
+        events.push(generateEvent("Core CPI m/m", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("CPI m/m", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("CPI y/y", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Fed Monetary Policy Report", "Low", "USD", "Tentative", dayOfMonth))
+      }
+      if (dayOfMonth === 20) {
+        events.push(generateEvent("Advance GDP q/q", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Core PCE Price Index m/m", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Advance GDP Price Index q/q", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Personal Income m/m", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Personal Spending m/m", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Flash Manufacturing PMI", "Low", "USD", "8:45 AM", dayOfMonth))
+        events.push(generateEvent("Flash Services PMI", "Low", "USD", "9:00 AM", dayOfMonth))
+        events.push(generateEvent("New Home Sales", "Low", "USD", "9:00 AM", dayOfMonth))
+        events.push(generateEvent("Revised UoM Consumer Sentiment", "Low", "USD", "9:00 AM", dayOfMonth))
+        events.push(generateEvent("Revised UoM Inflation Expectations", "Low", "USD", "Nov Data", dayOfMonth))
+        events.push(generateEvent("New Home Sales", "Low", "USD", "Nov Data", dayOfMonth))
+      }
+      if (dayOfMonth === 27) {
+        events.push(generateEvent("Core PPI m/m", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("PPI m/m", "Low", "USD", "7:30 AM", dayOfMonth))
+        events.push(generateEvent("Chicago PMI", "Low", "USD", "8:45 AM", dayOfMonth))
+        events.push(generateEvent("Construction Spending m/m", "Low", "USD", "Nov Data", dayOfMonth))
+        events.push(generateEvent("Construction Spending m/m", "Low", "USD", "Nov Data", dayOfMonth))
       }
       break
-  }
-  
-  // Add occasional events based on date
-  if ((seed % 8) === 0) {
-    events.push(generateEvent("Crude Oil Inventories", "Medium", "USD", "10:30 AM", dayOfMonth))
-  }
-  
-  // FOMC decisions happen on specific Wednesdays (roughly every 6-8 weeks)
-  const weekOfMonth = Math.ceil(dayOfMonth / 7)
-  if (dayOfWeek === 3 && (weekOfMonth === 2 || weekOfMonth === 4)) {
-    if ((seed % 12) === 0) {
-      events.push(generateEvent("FOMC Statement", "High", "USD", "2:00 PM", dayOfMonth))
-    }
+      
+    case 6: // Saturday
+      if (dayOfMonth === 7) {
+        // No events for Feb 7
+      }
+      if (dayOfMonth === 14) {
+        // No events for Feb 14
+      }
+      if (dayOfMonth === 21) {
+        // No events for Feb 21
+      }
+      if (dayOfMonth === 28) {
+        // No events for Feb 28
+      }
+      break
   }
   
   // Sort events by time
@@ -267,6 +348,7 @@ function convertTimeToMinutes(time: string): number {
 function generateActualValue(eventName: string, seed: number): string {
   // Exact values from ForexFactory for specific dates
   // Note: seed = dayOfMonth + dayOfWeek, so Feb 2 (Monday) = 2 + 1 = 3
+  if (eventName === "OPEC-JMMC Meetings" && seed === 1) return ""
   if (eventName === "Final Manufacturing PMI" && seed === 3) return "52.4"
   if (eventName === "ISM Manufacturing PMI" && seed === 3) return "52.6"
   if (eventName === "ISM Manufacturing Prices" && seed === 3) return "59.0"
@@ -282,6 +364,48 @@ function generateActualValue(eventName: string, seed: number): string {
   if (eventName === "Prelim UoM Consumer Sentiment" && seed === 11) return "55.0"
   if (eventName === "Prelim UoM Inflation Expectations" && seed === 11) return "4.0%"
   if (eventName === "Consumer Credit m/m" && seed === 11) return "9.0B"
+  
+  // Additional events from your data
+  if (eventName === "NFIB Small Business Index" && seed === 12) return "99.5"
+  if (eventName === "ADP Weekly Employment Change" && seed === 12) return ""
+  if (eventName === "Core Retail Sales m/m" && seed === 12) return "0.5%"
+  if (eventName === "Retail Sales m/m" && seed === 12) return "0.6%"
+  if (eventName === "Employment Cost Index q/q" && seed === 12) return "0.8%"
+  if (eventName === "Import Prices m/m" && seed === 12) return "0.4%"
+  if (eventName === "Business Inventories m/m" && seed === 12) return "0.3%"
+  if (eventName === "JOLTS Job Openings" && seed === 12) return "7.23M"
+  if (eventName === "Average Hourly Earnings m/m" && seed === 14) return ""
+  if (eventName === "Non-Farm Employment Change" && seed === 14) return ""
+  if (eventName === "Unemployment Rate" && seed === 14) return ""
+  if (eventName === "Crude Oil Inventories" && seed === 14) return ""
+  if (eventName === "10-y Bond Auction" && seed === 14) return "4.17|2.6"
+  if (eventName === "Federal Budget Balance" && seed === 14) return "-144.7B"
+  if (eventName === "Empire State Manufacturing Index" && seed === 17) return ""
+  if (eventName === "Cleveland Fed Inflation Expectations" && seed === 17) return ""
+  if (eventName === "NAHB Housing Market Index" && seed === 17) return ""
+  if (eventName === "HPI m/m" && seed === 18) return ""
+  if (eventName === "S&P/CS Composite-20 HPI y/y" && seed === 18) return ""
+  if (eventName === "CB Leading Index m/m" && seed === 18) return ""
+  if (eventName === "Natural Gas Storage" && seed === 18) return ""
+  if (eventName === "Crude Oil Inventories" && seed === 18) return ""
+  if (eventName === "30-y Bond Auction" && seed === 18) return "4.83|2.4"
+  if (eventName === "FOMC Member Logan Speaks" && seed === 18) return ""
+  if (eventName === "FOMC Member Miran Speaks" && seed === 18) return ""
+  if (eventName === "Core CPI m/m" && seed === 20) return "0.2%"
+  if (eventName === "CPI m/m" && seed === 20) return "0.3%"
+  if (eventName === "CPI y/y" && seed === 20) return "2.7%"
+  if (eventName === "Fed Monetary Policy Report" && seed === 20) return ""
+  if (eventName === "Flash Manufacturing PMI" && seed === 20) return ""
+  if (eventName === "Flash Services PMI" && seed === 20) return ""
+  if (eventName === "New Home Sales" && seed === 20) return ""
+  if (eventName === "Revised UoM Consumer Sentiment" && seed === 20) return ""
+  if (eventName === "Revised UoM Inflation Expectations" && seed === 20) return ""
+  if (eventName === "New Home Sales" && seed === 20) return ""
+  if (eventName === "Core PPI m/m" && seed === 27) return ""
+  if (eventName === "PPI m/m" && seed === 27) return ""
+  if (eventName === "Chicago PMI" && seed === 27) return ""
+  if (eventName === "Construction Spending m/m" && seed === 27) return ""
+  if (eventName === "Construction Spending m/m" && seed === 27) return ""
   
   const values: Record<string, string[]> = {
     "Final Manufacturing PMI": ["52.4", "51.9", "52.6", "50.2", "53.1", "49.8", "51.5", "50.8"],
@@ -323,6 +447,7 @@ function generateActualValue(eventName: string, seed: number): string {
 
 function generateForecastValue(eventName: string, seed: number): string {
   // Exact values from ForexFactory for specific dates
+  if (eventName === "OPEC-JMMC Meetings" && seed === 1) return ""
   if (eventName === "Final Manufacturing PMI" && seed === 3) return "51.9"
   if (eventName === "ISM Manufacturing PMI" && seed === 3) return "48.5"
   if (eventName === "ISM Manufacturing Prices" && seed === 3) return "59.3"
@@ -338,6 +463,48 @@ function generateForecastValue(eventName: string, seed: number): string {
   if (eventName === "Prelim UoM Consumer Sentiment" && seed === 11) return "56.4"
   if (eventName === "Prelim UoM Inflation Expectations" && seed === 11) return "3.8%"
   if (eventName === "Consumer Credit m/m" && seed === 11) return "4.2B"
+  
+  // Additional events from your data
+  if (eventName === "NFIB Small Business Index" && seed === 12) return ""
+  if (eventName === "ADP Weekly Employment Change" && seed === 12) return ""
+  if (eventName === "Core Retail Sales m/m" && seed === 12) return ""
+  if (eventName === "Retail Sales m/m" && seed === 12) return ""
+  if (eventName === "Employment Cost Index q/q" && seed === 12) return ""
+  if (eventName === "Import Prices m/m" && seed === 12) return ""
+  if (eventName === "Business Inventories m/m" && seed === 12) return ""
+  if (eventName === "JOLTS Job Openings" && seed === 12) return "7.15M"
+  if (eventName === "Average Hourly Earnings m/m" && seed === 14) return ""
+  if (eventName === "Non-Farm Employment Change" && seed === 14) return ""
+  if (eventName === "Unemployment Rate" && seed === 14) return ""
+  if (eventName === "Crude Oil Inventories" && seed === 14) return ""
+  if (eventName === "10-y Bond Auction" && seed === 14) return ""
+  if (eventName === "Federal Budget Balance" && seed === 14) return ""
+  if (eventName === "Empire State Manufacturing Index" && seed === 17) return ""
+  if (eventName === "Cleveland Fed Inflation Expectations" && seed === 17) return ""
+  if (eventName === "NAHB Housing Market Index" && seed === 17) return ""
+  if (eventName === "HPI m/m" && seed === 18) return ""
+  if (eventName === "S&P/CS Composite-20 HPI y/y" && seed === 18) return ""
+  if (eventName === "CB Leading Index m/m" && seed === 18) return ""
+  if (eventName === "Natural Gas Storage" && seed === 18) return ""
+  if (eventName === "Crude Oil Inventories" && seed === 18) return ""
+  if (eventName === "30-y Bond Auction" && seed === 18) return ""
+  if (eventName === "FOMC Member Logan Speaks" && seed === 18) return ""
+  if (eventName === "FOMC Member Miran Speaks" && seed === 18) return ""
+  if (eventName === "Core CPI m/m" && seed === 20) return ""
+  if (eventName === "CPI m/m" && seed === 20) return ""
+  if (eventName === "CPI y/y" && seed === 20) return ""
+  if (eventName === "Fed Monetary Policy Report" && seed === 20) return ""
+  if (eventName === "Flash Manufacturing PMI" && seed === 20) return ""
+  if (eventName === "Flash Services PMI" && seed === 20) return ""
+  if (eventName === "New Home Sales" && seed === 20) return ""
+  if (eventName === "Revised UoM Consumer Sentiment" && seed === 20) return ""
+  if (eventName === "Revised UoM Inflation Expectations" && seed === 20) return ""
+  if (eventName === "New Home Sales" && seed === 20) return ""
+  if (eventName === "Core PPI m/m" && seed === 27) return ""
+  if (eventName === "PPI m/m" && seed === 27) return ""
+  if (eventName === "Chicago PMI" && seed === 27) return ""
+  if (eventName === "Construction Spending m/m" && seed === 27) return ""
+  if (eventName === "Construction Spending m/m" && seed === 27) return ""
   
   const values: Record<string, string[]> = {
     "Final Manufacturing PMI": ["51.9", "52.0", "51.8", "52.1", "51.7", "52.2", "51.6", "51.9"],
@@ -378,6 +545,7 @@ function generateForecastValue(eventName: string, seed: number): string {
 
 function generatePreviousValue(eventName: string, seed: number): string {
   // Exact values from ForexFactory for specific dates
+  if (eventName === "OPEC-JMMC Meetings" && seed === 1) return ""
   if (eventName === "Final Manufacturing PMI" && seed === 3) return "51.9"
   if (eventName === "ISM Manufacturing PMI" && seed === 3) return "47.9"
   if (eventName === "ISM Manufacturing Prices" && seed === 3) return "58.5"
@@ -393,6 +561,48 @@ function generatePreviousValue(eventName: string, seed: number): string {
   if (eventName === "Prelim UoM Consumer Sentiment" && seed === 11) return "54.2"
   if (eventName === "Prelim UoM Inflation Expectations" && seed === 11) return "4.2%"
   if (eventName === "Consumer Credit m/m" && seed === 11) return "6.8B"
+  
+  // Additional events from your data
+  if (eventName === "NFIB Small Business Index" && seed === 12) return ""
+  if (eventName === "ADP Weekly Employment Change" && seed === 12) return ""
+  if (eventName === "Core Retail Sales m/m" && seed === 12) return ""
+  if (eventName === "Retail Sales m/m" && seed === 12) return ""
+  if (eventName === "Employment Cost Index q/q" && seed === 12) return ""
+  if (eventName === "Import Prices m/m" && seed === 12) return ""
+  if (eventName === "Business Inventories m/m" && seed === 12) return ""
+  if (eventName === "JOLTS Job Openings" && seed === 12) return "7.15M"
+  if (eventName === "Average Hourly Earnings m/m" && seed === 14) return ""
+  if (eventName === "Non-Farm Employment Change" && seed === 14) return ""
+  if (eventName === "Unemployment Rate" && seed === 14) return ""
+  if (eventName === "Crude Oil Inventories" && seed === 14) return ""
+  if (eventName === "10-y Bond Auction" && seed === 14) return ""
+  if (eventName === "Federal Budget Balance" && seed === 14) return ""
+  if (eventName === "Empire State Manufacturing Index" && seed === 17) return ""
+  if (eventName === "Cleveland Fed Inflation Expectations" && seed === 17) return ""
+  if (eventName === "NAHB Housing Market Index" && seed === 17) return ""
+  if (eventName === "HPI m/m" && seed === 18) return ""
+  if (eventName === "S&P/CS Composite-20 HPI y/y" && seed === 18) return ""
+  if (eventName === "CB Leading Index m/m" && seed === 18) return ""
+  if (eventName === "Natural Gas Storage" && seed === 18) return ""
+  if (eventName === "Crude Oil Inventories" && seed === 18) return ""
+  if (eventName === "30-y Bond Auction" && seed === 18) return ""
+  if (eventName === "FOMC Member Logan Speaks" && seed === 18) return ""
+  if (eventName === "FOMC Member Miran Speaks" && seed === 18) return ""
+  if (eventName === "Core CPI m/m" && seed === 20) return ""
+  if (eventName === "CPI m/m" && seed === 20) return ""
+  if (eventName === "CPI y/y" && seed === 20) return ""
+  if (eventName === "Fed Monetary Policy Report" && seed === 20) return ""
+  if (eventName === "Flash Manufacturing PMI" && seed === 20) return ""
+  if (eventName === "Flash Services PMI" && seed === 20) return ""
+  if (eventName === "New Home Sales" && seed === 20) return ""
+  if (eventName === "Revised UoM Consumer Sentiment" && seed === 20) return ""
+  if (eventName === "Revised UoM Inflation Expectations" && seed === 20) return ""
+  if (eventName === "New Home Sales" && seed === 20) return ""
+  if (eventName === "Core PPI m/m" && seed === 27) return ""
+  if (eventName === "PPI m/m" && seed === 27) return ""
+  if (eventName === "Chicago PMI" && seed === 27) return ""
+  if (eventName === "Construction Spending m/m" && seed === 27) return ""
+  if (eventName === "Construction Spending m/m" && seed === 27) return ""
   
   const values: Record<string, string[]> = {
     "Final Manufacturing PMI": ["51.9", "52.0", "51.8", "52.1", "51.7", "52.2", "51.6", "51.9"],

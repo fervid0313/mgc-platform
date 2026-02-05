@@ -109,8 +109,8 @@ function getMockEconomicEvents(): Record<string, EconomicEvent[]> {
 
 export function EconomicCalendarButton() {
   const [open, setOpen] = useState(false)
-  // Set to February 2, 2026 (Monday) as requested
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 1, 2))
+  // Set to February 1, 2026 (Sunday) as requested
+  const [currentDate, setCurrentDate] = useState(new Date(2026, 1, 1))
   const [economicEventsByDate, setEconomicEventsByDate] = useState<Record<string, EconomicEvent[]>>({})
   const [isLoading, setIsLoading] = useState(false)
   const [selectedDate, setSelectedDate] = useState(new Date())
@@ -125,7 +125,10 @@ export function EconomicCalendarButton() {
   const loadCalendarData = async () => {
     setIsLoading(true)
     try {
+      console.log('Loading calendar data for date:', currentDate.toISOString())
       const events = await fetchForexFactoryCalendar(currentDate)
+      console.log('Received events:', events)
+      console.log('Events for current date:', events[formatDateKey(currentDate)])
       setEconomicEventsByDate(events)
     } catch (error) {
       console.error('Failed to load calendar data:', error)
@@ -155,7 +158,9 @@ export function EconomicCalendarButton() {
 
   const getEventsForDate = (date: Date) => {
     const dateKey = formatDateKey(date)
-    return economicEventsByDate[dateKey] || []
+    const events = economicEventsByDate[dateKey] || []
+    console.log('getEventsForDate called for:', dateKey, 'events:', events)
+    return events
   }
 
   const hasEvents = (date: Date) => {
