@@ -369,8 +369,7 @@ function generateForecastValue(eventName: string, seed: number): string {
     "Building Permits": ["1.48M", "1.50M", "1.46M", "1.52M", "1.47M", "1.44M", "1.54M", "1.49M"],
     "Industrial Production": ["0.1%", "0.0%", "0.2%", "-0.1%", "0.3%", "-0.2%", "0.4%", "0.0%"],
     "Trade Balance": ["-$63.5B", "-$60.2B", "-$66.8B", "-$61.9B", "-$67.3B", "-$58.7B", "-$69.1B", "-$62.8B"],
-    "Manufacturing PMI": ["49.5", "50.0", "48.0", "50.5", "49.0", "47.5", "51.0", "49.8"],
-    "Crude Oil Inventories": ["2.0M", "3.5M", "1.5M", "2.8M", "2.3M", "3.2M", "1.8M", "2.7M"]
+    "Manufacturing PMI": ["49.5", "50.0", "48.0", "50.5", "49.0", "47.5", "51.0", "49.8"]
   }
   
   const eventValues = values[eventName] || ["TBD"]
