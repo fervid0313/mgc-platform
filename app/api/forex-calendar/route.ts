@@ -9,9 +9,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Date parameter is required' }, { status: 400 })
     }
 
-    // Generate comprehensive economic events for the entire month
-    const dateObj = new Date(date)
-    const events = generateWeekdayEvents(dateObj, dateObj.getDay())
+    // Parse YYYY-MM-DD as a local date (avoid UTC shifting which breaks day/month matching)
+    const [yearStr, monthStr, dayStr] = date.split('-')
+    const year = Number(yearStr)
+    const month = Number(monthStr)
+    const day = Number(dayStr)
+
+    if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+      return NextResponse.json({ error: 'Invalid date format. Expected YYYY-MM-DD' }, { status: 400 })
+    }
+
+    // Generate comprehensive economic events for the entire month (map keyed by YYYY-MM-DD)
+    const dateObj = new Date(year, month - 1, day)
+    const events = generateCompleteMonthEvents(dateObj)
     
     return NextResponse.json({
       date,
@@ -29,9 +39,15 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function generateCompleteMonthEvents(date: string): Record<string, any[]> {
+function formatDateKey(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function generateCompleteMonthEvents(dateObj: Date): Record<string, any[]> {
   const events: Record<string, any[]> = {}
-  const dateObj = new Date(date)
   const year = dateObj.getFullYear()
   const month = dateObj.getMonth()
   
@@ -41,21 +57,11 @@ function generateCompleteMonthEvents(date: string): Record<string, any[]> {
   // Generate events for each day of the month
   for (let day = 1; day <= daysInMonth; day++) {
     const currentDate = new Date(year, month, day)
-    const dateStr = currentDate.toISOString().split('T')[0]
+    const dateStr = formatDateKey(currentDate)
     const dayOfWeek = currentDate.getDay()
-    
-    // Skip weekends (Saturday=6, Sunday=0) - ForexFactory shows minimal weekend data
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-      // Only add major weekend events occasionally
-      if (Math.random() > 0.8) {
-        events[dateStr] = generateWeekendEvents(currentDate)
-      } else {
-        events[dateStr] = []
-      }
-    } else {
-      // Generate weekday events
-      events[dateStr] = generateWeekdayEvents(currentDate, dayOfWeek)
-    }
+
+    // Deterministic generation for all days (including weekends)
+    events[dateStr] = generateWeekdayEvents(currentDate, dayOfWeek)
   }
   
   return events
@@ -335,14 +341,29 @@ function getEventDescription(eventName: string): string {
     "Crude Oil Inventories": "Weekly change in crude oil inventories",
     "RBA Meeting Minutes": "Reserve Bank of Australia monetary policy meeting minutes"
   }
-  
+
   return descriptions[eventName] || "Economic data release"
 }
 
 function convertTimeToMinutes(time: string): number {
-  const [hour, minute] = time.replace(/[^\d:]/g, '').split(':').map(Number)
-  const period = time.toLowerCase().includes('pm') && hour < 12 ? 12 : 0
-  return ((hour % 12) + period) * 60 + (minute || 0)
+  const normalized = (time || '').trim().toLowerCase()
+  if (!normalized) return Number.MAX_SAFE_INTEGER
+
+  if (normalized === 'all day') return -1
+  if (normalized === 'tentative') return 24 * 60 + 1
+  if (normalized.includes('data')) return 24 * 60 + 2
+
+  const match = normalized.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/)
+  if (!match) return 24 * 60 + 3
+
+  let hour = Number(match[1])
+  const minute = match[2] ? Number(match[2]) : 0
+  const period = match[3]
+
+  if (period === 'pm' && hour < 12) hour += 12
+  if (period === 'am' && hour === 12) hour = 0
+
+  return hour * 60 + minute
 }
 
 function generateActualValue(eventName: string, seed: number): string {

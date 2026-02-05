@@ -24,6 +24,27 @@ interface EconomicEvent {
   previous?: string
 }
 
+function timeSortKey(time: string): number {
+  const normalized = (time || '').trim().toLowerCase()
+  if (!normalized) return Number.MAX_SAFE_INTEGER
+
+  if (normalized === 'all day') return -1
+  if (normalized === 'tentative') return 24 * 60 + 1
+  if (normalized.includes('data')) return 24 * 60 + 2
+
+  const match = normalized.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/)
+  if (!match) return 24 * 60 + 3
+
+  let hour = Number(match[1])
+  const minute = match[2] ? Number(match[2]) : 0
+  const period = match[3]
+
+  if (period === 'pm' && hour < 12) hour += 12
+  if (period === 'am' && hour === 12) hour = 0
+
+  return hour * 60 + minute
+}
+
 // Function to fetch ForexFactory economic calendar
 async function fetchForexFactoryCalendar(date: Date): Promise<Record<string, EconomicEvent[]>> {
   try {
@@ -45,7 +66,17 @@ async function fetchForexFactoryCalendar(date: Date): Promise<Record<string, Eco
     }
     
     const data = await response.json()
-    return data.events || {}
+
+    const events = (data as any)?.events
+    if (Array.isArray(events)) {
+      return { [dateStr]: events as EconomicEvent[] }
+    }
+
+    if (events && typeof events === 'object') {
+      return events as Record<string, EconomicEvent[]>
+    }
+
+    return {}
   } catch (error) {
     console.error('Error fetching ForexFactory calendar:', error)
     // Return mock data as fallback
@@ -127,8 +158,8 @@ export function EconomicCalendarButton() {
     try {
       console.log('Loading calendar data for date:', currentDate.toISOString())
       const events = await fetchForexFactoryCalendar(currentDate)
-      console.log('Received events:', events)
-      console.log('Events for current date:', events[formatDateKey(currentDate)])
+      console.log('Received events keys:', Object.keys(events).length)
+      console.log('Events for current date:', events[formatDateKey(currentDate)] || [])
       setEconomicEventsByDate(events)
     } catch (error) {
       console.error('Failed to load calendar data:', error)
@@ -234,7 +265,7 @@ export function EconomicCalendarButton() {
     return days
   }
 
-  const selectedEvents = getEventsForDate(selectedDate)
+  const selectedEvents = [...getEventsForDate(selectedDate)].sort((a, b) => timeSortKey(a.time) - timeSortKey(b.time))
   const monthNames = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
