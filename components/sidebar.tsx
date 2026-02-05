@@ -25,7 +25,7 @@ export function Sidebar() {
       <aside
         className={`fixed inset-y-0 left-0 w-72 glass z-50 p-6 shadow-2xl transition-transform duration-400 ease-out ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0 lg:static lg:z-0`}
+        } lg:fixed lg:translate-x-0 lg:z-0`}
       >
         <div className="text-center mb-4">
           <span className="text-xs italic text-muted-foreground/50">Exodus 14:14</span>
@@ -43,7 +43,7 @@ export function Sidebar() {
           </button>
         </div>
 
-        <div className="space-y-2 flex-1 overflow-y-auto max-h-[calc(100vh-420px)] scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent overscroll-contain">
+        <div className="space-y-2 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent overscroll-contain">
           {spaces.map((space) => (
             <div key={space.id} className="relative group">
               <button
@@ -92,7 +92,18 @@ export function Sidebar() {
           ))}
         </div>
 
-        <div className="absolute bottom-24 left-6 right-6">
+        {/* Fixed Create Space Button */}
+        <div className="absolute bottom-6 left-6 right-6">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="w-full p-2 rounded-lg bg-white/10 hover:bg-white/20 text-muted-foreground hover:text-foreground font-medium transition-all duration-200 flex items-center justify-center gap-2 text-sm"
+          >
+            <Plus className="h-3 w-3" />
+            Create Space
+          </button>
+        </div>
+
+        <div className="absolute bottom-20 left-6 right-6">
           <MilestoneProgress />
         </div>
       </aside>

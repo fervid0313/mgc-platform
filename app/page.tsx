@@ -12,6 +12,7 @@ import { OnlineUsers } from "@/components/online-users"
 import { ViewToggle } from "@/components/view-toggle"
 import { FAQ } from "@/components/faq"
 import { InviteToSpaceButton } from "@/components/invite-to-space-button"
+import { EconomicCalendarButton } from "@/components/economic-calendar-button"
 import { JoinPrivateSpaceButton } from "@/components/join-private-space-button"
 import { Loader2, ExternalLink } from "lucide-react"
 
@@ -64,7 +65,7 @@ export default function Home() {
       <div className="flex flex-1">
         <Sidebar />
 
-        <div className={`flex-1 flex flex-col transition-all duration-400 ${sidebarOpen ? "lg:ml-0" : ""}`}>
+        <div className={`flex-1 flex flex-col transition-all duration-400 lg:ml-72 ${sidebarOpen ? "ml-0" : ""}`}>
           <Navbar />
 
           <main className="flex-1 max-w-2xl mx-auto w-full px-5 pt-8 pb-32">
@@ -92,7 +93,10 @@ export default function Home() {
               <FAQ />
             ) : showCommunity ? (
               <>
-                <JoinPrivateSpaceButton />
+                <div className="flex gap-4 mb-6">
+                  <EconomicCalendarButton />
+                  <JoinPrivateSpaceButton />
+                </div>
                 <CommunityProfiles />
               </>
             ) : (
