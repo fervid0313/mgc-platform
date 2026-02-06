@@ -163,7 +163,7 @@ export function ProfileDetails({ isOpen, onClose }: ProfileDetailsProps) {
             <button
               onClick={() => {
                 onClose()
-                router.push(`/profile/${user.id}/analytics`)
+                router.push(`/analytics`)
               }}
               className="flex items-center gap-3 px-8 py-4 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] text-lg font-semibold w-full"
             >
