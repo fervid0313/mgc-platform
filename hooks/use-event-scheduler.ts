@@ -48,6 +48,7 @@ export function useEventScheduler() {
 
   useEffect(() => {
     if (!user) return
+    const userId = user.id
     return // <-- DISABLE SCHEDULER FOR TESTING
 
     // Cross-tab lock: only one tab runs the scheduler
@@ -105,8 +106,8 @@ export function useEventScheduler() {
 
         // Insert notification
         const { error } = await supabase.from("notifications").insert({
-          user_id: user.id,
-          from_user_id: user.id,
+          user_id: userId,
+          from_user_id: userId,
           type: "event_reminder",
           target_entry_id: null,
           target_entry_content: null,
