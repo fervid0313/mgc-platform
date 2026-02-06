@@ -6,14 +6,47 @@ import { useAppStore } from "@/lib/store"
 import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Calendar, Tag, Users, Image as ImageIcon, X } from "lucide-react"
 import { format } from "date-fns"
 import { PnLCalendar } from "@/components/pnl-calendar"
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  BarChart,
+  Bar,
+} from "recharts"
+
+type BreakdownKey = "symbol" | "strategy" | "timeframe" | "direction"
+
+interface EquityPoint {
+  date: string
+  equity: number
+  drawdown: number
+}
+
+interface BreakdownRow {
+  key: string
+  trades: number
+  totalPnL: number
+  winRate: number
+}
 
 interface UserProfileStats {
   totalTrades: number
   totalPnL: number
   winRate: number
   avgTrade: number
+  avgWin: number
+  avgLoss: number
+  profitFactor: number | null
+  expectancy: number
+  maxDrawdown: number
   tradesWithImages: number
   recentTrades: any[]
+  equityCurve: EquityPoint[]
+  breakdowns: Record<BreakdownKey, BreakdownRow[]>
 }
 
 // Function to get mood color classes
@@ -96,6 +129,7 @@ export default function TradeAnalyticsPage() {
   const calculateUserStats = (userProfile: any) => {
     // Get all entries for this user in current space (if available)
     const userEntries = currentSpaceId ? (entries[currentSpaceId]?.filter(entry => entry.userId === userId) || []) : []
+    const trades = userEntries.filter((e) => typeof e.profitLoss === "number" && Number.isFinite(e.profitLoss))
     console.log("[ANALYTICS] User entries found:", userEntries.length)
     console.log("[ANALYTICS] Current space ID:", currentSpaceId)
     console.log("[ANALYTICS] User ID:", userId)
@@ -107,11 +141,65 @@ export default function TradeAnalyticsPage() {
       content: e.content.substring(0, 50)
     })))
     
-    // Calculate stats
-    const profitableTrades = userEntries.filter(entry => (entry.profitLoss || 0) > 0)
-    const totalPnL = userEntries.reduce((sum, entry) => sum + (entry.profitLoss || 0), 0)
-    const winRate = userEntries.length > 0 ? (profitableTrades.length / userEntries.length) * 100 : 0
-    const avgTrade = userEntries.length > 0 ? totalPnL / userEntries.length : 0
+    // Calculate stats (use only entries with PnL for trade performance)
+    const profitableTrades = trades.filter((entry) => (entry.profitLoss || 0) > 0)
+    const losingTrades = trades.filter((entry) => (entry.profitLoss || 0) < 0)
+    const totalPnL = trades.reduce((sum, entry) => sum + (entry.profitLoss || 0), 0)
+    const winRate = trades.length > 0 ? (profitableTrades.length / trades.length) * 100 : 0
+    const avgTrade = trades.length > 0 ? totalPnL / trades.length : 0
+
+    const avgWin = profitableTrades.length > 0 ? profitableTrades.reduce((s, e) => s + (e.profitLoss || 0), 0) / profitableTrades.length : 0
+    const avgLoss = losingTrades.length > 0 ? Math.abs(losingTrades.reduce((s, e) => s + (e.profitLoss || 0), 0) / losingTrades.length) : 0
+
+    const grossWin = profitableTrades.reduce((s, e) => s + (e.profitLoss || 0), 0)
+    const grossLossAbs = Math.abs(losingTrades.reduce((s, e) => s + (e.profitLoss || 0), 0))
+    const profitFactor = grossLossAbs > 0 ? grossWin / grossLossAbs : profitableTrades.length > 0 ? null : 0
+
+    const lossRate = 100 - winRate
+    const expectancy = (winRate / 100) * avgWin - (lossRate / 100) * avgLoss
+
+    // Equity curve + max drawdown
+    const sortedTradesAsc = [...trades].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+    let equity = 0
+    let peak = 0
+    let maxDrawdown = 0
+
+    const equityCurve: EquityPoint[] = sortedTradesAsc.map((t) => {
+      equity += t.profitLoss || 0
+      if (equity > peak) peak = equity
+      const drawdown = equity - peak
+      if (drawdown < maxDrawdown) maxDrawdown = drawdown
+      return {
+        date: format(new Date(t.createdAt), "MMM d"),
+        equity: Number(equity.toFixed(2)),
+        drawdown: Number(drawdown.toFixed(2)),
+      }
+    })
+
+    const groupBreakdown = (key: BreakdownKey): BreakdownRow[] => {
+      const map = new Map<string, { trades: number; totalPnL: number; wins: number }>()
+      for (const t of trades) {
+        const raw = (t as any)[key]
+        const k = typeof raw === "string" && raw.trim().length > 0 ? raw.trim() : "(none)"
+        const prev = map.get(k) || { trades: 0, totalPnL: 0, wins: 0 }
+        const pnl = t.profitLoss || 0
+        map.set(k, {
+          trades: prev.trades + 1,
+          totalPnL: prev.totalPnL + pnl,
+          wins: prev.wins + (pnl > 0 ? 1 : 0),
+        })
+      }
+
+      return [...map.entries()]
+        .map(([k, v]) => ({
+          key: k,
+          trades: v.trades,
+          totalPnL: Number(v.totalPnL.toFixed(2)),
+          winRate: v.trades > 0 ? Number(((v.wins / v.trades) * 100).toFixed(1)) : 0,
+        }))
+        .sort((a, b) => Math.abs(b.totalPnL) - Math.abs(a.totalPnL))
+        .slice(0, 8)
+    }
     const tradesWithImages = userEntries.filter(entry => entry.image).length
 
     console.log("[ANALYTICS] Calculated stats:", {
@@ -128,12 +216,24 @@ export default function TradeAnalyticsPage() {
     )
 
     setUserStats({
-      totalTrades: userEntries.length,
+      totalTrades: trades.length,
       totalPnL,
       winRate,
       avgTrade,
+      avgWin,
+      avgLoss,
+      profitFactor,
+      expectancy,
+      maxDrawdown,
       tradesWithImages,
-      recentTrades: sortedEntries
+      recentTrades: sortedEntries,
+      equityCurve,
+      breakdowns: {
+        symbol: groupBreakdown("symbol"),
+        strategy: groupBreakdown("strategy"),
+        timeframe: groupBreakdown("timeframe"),
+        direction: groupBreakdown("direction"),
+      },
     })
 
     setLoading(false)
@@ -277,6 +377,91 @@ export default function TradeAnalyticsPage() {
                   </p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {userStats && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-2xl p-6 border-2 border-white/20 shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold">Equity curve</h3>
+                  <div className="text-xs text-muted-foreground font-medium">{userStats.equityCurve.length} trades</div>
+                </div>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={userStats.equityCurve} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.25} />
+                      <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                      <YAxis tick={{ fontSize: 10 }} />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="equity" stroke="#22c55e" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="drawdown" stroke="#ef4444" strokeWidth={1.5} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="mt-3 text-[10px] text-muted-foreground">
+                  Green = equity, Red = drawdown (negative)
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-2xl p-6 border-2 border-white/20 shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-sm">
+                <h3 className="text-lg font-bold mb-4">Advanced</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Avg win</span>
+                    <span className="text-sm font-bold text-green-600">${userStats.avgWin.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Avg loss</span>
+                    <span className="text-sm font-bold text-red-600">${userStats.avgLoss.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Profit factor</span>
+                    <span className="text-sm font-bold">
+                      {userStats.profitFactor === null ? "∞" : userStats.profitFactor.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Expectancy</span>
+                    <span className={`text-sm font-bold ${userStats.expectancy >= 0 ? "text-green-600" : "text-red-600"}`}>
+                      ${Math.abs(userStats.expectancy).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Max drawdown</span>
+                    <span className="text-sm font-bold text-red-600">${Math.abs(userStats.maxDrawdown).toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {userStats && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {([
+                ["By symbol", "symbol"],
+                ["By strategy", "strategy"],
+                ["By timeframe", "timeframe"],
+                ["By direction", "direction"],
+              ] as const).map(([title, key]) => (
+                <div key={key} className="bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-2xl p-6 border-2 border-white/20 shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold">{title}</h3>
+                    <div className="text-xs text-muted-foreground font-medium">Top {userStats.breakdowns[key].length}</div>
+                  </div>
+                  <div className="h-56">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={userStats.breakdowns[key]} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" opacity={0.25} />
+                        <XAxis dataKey="key" tick={{ fontSize: 10 }} interval={0} angle={-25} textAnchor="end" height={50} />
+                        <YAxis tick={{ fontSize: 10 }} />
+                        <Tooltip />
+                        <Bar dataKey="totalPnL" fill="#a855f7" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
