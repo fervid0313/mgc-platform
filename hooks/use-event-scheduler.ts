@@ -40,7 +40,7 @@ function parseEventTime(timeStr: string, dateStr: string): Date | null {
 }
 
 export function useEventScheduler() {
-  const { user, watchedEvents, loadNotifications, markNotificationRead } = useAppStore()
+  const { user, watchedEvents, loadWatchedEvents, loadNotifications, markNotificationRead } = useAppStore()
   const audioContextRef = useRef<AudioContext | null>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const firedRef = useRef<Set<string>>(new Set())
@@ -48,8 +48,12 @@ export function useEventScheduler() {
 
   useEffect(() => {
     if (!user) return
+    void loadWatchedEvents()
+  }, [user, loadWatchedEvents])
+
+  useEffect(() => {
+    if (!user) return
     const userId = user.id
-    return // <-- DISABLE SCHEDULER FOR TESTING
 
     // Cross-tab lock: only one tab runs the scheduler
     const lockKey = "mgs-event-scheduler-lock"

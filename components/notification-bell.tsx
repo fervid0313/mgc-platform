@@ -41,6 +41,33 @@ export function NotificationBell() {
   const soundArmedRef = useRef(false)
   const prevUnreadRef = useRef(0)
 
+  const formatNotification = (n: { type: string; message: string }) => {
+    if (n.type === "admin_global") {
+      try {
+        const parsed = JSON.parse(n.message) as { title?: unknown; message?: unknown }
+        const title = typeof parsed?.title === "string" ? parsed.title : "Admin"
+        const message = typeof parsed?.message === "string" ? parsed.message : n.message
+        return { label: "Admin", title, message }
+      } catch {
+        return { label: "Admin", title: "Admin", message: n.message }
+      }
+    }
+
+    if (n.type === "like") {
+      return { label: "Like", title: "Someone liked your entry", message: n.message }
+    }
+
+    if (n.type === "event_reminder") {
+      return { label: "Reminder", title: "Event reminder", message: n.message }
+    }
+
+    if (n.type === "broadcast_test") {
+      return { label: "Broadcast", title: "Broadcast", message: n.message }
+    }
+
+    return { label: n.type, title: n.type, message: n.message }
+  }
+
   const unreadCount = useMemo(() => notifications.filter((n) => !n.read).length, [notifications])
 
   useEffect(() => {
@@ -88,7 +115,7 @@ export function NotificationBell() {
 
     toast({
       title: "New notification",
-      description: newestUnread.message,
+      description: formatNotification(newestUnread).message,
     })
   }, [unreadCount, notifications, user])
 
@@ -132,6 +159,37 @@ export function NotificationBell() {
     } catch (e) {
       toast({
         title: "Status check failed",
+        description: e instanceof Error ? e.message : "Unknown error",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const sendAdminGlobal = async () => {
+    const title = window.prompt("Notification title?")
+    if (!title) return
+
+    const message = window.prompt("Notification message?")
+    if (!message) return
+
+    try {
+      const res = await fetch("/api/notifications/broadcast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, message }),
+      })
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`)
+      }
+      const data = await res.json()
+      toast({
+        title: "Global notification sent",
+        description: `Inserted ${data?.inserted ?? 0} notifications`,
+      })
+      void loadNotifications()
+    } catch (e) {
+      toast({
+        title: "Send failed",
         description: e instanceof Error ? e.message : "Unknown error",
         variant: "destructive",
       })
@@ -198,6 +256,14 @@ export function NotificationBell() {
             <DropdownMenuItem
               onSelect={(e) => {
                 e.preventDefault()
+                void sendAdminGlobal()
+              }}
+            >
+              Send global notification (custom)
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault()
                 void checkBroadcastStatus()
               }}
             >
@@ -212,6 +278,9 @@ export function NotificationBell() {
         ) : (
           <div className="max-h-[420px] overflow-y-auto">
             {notifications.slice(0, 30).map((n) => (
+              (() => {
+                const f = formatNotification(n)
+                return (
               <DropdownMenuItem
                 key={n.id}
                 className={`flex flex-col items-start gap-1 py-3 ${n.read ? "opacity-70" : ""}`}
@@ -223,11 +292,14 @@ export function NotificationBell() {
                 }}
               >
                 <div className="flex items-center justify-between w-full">
-                  <span className="text-xs font-semibold text-foreground">{n.type}</span>
+                  <span className="text-xs font-semibold text-foreground">{f.label}</span>
                   {!n.read && <span className="w-2 h-2 rounded-full bg-primary" />}
                 </div>
-                <div className="text-xs text-muted-foreground leading-snug">{n.message}</div>
+                <div className="text-xs text-foreground leading-snug">{f.title}</div>
+                <div className="text-xs text-muted-foreground leading-snug">{f.message}</div>
               </DropdownMenuItem>
+                )
+              })()
             ))}
           </div>
         )}

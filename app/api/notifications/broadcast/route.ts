@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 
 const ADMIN_EMAIL = "fervid2023@gmail.com"
 
-export async function POST() {
+export async function POST(request: Request) {
   const supabase = await createClient()
 
   const {
@@ -31,6 +31,18 @@ export async function POST() {
     return NextResponse.json({ ok: true, inserted: 0 })
   }
 
+  let body: any = null
+  try {
+    body = await request.json()
+  } catch {
+    body = null
+  }
+
+  const title = typeof body?.title === "string" ? body.title.trim() : ""
+  const customMessage = typeof body?.message === "string" ? body.message.trim() : ""
+
+  const isCustom = title.length > 0 && customMessage.length > 0
+
   const now = new Date()
   const stamp = now.toLocaleString("en-US", {
     month: "2-digit",
@@ -40,12 +52,13 @@ export async function POST() {
     minute: "2-digit",
   })
 
-  const message = `MGS test notification (${stamp})`
+  const type = isCustom ? "admin_global" : "broadcast_test"
+  const message = isCustom ? JSON.stringify({ title, message: customMessage }) : `MGS test notification (${stamp})`
 
   const rows = ids.map((id: string) => ({
     user_id: id,
     from_user_id: user.id,
-    type: "broadcast_test",
+    type,
     target_entry_id: null,
     target_entry_content: null,
     message,
