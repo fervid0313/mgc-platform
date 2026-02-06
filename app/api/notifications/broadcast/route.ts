@@ -53,7 +53,7 @@ export async function POST(request: Request) {
   })
 
   const type = isCustom ? "admin_global" : "broadcast_test"
-  const message = isCustom ? JSON.stringify({ title, message: customMessage }) : `MGS test notification (${stamp})`
+  const message = isCustom ? `${title}\n\n${customMessage}` : `MGS test notification (${stamp})`
 
   const rows = ids.map((id: string) => ({
     user_id: id,

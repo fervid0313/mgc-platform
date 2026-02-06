@@ -43,14 +43,27 @@ export function NotificationBell() {
 
   const formatNotification = (n: { type: string; message: string }) => {
     if (n.type === "admin_global") {
-      try {
-        const parsed = JSON.parse(n.message) as { title?: unknown; message?: unknown }
-        const title = typeof parsed?.title === "string" ? parsed.title : "Admin"
-        const message = typeof parsed?.message === "string" ? parsed.message : n.message
-        return { label: "Admin", title, message }
-      } catch {
-        return { label: "Admin", title: "Admin", message: n.message }
+      // Backward compatible:
+      // - legacy: JSON string like {"title":"...","message":"..."}
+      // - current: plain text "Title\n\nBody"
+      const raw = n.message || ""
+      const trimmed = raw.trim()
+
+      if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+        try {
+          const parsed = JSON.parse(trimmed) as { title?: unknown; message?: unknown }
+          const title = typeof parsed?.title === "string" ? parsed.title : "Fervid"
+          const message = typeof parsed?.message === "string" ? parsed.message : raw
+          return { label: "Fervid", title, message }
+        } catch {
+          // fall through
+        }
       }
+
+      const [firstLine, ...rest] = raw.split("\n")
+      const title = (firstLine || "").trim() || "Fervid"
+      const message = rest.join("\n").trim() || raw
+      return { label: "Fervid", title, message }
     }
 
     if (n.type === "like") {
