@@ -7,6 +7,7 @@ import { VibeIndicator } from "./vibe-indicator"
 import { ProfileDetails } from "./profile-details"
 import { JoinPublicGroup } from "./join-public-group"
 import { CreateSpaceModal } from "./create-space-modal"
+import { NotificationBell } from "./notification-bell"
 import { useEffect } from "react"
 
 export function Navbar() {
@@ -64,6 +65,7 @@ export function Navbar() {
               {currentSpace.name}
             </div>
           )}
+          <NotificationBell />
           {user && (
             <button
               onClick={() => setShowProfileDetails(true)}

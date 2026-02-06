@@ -10,6 +10,8 @@ import type {
   MilestoneLevel,
   UserProfile,
   Like,
+  Notification,
+  WatchedEvent,
 } from "./types"
 import {
   calculateCollectiveVibe,
@@ -171,6 +173,16 @@ interface AppState {
   removeLike: (entryId: string) => Promise<void>
   hasLiked: (entryId: string) => boolean
   getLikeCount: (entryId: string) => number
+
+  notifications: Notification[]
+  loadNotifications: () => Promise<void>
+  markNotificationRead: (notificationId: string) => Promise<void>
+  markAllNotificationsRead: () => Promise<void>
+
+  watchedEvents: WatchedEvent[]
+  loadWatchedEvents: () => Promise<void>
+  watchEvent: (fingerprint: string, name: string, time: string, date: string, impact: "High" | "Medium" | "Low", leadMinutes: 1 | 5 | 15) => Promise<void>
+  unwatchEvent: (fingerprint: string) => Promise<void>
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -1677,6 +1689,169 @@ export const useAppStore = create<AppState>((set, get) => ({
   lastActivity: {},
   activityCheckInterval: null,
   notifications: [],
+  loadNotifications: async () => {
+    const { user } = get()
+    if (!user) return
+
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(50)
+
+    if (error) {
+      console.error("[NOTIFICATIONS] Load error:", error)
+      return
+    }
+
+    const mapped = (data || []).filter(n => n != null).map((n: any): Notification => ({
+      id: n.id,
+      userId: n.user_id,
+      fromUserId: n.from_user_id,
+      type: n.type,
+      targetEntryId: n.target_entry_id || undefined,
+      targetEntryContent: n.target_entry_content || undefined,
+      message: n.message,
+      read: !!n.read,
+      createdAt: new Date(n.created_at),
+      updatedAt: new Date(n.updated_at),
+    }))
+
+    set({ notifications: mapped })
+  },
+  markNotificationRead: async (notificationId: string) => {
+    const { user, notifications } = get()
+    if (!user) return
+
+    const supabase = createClient()
+    const { error } = await supabase
+      .from("notifications")
+      .update({ read: true })
+      .eq("id", notificationId)
+      .eq("user_id", user.id)
+
+    if (error) {
+      console.error("[NOTIFICATIONS] Mark read error:", error)
+      return
+    }
+
+    set({
+      notifications: notifications.map((n) => (n.id === notificationId ? { ...n, read: true } : n)),
+    })
+  },
+  markAllNotificationsRead: async () => {
+    const { user, notifications } = get()
+    if (!user) return
+
+    const supabase = createClient()
+    const { error } = await supabase
+      .from("notifications")
+      .update({ read: true })
+      .eq("user_id", user.id)
+
+    if (error) {
+      console.error("[NOTIFICATIONS] Mark all read error:", error)
+      return
+    }
+
+    set({ notifications: notifications.map((n) => ({ ...n, read: true })) })
+  },
+
+  watchedEvents: [],
+  loadWatchedEvents: async () => {
+    const { user } = get()
+    if (!user) return
+
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("watched_events")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("event_date", { ascending: true })
+
+    if (error) {
+      console.error("[WATCHED_EVENTS] Load error:", error)
+      return
+    }
+
+    const mapped = (data || []).filter(w => w != null).map((w: any): WatchedEvent => ({
+      id: w.id,
+      userId: w.user_id,
+      eventFingerprint: w.event_fingerprint,
+      eventName: w.event_name,
+      eventTime: w.event_time,
+      eventDate: w.event_date,
+      impact: w.impact,
+      leadMinutes: w.lead_minutes,
+      createdAt: new Date(w.created_at),
+      updatedAt: new Date(w.updated_at),
+    }))
+
+    set({ watchedEvents: mapped })
+  },
+  watchEvent: async (fingerprint: string, name: string, time: string, date: string, impact: "High" | "Medium" | "Low", leadMinutes: 1 | 5 | 15) => {
+    const { user } = get()
+    if (!user) return
+
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("watched_events")
+      .upsert({
+        user_id: user.id,
+        event_fingerprint: fingerprint,
+        event_name: name,
+        event_time: time,
+        event_date: date,
+        impact,
+        lead_minutes: leadMinutes,
+      })
+      .select()
+      .single()
+
+    if (error || !data) {
+      console.error("[WATCHED_EVENTS] Watch error:", error)
+      return
+    }
+
+    const mapped: WatchedEvent = {
+      id: data.id,
+      userId: data.user_id,
+      eventFingerprint: data.event_fingerprint,
+      eventName: data.event_name,
+      eventTime: data.event_time,
+      eventDate: data.event_date,
+      impact: data.impact,
+      leadMinutes: data.lead_minutes,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at),
+    }
+
+    set((state) => ({
+      watchedEvents: [...state.watchedEvents, mapped],
+    }))
+  },
+  unwatchEvent: async (fingerprint: string) => {
+    const { user, watchedEvents } = get()
+    if (!user) return
+
+    const supabase = createClient()
+    const { error } = await supabase
+      .from("watched_events")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("event_fingerprint", fingerprint)
+
+    if (error) {
+      console.error("[WATCHED_EVENTS] Unwatch error:", error)
+      return
+    }
+
+    set({
+      watchedEvents: watchedEvents.filter((w) => w.eventFingerprint !== fingerprint),
+    })
+  },
   onlineUsers: [],
 
   loadProfiles: async () => {
@@ -1991,6 +2166,26 @@ export const useAppStore = create<AppState>((set, get) => ({
         [spaceId]: [...(state.likes[spaceId] || []), like],
       },
     }))
+
+    if (entry.userId !== user.id) {
+      const { error: notificationError } = await supabase
+        .from("notifications")
+        .insert({
+          user_id: entry.userId,
+          from_user_id: user.id,
+          type: "like",
+          target_entry_id: entryId,
+          target_entry_content: entry.content?.slice(0, 240) || "",
+          message: `${user.username} liked your post`,
+          read: false,
+        })
+
+      if (notificationError) {
+        console.error("[NOTIFICATIONS] Insert error:", notificationError)
+      } else {
+        void get().loadNotifications()
+      }
+    }
 
     },
 

@@ -15,6 +15,7 @@ import { InviteToSpaceButton } from "@/components/invite-to-space-button"
 import { EconomicCalendarButton } from "@/components/economic-calendar-button"
 import { JoinPrivateSpaceButton } from "@/components/join-private-space-button"
 import { Loader2, ExternalLink } from "lucide-react"
+import { useEventScheduler } from "@/hooks/use-event-scheduler"
 
 export default function Home() {
   const { isAuthenticated, isLoading, initializeAuth, sidebarOpen, spaces, currentSpaceId, loadEntries } =
@@ -23,6 +24,9 @@ export default function Home() {
   const [showFAQ, setShowFAQ] = useState(false)
 
   const currentSpace = spaces.find((s) => s.id === currentSpaceId)
+
+  // Event reminder scheduler (runs when authenticated)
+  useEventScheduler()
 
   useEffect(() => {
     initializeAuth()

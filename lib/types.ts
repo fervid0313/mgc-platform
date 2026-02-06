@@ -97,6 +97,32 @@ export interface Like {
   createdAt: Date
 }
 
+export interface Notification {
+  id: string
+  userId: string
+  fromUserId: string
+  type: string
+  targetEntryId?: string
+  targetEntryContent?: string
+  message: string
+  read: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface WatchedEvent {
+  id: string
+  userId: string
+  eventFingerprint: string
+  eventName: string
+  eventTime: string
+  eventDate: string
+  impact: "High" | "Medium" | "Low"
+  leadMinutes: 1 | 5 | 15
+  createdAt: Date
+  updatedAt: Date
+}
+
 export interface Invitation {
   id: string
   spaceId: string

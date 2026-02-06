@@ -11,6 +11,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { WatchEventButton } from "./watch-event-button"
+import { useAppStore } from "@/lib/store"
 
 // Interface for economic events
 interface EconomicEvent {
@@ -145,13 +147,15 @@ export function EconomicCalendarButton() {
   const [economicEventsByDate, setEconomicEventsByDate] = useState<Record<string, EconomicEvent[]>>({})
   const [isLoading, setIsLoading] = useState(false)
   const [selectedDate, setSelectedDate] = useState(new Date())
+  const { loadWatchedEvents } = useAppStore()
 
   // Fetch calendar data when component opens or date changes
   useEffect(() => {
     if (open) {
       loadCalendarData()
+      void loadWatchedEvents()
     }
-  }, [open, currentDate])
+  }, [open, currentDate, loadWatchedEvents])
 
   const loadCalendarData = async () => {
     setIsLoading(true)
@@ -377,6 +381,11 @@ export function EconomicCalendarButton() {
                               )}
                             </div>
                           )}
+                          
+                          {/* Watch button */}
+                          <div className="mt-3">
+                            <WatchEventButton event={{ time: event.time, event: event.event, impact: event.impact, date: formatDateKey(selectedDate) }} />
+                          </div>
                         </div>
                       </div>
                     </div>

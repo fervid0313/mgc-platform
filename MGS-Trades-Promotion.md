@@ -53,7 +53,7 @@
 ## � **Start Today**
 
 **Sign up free** - No credit card required  
-**Join 1000+ traders** already growing with MGS  
+
 **Transform your trading** - From amateur to professional
 
 *"Log your trades. Track your growth. Grow with your circle."*
