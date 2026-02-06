@@ -8,9 +8,11 @@ import { UserProfileCard } from "./user-profile-card"
 import { Users, Search, Shield, RefreshCw, UserPlus, Activity, ExternalLink } from "lucide-react"
 import type { UserProfile } from "@/lib/types"
 import { safeCharAt, safeSlice } from "@/lib/string-safety"
+import { ACHIEVEMENTS, calculateTraderStats } from "@/lib/achievements"
+import { FollowButton } from "./follow-system"
 
 export function CommunityProfiles() {
-  const { profiles, user, spaces, currentSpaceId, getSpaceMembers, forceLoadProfiles, checkForMissingProfiles, getUsernameFromAuth } = useAppStore()
+  const { profiles, user, spaces, currentSpaceId, entries, getSpaceMembers, forceLoadProfiles, checkForMissingProfiles, getUsernameFromAuth } = useAppStore()
   const router = useRouter()
   const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
@@ -209,7 +211,7 @@ export function CommunityProfiles() {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+            className={`btn-3d px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
               filter === f
                 ? "bg-primary text-primary-foreground"
                 : "bg-secondary/30 text-muted-foreground hover:text-foreground"
@@ -234,7 +236,7 @@ export function CommunityProfiles() {
           filteredProfiles.map((profile) => (
             <div
               key={profile.id}
-              className="w-full flex items-center gap-3 p-3 rounded-xl bg-secondary/20 hover:bg-secondary/40 transition-colors"
+              className="w-full flex items-center gap-3 p-3 rounded-xl glass-3d lift-3d transition-colors"
             >
               <button onClick={() => {
                 console.log("[UI] 🚨🚨🚨🚨 COMMUNITY PROFILE CLICKED:", profile.username, profile.id)
@@ -263,9 +265,25 @@ export function CommunityProfiles() {
                   <p className="text-[10px] text-muted-foreground truncate">
                     {profile.tradingStyle?.replace("-", " ") || "Member"}
                   </p>
+                  {(() => {
+                    const userEntries = currentSpaceId ? (entries[currentSpaceId] || []).filter(e => e.userId === profile.id) : []
+                    if (userEntries.length < 1) return null
+                    const stats = calculateTraderStats(userEntries)
+                    const unlocked = ACHIEVEMENTS.filter(a => a.check(stats))
+                    if (unlocked.length === 0) return null
+                    return (
+                      <div className="flex gap-0.5 mt-0.5">
+                        {unlocked.slice(0, 3).map(a => (
+                          <span key={a.id} title={a.name} className="text-[10px]">{a.icon}</span>
+                        ))}
+                        {unlocked.length > 3 && <span className="text-[9px] text-muted-foreground">+{unlocked.length - 3}</span>}
+                      </div>
+                    )
+                  })()}
                 </div>
               </button>
 
+              <FollowButton userId={profile.id} compact />
               <span className="text-[9px] text-muted-foreground font-medium px-2 py-0.5 bg-secondary/20 rounded-full">
                 {profile.tradingStyle?.replace("-", " ") || "Member"}
               </span>

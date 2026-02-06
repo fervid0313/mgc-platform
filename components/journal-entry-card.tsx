@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import type React from "react"
 import type { JournalEntry } from "@/lib/types"
 import { useAppStore } from "@/lib/store"
@@ -16,8 +16,16 @@ import {
   Heart,
   Trash2,
   Edit3,
+  MessageCircle,
+  Send,
+  Pin,
+  Bookmark,
 } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
+import { useToast } from "@/hooks/use-toast"
+import { ConfirmDialog } from "./confirm-dialog"
+import { ACHIEVEMENTS, calculateTraderStats } from "@/lib/achievements"
+import { useBookmarks } from "./entry-bookmarks"
 import Image from "next/image"
 import { EntryEditor } from "./entry-editor"
 
@@ -45,7 +53,16 @@ const mentalStateConfig: Record<string, { icon: React.ReactNode; color: string }
 export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntryCardProps) {
   const timeAgo = formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true })
   const [showLightbox, setShowLightbox] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [reactionRefresh, setReactionRefresh] = useState(0)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showDeleteCommentId, setShowDeleteCommentId] = useState<string | null>(null)
+
+  const [showComments, setShowComments] = useState(false)
+  const [commentText, setCommentText] = useState("")
+  const { toast } = useToast()
+  const { toggle: toggleBookmark, isBookmarked } = useBookmarks()
 
   const {
     user,
@@ -56,35 +73,81 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
     getProfile,
     isAdmin,
     deleteEntry,
+    addComment,
+    deleteComment,
+    togglePinEntry,
+    getComments,
+    getCommentCount,
+    entries: storeEntries,
   } = useAppStore()
 
   const liked = hasLiked(entry.id)
   const likeCount = getLikeCount(entry.id)
+  const commentCount = getCommentCount(entry.id)
+  const comments = showComments ? getComments(entry.id) : []
   const isOwnPost = user?.id === entry.userId
   const authorProfile = getProfile(entry.userId)
   const userIsAdmin = isAdmin()
+
+  const spaceEntryCount = (storeEntries[entry.spaceId] || []).length
+  const badges = useMemo(() => {
+    if (!authorProfile) return null
+    const userEntries = storeEntries[entry.spaceId] || []
+    const uEntries = userEntries.filter((e: any) => e.userId === entry.userId)
+    if (uEntries.length < 1) return null
+    const stats = calculateTraderStats(uEntries)
+    const unlocked = ACHIEVEMENTS.filter((a: any) => a.check(stats))
+    if (unlocked.length === 0) return null
+    return unlocked.slice(0, 3).map((a: any) => (
+      <span key={a.id} title={a.name} className="text-[10px]">{a.icon}</span>
+    ))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entry.userId, entry.spaceId, spaceEntryCount])
+
+  const handleComment = async () => {
+    if (!commentText.trim()) return
+    await addComment(entry.id, commentText)
+    setCommentText("")
+    toast({ title: "Comment added" })
+  }
 
   const handleLike = () => {
     if (liked) {
       removeLike(entry.id)
     } else {
       addLike(entry.id)
+      toast({ title: "Liked!" })
     }
   }
 
   const handleDelete = () => {
-    if (userIsAdmin && confirm("Are you sure you want to delete this post?")) {
-      deleteEntry(entry.id, entry.spaceId)
-    }
+    if (userIsAdmin) setShowDeleteConfirm(true)
+  }
+
+  const confirmDelete = () => {
+    deleteEntry(entry.id, entry.spaceId)
+    setShowDeleteConfirm(false)
+  }
+
+  const handlePin = () => {
+    togglePinEntry(entry.id, entry.spaceId)
+    toast({ title: entry.pinned ? "Unpinned" : "Pinned to top" })
   }
 
   return (
     <>
       <div
-        className="glass rounded-3xl p-6 space-y-3 border-t border-white/10 animate-in fade-in slide-in-from-bottom-4 duration-500"
+        data-entry-id={entry.id}
+        className={`glass-3d lift-3d press-3d rounded-3xl p-6 space-y-3 border animate-in fade-in slide-in-from-bottom-4 duration-500 transition-all ${entry.pinned ? 'border-primary/30 ring-1 ring-primary/10' : 'border-white/10'}`}
         style={{ animationDelay: `${index * 50}ms` }}
       >
         <div className="flex justify-between items-start">
+          {entry.pinned && (
+            <div className="flex items-center gap-1 text-[9px] font-bold text-primary uppercase tracking-wider mb-1 w-full">
+              <Pin className="h-3 w-3" />
+              Pinned
+            </div>
+          )}
           <div className="flex items-center gap-3 flex-wrap">
             {isGlobal && authorProfile && (
               <div className="w-8 h-8 rounded-full overflow-hidden">
@@ -98,6 +161,7 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
               </div>
             )}
             <span className="text-[10px] font-black text-primary uppercase tracking-widest">@{entry.username || "unknown"}</span>
+            {badges}
             {entry.tradeType && entry.tradeType !== "general" && (
               <span
                 className={`text-[10px] font-bold uppercase tracking-wider ${tradeTypeColors[entry.tradeType] || "text-muted-foreground"}`}
@@ -117,6 +181,15 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
           <div className="flex items-center gap-2">
             {isOwnPost && (
               <button
+                onClick={handlePin}
+                className={`p-1 transition-colors icon-glow ${entry.pinned ? 'text-primary' : 'text-muted-foreground/40 hover:text-primary'}`}
+                title={entry.pinned ? "Unpin" : "Pin to top"}
+              >
+                <Pin className="h-4 w-4" />
+              </button>
+            )}
+            {isOwnPost && (
+              <button
                 onClick={() => setShowEditModal(true)}
                 className="p-1 text-blue-500/60 hover:text-blue-500 transition-colors icon-glow"
                 title="Edit post"
@@ -133,7 +206,14 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
                 <Trash2 className="h-4 w-4" />
               </button>
             )}
-            <span className="text-[10px] text-muted-foreground font-bold">{timeAgo}</span>
+            <span className="text-[10px] text-muted-foreground font-bold">
+              {timeAgo}
+              {entry.updatedAt && new Date(entry.updatedAt).getTime() !== new Date(entry.createdAt).getTime() && (
+                <span className="ml-1 text-muted-foreground/50" title={`Edited ${formatDistanceToNow(new Date(entry.updatedAt), { addSuffix: true })}`}>
+                  (edited)
+                </span>
+              )}
+            </span>
           </div>
         </div>
 
@@ -149,7 +229,21 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
           </div>
         )}
 
-        <p className="text-sm text-foreground/80 leading-relaxed font-medium">{entry.content}</p>
+        <div className="text-sm text-foreground/80 leading-relaxed font-medium whitespace-pre-wrap">
+          {entry.content.split('\n').map((line, li) => (
+            <span key={li}>
+              {li > 0 && <br />}
+              {line.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/).map((part, pi) => {
+                if (part.startsWith('**') && part.endsWith('**')) return <strong key={pi}>{part.slice(2, -2)}</strong>
+                if (part.startsWith('*') && part.endsWith('*')) return <em key={pi}>{part.slice(1, -1)}</em>
+                if (part.startsWith('`') && part.endsWith('`')) return <code key={pi} className="bg-muted/50 px-1 py-0.5 rounded text-xs font-mono">{part.slice(1, -1)}</code>
+                const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
+                if (linkMatch) return <a key={pi} href={linkMatch[2]} target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80">{linkMatch[1]}</a>
+                return part
+              })}
+            </span>
+          ))}
+        </div>
 
         {/* Debug: Check if image exists */}
         {process.env.NODE_ENV === 'development' && (
@@ -164,40 +258,37 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
           </div>
         )}
 
-        {entry.image && (
-          <div
-            className="relative rounded-xl overflow-hidden border border-border cursor-pointer hover:border-primary/50 transition-all duration-300 group"
-            onClick={() => setShowLightbox(true)}
-          >
-            <div className="relative aspect-video bg-gradient-to-br from-muted/20 to-muted/10">
-              <Image
-                src={entry.image}
-                alt="Trade proof"
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                placeholder="blur"
-                blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAAAX/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwA/8A8A"
-                style={{
-                  position: 'absolute',
-                  height: '100%',
-                  width: '100%',
-                  left: 0,
-                  top: 0,
-                }}
-              />
+        {(() => {
+          const allImages = entry.images?.length ? entry.images : entry.image ? [entry.image] : []
+          if (allImages.length === 0) return null
+          return (
+            <div className={`grid gap-2 ${allImages.length === 1 ? 'grid-cols-1' : allImages.length === 2 ? 'grid-cols-2' : 'grid-cols-2'}`}>
+              {allImages.map((img, idx) => (
+                <div
+                  key={idx}
+                  className={`relative rounded-xl overflow-hidden border border-border cursor-pointer hover:border-primary/50 transition-all duration-300 group ${allImages.length === 3 && idx === 0 ? 'col-span-2' : ''}`}
+                  onClick={() => { setLightboxIndex(idx); setShowLightbox(true) }}
+                >
+                  <div className={`relative ${allImages.length === 1 ? 'aspect-video' : 'aspect-square'} bg-gradient-to-br from-muted/20 to-muted/10`}>
+                    <Image
+                      src={img}
+                      alt={`Trade proof ${idx + 1}`}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                    />
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  {allImages.length > 1 && (
+                    <div className="absolute top-1.5 left-1.5 bg-black/50 backdrop-blur-sm rounded px-1.5 py-0.5">
+                      <span className="text-[9px] font-bold text-white">{idx + 1}/{allImages.length}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <div className="absolute top-2 right-2 bg-black/50 backdrop-blur-sm rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0h-3" />
-              </svg>
-            </div>
-            <div className="absolute bottom-2 left-2 bg-black/50 backdrop-blur-sm rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-all duration-300">
-              <span className="text-[10px] font-medium text-white">Click to expand</span>
-            </div>
-          </div>
-        )}
+          )
+        })()}
         <div className="flex items-center justify-between pt-2">
           <div className="flex flex-wrap gap-2">
             {entry.tags.map((tag) => (
@@ -227,66 +318,162 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
         </div>
 
         {isGlobal && (
-          <div className="flex items-center gap-4 pt-3 border-t border-border">
-            <button
-              onClick={handleLike}
-              className={`flex items-center gap-1.5 text-xs font-bold transition-colors icon-glow ${
-                liked ? "text-red-500" : "text-muted-foreground hover:text-red-500"
-              }`}
-            >
-              <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />
-              <span>{likeCount}</span>
-            </button>
+          <div className="space-y-3">
+            <div className="flex items-center gap-4 pt-3 border-t border-border">
+              <button
+                onClick={handleLike}
+                className={`flex items-center gap-1.5 text-xs font-bold transition-colors icon-glow ${
+                  liked ? "text-red-500" : "text-muted-foreground hover:text-red-500"
+                }`}
+              >
+                <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />
+                <span>{likeCount}</span>
+              </button>
+              <div className="flex items-center gap-1">
+                {["🔥", "💡", "📈", "💪", "🎯"].map((emoji) => (
+                  <button
+                    key={emoji}
+                    onClick={() => {
+                      const key = `mgc-reactions-${entry.id}`
+                      const saved = JSON.parse(localStorage.getItem(key) || "{}")
+                      const userId = user?.id || "anon"
+                      if (saved[`${userId}-${emoji}`]) {
+                        delete saved[`${userId}-${emoji}`]
+                      } else {
+                        saved[`${userId}-${emoji}`] = true
+                      }
+                      localStorage.setItem(key, JSON.stringify(saved))
+                      setReactionRefresh((r) => r + 1)
+                    }}
+                    className={`text-sm px-1 py-0.5 rounded hover:bg-secondary/50 transition-colors ${
+                      (() => {
+                        const key = `mgc-reactions-${entry.id}`
+                        const saved = JSON.parse(localStorage.getItem(key) || "{}")
+                        return saved[`${user?.id || "anon"}-${emoji}`] ? "bg-primary/10 ring-1 ring-primary/30" : ""
+                      })()
+                    }`}
+                    title={emoji}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setShowComments(!showComments)}
+                className={`flex items-center gap-1.5 text-xs font-bold transition-colors ${
+                  showComments ? "text-primary" : "text-muted-foreground hover:text-primary"
+                }`}
+              >
+                <MessageCircle className="h-4 w-4" />
+                <span>{commentCount}</span>
+              </button>
+              <button
+                onClick={() => { toggleBookmark(entry.id); toast({ title: isBookmarked(entry.id) ? "Removed bookmark" : "Bookmarked!" }) }}
+                className={`flex items-center gap-1.5 text-xs font-bold transition-colors ${
+                  isBookmarked(entry.id) ? "text-primary" : "text-muted-foreground hover:text-primary"
+                }`}
+              >
+                <Bookmark className={`h-4 w-4 ${isBookmarked(entry.id) ? "fill-current" : ""}`} />
+              </button>
+            </div>
+
+            {showComments && (
+              <div className="space-y-2">
+                {comments.map((c) => (
+                  <div key={c.id} className="flex gap-2 text-xs items-start group/comment">
+                    <span className="font-bold text-foreground shrink-0">{c.username}</span>
+                    <span className="text-muted-foreground flex-1">{c.content}</span>
+                    {c.userId === user?.id && (
+                      <button
+                        onClick={() => { deleteComment(c.id); toast({ title: "Comment deleted" }) }}
+                        className="opacity-0 group-hover/comment:opacity-100 text-muted-foreground hover:text-red-500 transition-all shrink-0"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <div className="flex gap-2">
+                  <input
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleComment()}
+                    placeholder="Add a comment..."
+                    className="flex-1 bg-transparent border-b border-border text-xs py-1 outline-none placeholder:text-muted-foreground/50 focus:border-primary transition-colors"
+                  />
+                  <button
+                    onClick={handleComment}
+                    disabled={!commentText.trim()}
+                    className="text-primary disabled:text-muted-foreground/30 transition-colors"
+                  >
+                    <Send className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {showLightbox && entry.image && (
-        <div
-          className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 cursor-pointer animate-in fade-in duration-200"
-          onClick={() => setShowLightbox(false)}
-        >
-          <div className="relative max-w-6xl max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-black/20 backdrop-blur-sm rounded-2xl p-1">
-              <Image
-                src={entry.image}
-                alt="Trade proof - full size"
-                width={1200}
-                height={800}
-                className="max-h-[90vh] w-auto object-contain rounded-xl"
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 60vw"
-                priority
-              />
-            </div>
-            <div className="absolute top-4 right-4 flex gap-2">
+      {showLightbox && (() => {
+        const allImages = entry.images?.length ? entry.images : entry.image ? [entry.image] : []
+        if (allImages.length === 0) return null
+        const currentImg = allImages[lightboxIndex] || allImages[0]
+        return (
+          <div
+            className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 cursor-pointer animate-in fade-in duration-200"
+            onClick={() => setShowLightbox(false)}
+          >
+            <div className="relative max-w-6xl max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+              <div className="bg-black/20 backdrop-blur-sm rounded-2xl p-1">
+                <Image
+                  src={currentImg}
+                  alt={`Trade proof ${lightboxIndex + 1}`}
+                  width={1200}
+                  height={800}
+                  className="max-h-[90vh] w-auto object-contain rounded-xl"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 60vw"
+                  priority
+                />
+              </div>
+              {allImages.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setLightboxIndex((i) => (i - 1 + allImages.length) % allImages.length)}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 backdrop-blur-sm text-white rounded-full p-3 hover:bg-black/70 transition-all"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                  </button>
+                  <button
+                    onClick={() => setLightboxIndex((i) => (i + 1) % allImages.length)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 backdrop-blur-sm text-white rounded-full p-3 hover:bg-black/70 transition-all"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                  </button>
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1">
+                    <span className="text-xs font-bold text-white">{lightboxIndex + 1} / {allImages.length}</span>
+                  </div>
+                </>
+              )}
               <button
                 onClick={() => setShowLightbox(false)}
-                className="bg-black/50 backdrop-blur-sm text-white/80 hover:text-white rounded-full p-3 transition-all duration-200 hover:scale-110"
-                title="Close (ESC)"
+                className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm text-white/80 hover:text-white rounded-full p-3 transition-all duration-200 hover:scale-110"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  window.open(entry.image, '_blank')
-                }}
-                className="bg-black/50 backdrop-blur-sm text-white/80 hover:text-white rounded-full p-3 transition-all duration-200 hover:scale-110"
-                title="Open in new tab"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6V4a2 2 0 00-2-2h-6m6 0V10a2 2 0 002 2h-2m-2-6h4" />
-                </svg>
-              </button>
-            </div>
-            <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2">
-              <p className="text-xs text-white/80">Press ESC to close • Click outside to dismiss</p>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="Delete this post?"
+        description="This action cannot be undone. The entry and all associated data will be permanently removed."
+        confirmLabel="Delete"
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
 
       {/* Edit Modal */}
       <EntryEditor

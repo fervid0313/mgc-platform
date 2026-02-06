@@ -121,7 +121,7 @@ export function FAQ() {
           <button
             key={category}
             onClick={() => setSelectedCategory(category)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`btn-3d flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               selectedCategory === category
                 ? "bg-primary text-primary-foreground"
                 : "bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary/70"
@@ -142,7 +142,7 @@ export function FAQ() {
           return (
             <div
               key={actualIndex}
-              className="bg-secondary/30 rounded-xl overflow-hidden border border-border/50 transition-all duration-200 hover:border-border"
+              className="glass-3d lift-3d rounded-xl overflow-hidden transition-all duration-200"
             >
               <button
                 onClick={() => toggleExpanded(actualIndex)}
@@ -175,7 +175,7 @@ export function FAQ() {
       </div>
 
       {/* Footer */}
-      <div className="mt-12 text-center p-6 bg-secondary/20 rounded-xl">
+      <div className="mt-12 text-center p-6 glass-3d rounded-xl">
         <h3 className="font-semibold mb-2">Still have questions?</h3>
         <p className="text-muted-foreground mb-4">
           We're here to help! Reach out to our support team for any additional questions or feedback.

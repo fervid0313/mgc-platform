@@ -36,7 +36,7 @@ export function CreateSpaceModal({ open, onClose }: CreateSpaceModalProps) {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="glass relative w-full max-w-md rounded-3xl p-8 purple-glow">
+      <div className="glass-3d relative w-full max-w-md rounded-3xl p-8">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"

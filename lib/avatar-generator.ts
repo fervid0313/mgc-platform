@@ -92,12 +92,6 @@ export function generateAvatarUrl(username: string, size: number = 100): string 
 export function getAvatarUrl(username: string, customAvatar?: string, size: number = 100): string {
   // If custom avatar is provided, use it
   if (customAvatar && customAvatar.trim() !== '') {
-    // Check if it's a very large base64 image (over 50KB)
-    if (customAvatar.startsWith('data:image/') && customAvatar.length > 50000) {
-      console.log("[AVATAR] Large base64 image detected, using fallback for", username)
-      return generateAvatarUrl(username || 'user', size)
-    }
-    
     // Check if base64 image is valid
     if (customAvatar.startsWith('data:image/')) {
       return customAvatar

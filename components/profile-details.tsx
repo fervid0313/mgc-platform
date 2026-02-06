@@ -13,7 +13,7 @@ interface ProfileDetailsProps {
 }
 
 export function ProfileDetails({ isOpen, onClose }: ProfileDetailsProps) {
-  const { user, profiles } = useAppStore()
+  const { user, profiles, forceLoadProfiles } = useAppStore()
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
@@ -76,14 +76,9 @@ export function ProfileDetails({ isOpen, onClose }: ProfileDetailsProps) {
         }
 
         if (responseOk) {
-          // Show success message
-          alert('Profile picture updated successfully!')
-          // Close the modal first
-          onClose()
-          // Then reload after a short delay to show the updated avatar
-          setTimeout(() => {
-            window.location.reload()
-          }, 500)
+          // Refresh profiles from server so the new avatar shows everywhere
+          await forceLoadProfiles()
+          alert('Profile picture updated!')
         } else {
           console.error('[AVATAR FRONTEND] Upload failed:', {
             status: response.status,
@@ -105,7 +100,7 @@ export function ProfileDetails({ isOpen, onClose }: ProfileDetailsProps) {
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-background rounded-2xl max-w-md w-full overflow-hidden shadow-2xl border border-border/50">
+      <div className="glass-3d rounded-2xl max-w-md w-full overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border/50">
           <h2 className="text-xl font-bold">Profile</h2>
@@ -165,7 +160,7 @@ export function ProfileDetails({ isOpen, onClose }: ProfileDetailsProps) {
                 onClose()
                 router.push(`/analytics`)
               }}
-              className="flex items-center gap-3 px-8 py-4 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] text-lg font-semibold w-full"
+              className="btn-3d flex items-center gap-3 px-8 py-4 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors text-lg font-semibold w-full"
             >
               <BarChart3 className="h-6 w-6" />
               Trade Analytics

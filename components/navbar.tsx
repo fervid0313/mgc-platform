@@ -6,8 +6,12 @@ import { LogOut, Shield, Plus, User } from "lucide-react"
 import { VibeIndicator } from "./vibe-indicator"
 import { ProfileDetails } from "./profile-details"
 import { JoinPublicGroup } from "./join-public-group"
+import { EconomicCalendarButton } from "./economic-calendar-button"
+import { JoinPrivateSpaceButton } from "./join-private-space-button"
 import { CreateSpaceModal } from "./create-space-modal"
 import { NotificationBell } from "./notification-bell"
+import { NotificationPreferences } from "./notification-preferences"
+import { ThemeToggle } from "./theme-toggle"
 import { useEffect } from "react"
 
 export function Navbar() {
@@ -28,8 +32,8 @@ export function Navbar() {
 
   return (
     <>
-      <nav className="sticky top-0 z-30 glass px-6 py-5 flex justify-between items-center">
-        <button onClick={toggleSidebar} className="p-2 -ml-2 lg:hidden icon-glow">
+      <nav className="sticky top-0 z-30 glass-3d px-6 py-5 flex justify-between items-center">
+        <button onClick={toggleSidebar} className="btn-3d p-2 -ml-2 lg:hidden icon-glow">
           <div className="w-6 h-0.5 bg-foreground mb-1.5" />
           <div className="w-4 h-0.5 bg-muted-foreground" />
         </button>
@@ -49,10 +53,12 @@ export function Navbar() {
 
         <div className="flex items-center gap-4">
           <div className="hidden sm:flex items-center gap-3">
+            <EconomicCalendarButton />
+            <JoinPrivateSpaceButton />
             <JoinPublicGroup />
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-secondary/50 hover:bg-secondary rounded-lg transition-colors"
+              className="btn-3d flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-secondary/50 hover:bg-secondary rounded-lg transition-colors"
             >
               <Plus className="h-3.5 w-3.5" />
               <span>Create Private Space</span>
@@ -65,11 +71,15 @@ export function Navbar() {
               {currentSpace.name}
             </div>
           )}
-          <NotificationBell />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <NotificationPreferences />
+            <NotificationBell />
+          </div>
           {user && (
             <button
               onClick={() => setShowProfileDetails(true)}
-              className="p-2 rounded-xl text-muted-foreground hover:bg-secondary transition-colors icon-glow"
+              className="btn-3d p-2 rounded-xl text-muted-foreground hover:bg-secondary transition-colors icon-glow"
               title="Profile Details"
             >
               <User className="h-4 w-4" />
@@ -78,7 +88,7 @@ export function Navbar() {
           {user && (
             <button
               onClick={logout}
-              className="p-2 rounded-xl text-muted-foreground hover:bg-secondary transition-colors icon-glow"
+              className="btn-3d p-2 rounded-xl text-muted-foreground hover:bg-secondary transition-colors icon-glow"
               title="Logout"
             >
               <LogOut className="h-4 w-4" />

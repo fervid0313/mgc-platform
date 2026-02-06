@@ -5,6 +5,11 @@ import { Analytics } from "@vercel/analytics/next"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { ClientErrorDetector } from "@/components/client-error-detector"
 import { Toaster } from "@/components/ui/toaster"
+import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal"
+import { GlobalSearch } from "@/components/global-search"
+import { ServiceWorkerRegister } from "@/components/sw-register"
+import { OfflineIndicator } from "@/components/offline-indicator"
+import { OnboardingTour } from "@/components/onboarding-tour"
 import "@/lib/string-safety"
 import "./globals.css"
 
@@ -66,12 +71,23 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+      </head>
       <body className={`${plusJakarta.variable} font-sans antialiased`}>
         <ClientErrorDetector />
         <ErrorBoundary>
           {children}
         </ErrorBoundary>
         <Toaster />
+        <KeyboardShortcutsModal />
+        <GlobalSearch />
+        <ServiceWorkerRegister />
+        <OfflineIndicator />
+        <OnboardingTour />
         <Analytics />
       </body>
     </html>

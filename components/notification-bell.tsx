@@ -226,7 +226,7 @@ export function NotificationBell() {
     }}>
       <DropdownMenuTrigger asChild>
         <button
-          className="relative p-2 rounded-xl text-muted-foreground hover:bg-secondary transition-colors icon-glow"
+          className="btn-3d relative p-2 rounded-xl text-muted-foreground hover:bg-secondary transition-colors icon-glow"
           title="Notifications"
           aria-label="Notifications"
         >

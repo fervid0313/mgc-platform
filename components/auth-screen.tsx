@@ -86,11 +86,11 @@ export function AuthScreen() {
           <p className="text-muted-foreground text-sm">A collaborative journal for traders & entrepreneurs</p>
         </div>
 
-        <div className="glass rounded-3xl p-8 glow">
+        <div className="glass-3d rounded-3xl p-8">
           <div className="flex gap-2 mb-8">
             <button
               onClick={() => setIsLogin(true)}
-              className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${
+              className={`btn-3d flex-1 py-2 rounded-xl text-sm font-bold transition-all ${
                 isLogin ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -98,7 +98,7 @@ export function AuthScreen() {
             </button>
             <button
               onClick={() => setIsLogin(false)}
-              className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${
+              className={`btn-3d flex-1 py-2 rounded-xl text-sm font-bold transition-all ${
                 !isLogin ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
               }`}
             >

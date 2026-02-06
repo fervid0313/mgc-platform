@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useAppStore } from "@/lib/store"
 import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Calendar, Tag, Users, Image as ImageIcon, X, BarChart3 } from "lucide-react"
+import { FollowButton } from "@/components/follow-system"
+import { getAvatarUrl } from "@/lib/avatar-generator"
 import { format } from "date-fns"
 import { PnLCalendar } from "@/components/pnl-calendar"
 
@@ -193,7 +195,7 @@ export default function UserProfilePage() {
         <div className="flex items-center gap-4 mb-10">
           <button
             onClick={() => router.back()}
-            className="p-3 hover:bg-secondary/50 rounded-xl transition-all duration-200 hover:scale-105 shadow-sm"
+            className="btn-3d p-3 hover:bg-secondary/50 rounded-xl transition-all duration-200 hover:scale-105"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
@@ -218,19 +220,11 @@ export default function UserProfilePage() {
           /* Own Profile - Simplified Version */
           <div className="flex flex-col items-center text-center py-20">
             <div className="mb-8">
-              {userProfile.avatar ? (
-                <img
-                  src={userProfile.avatar}
-                  alt={userProfile.username}
-                  className="w-32 h-32 rounded-full border-4 border-white/20 shadow-lg"
-                />
-              ) : (
-                <div className="w-32 h-32 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full flex items-center justify-center border-4 border-white/20 shadow-lg">
-                  <span className="text-3xl font-bold text-primary">
-                    {userProfile.username.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-              )}
+              <img
+                src={getAvatarUrl(userProfile.username, userProfile.avatar, 128)}
+                alt={userProfile.username}
+                className="w-32 h-32 rounded-full border-4 border-white/20 shadow-lg"
+              />
             </div>
             
             <div className="mb-8">
@@ -238,21 +232,46 @@ export default function UserProfilePage() {
               <p className="text-muted-foreground text-xl">@{userProfile.tag}</p>
             </div>
 
-            <button
-              onClick={() => router.push(`/profile/${userId}/analytics`)}
-              className="flex items-center gap-3 px-8 py-4 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] text-lg font-semibold"
-            >
-              <BarChart3 className="h-6 w-6" />
-              Trade Analytics
-            </button>
+            <div className="flex flex-col gap-3">
+              <FollowButton userId={userId} />
+              <button
+                onClick={() => router.push(`/profile/${userId}/analytics`)}
+                className="btn-3d flex items-center gap-3 px-8 py-4 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors text-lg font-semibold"
+              >
+                <BarChart3 className="h-6 w-6" />
+                Trade Analytics
+              </button>
+            </div>
           </div>
         ) : (
-          /* Community Profile - Full Version */
           <div className="space-y-10">
-            {/* Stats Overview */}
+            {/* Profile Header */}
+            <div className="glass-3d rounded-2xl p-8 flex flex-col sm:flex-row items-center gap-6">
+              <img
+                src={getAvatarUrl(userProfile.username, userProfile.avatar, 96)}
+                alt={userProfile.username}
+                className="w-24 h-24 rounded-full border-4 border-white/20 shadow-lg shrink-0"
+              />
+              <div className="flex-1 text-center sm:text-left">
+                <h2 className="text-3xl font-bold">{userProfile.username}</h2>
+                <p className="text-muted-foreground text-lg">@{userProfile.tag}</p>
+                {userProfile.bio && <p className="text-sm text-muted-foreground mt-2">{userProfile.bio}</p>}
+              </div>
+              <div className="flex flex-col gap-3 shrink-0">
+                <FollowButton userId={userId} />
+                <button
+                  onClick={() => router.push(`/profile/${userId}/analytics`)}
+                  className="btn-3d flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors text-sm font-bold"
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  Trade Analytics
+                </button>
+              </div>
+            </div>
+
             {userStats && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                <div className="bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-2xl p-6 border-2 border-white/20 shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-sm hover:shadow-xl transition-all duration-200 hover:scale-105 flex flex-col h-full">
+                <div className="glass-3d lift-3d rounded-2xl p-6 flex flex-col h-full">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary/10 rounded-lg shrink-0">
                       <Calendar className="h-5 w-5 text-primary" />
@@ -264,7 +283,7 @@ export default function UserProfilePage() {
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-2xl p-6 border-2 border-white/20 shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-sm hover:shadow-xl transition-all duration-200 hover:scale-105 flex flex-col h-full">
+                <div className="glass-3d lift-3d rounded-2xl p-6 flex flex-col h-full">
                   <div className="flex items-center gap-3">
                     <div className={`p-2 ${userStats.totalPnL >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'} rounded-lg shrink-0`}>
                       <DollarSign className={`h-5 w-5 ${userStats.totalPnL >= 0 ? 'text-green-600' : 'text-red-600'}`} />
@@ -272,15 +291,13 @@ export default function UserProfilePage() {
                     <span className="text-sm text-muted-foreground font-medium">P&L</span>
                   </div>
                   <div className="mt-auto">
-                    <p className={`text-3xl font-bold flex items-center gap-2 ${
-                      userStats.totalPnL >= 0 ? "text-green-600" : "text-red-600"
-                    }`}>
-                      ${Math.abs(userStats.totalPnL).toFixed(2)}
+                    <p className={`text-3xl font-bold ${userStats.totalPnL >= 0 ? "text-green-600" : "text-red-600"}`}>
+                      {userStats.totalPnL >= 0 ? "+" : "-"}${Math.abs(userStats.totalPnL).toFixed(2)}
                     </p>
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-2xl p-6 border-2 border-white/20 shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-sm hover:shadow-xl transition-all duration-200 hover:scale-105 flex flex-col h-full">
+                <div className="glass-3d lift-3d rounded-2xl p-6 flex flex-col h-full">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-blue-500/10 rounded-lg shrink-0">
                       <Users className="h-5 w-5 text-blue-600" />
@@ -292,7 +309,7 @@ export default function UserProfilePage() {
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-2xl p-6 border-2 border-white/20 shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-sm hover:shadow-xl transition-all duration-200 hover:scale-105 flex flex-col h-full">
+                <div className="glass-3d lift-3d rounded-2xl p-6 flex flex-col h-full">
                   <div className="flex items-center gap-3">
                     <div className={`p-2 ${userStats.avgTrade >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'} rounded-lg shrink-0`}>
                       <Tag className={`h-5 w-5 ${userStats.avgTrade >= 0 ? 'text-green-600' : 'text-red-600'}`} />
@@ -300,27 +317,22 @@ export default function UserProfilePage() {
                     <span className="text-sm text-muted-foreground font-medium">Avg</span>
                   </div>
                   <div className="mt-auto">
-                    <p className={`text-3xl font-bold ${
-                      userStats.avgTrade >= 0 ? "text-green-600" : "text-red-600"
-                    }`}>
-                      ${Math.abs(userStats.avgTrade).toFixed(2)}
+                    <p className={`text-3xl font-bold ${userStats.avgTrade >= 0 ? "text-green-600" : "text-red-600"}`}>
+                      {userStats.avgTrade >= 0 ? "+" : "-"}${Math.abs(userStats.avgTrade).toFixed(2)}
                     </p>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Content with Calendar on Right */}
-            <div className="relative">
-              {/* Recent Trades - Main Content */}
-              <div className="pr-96 lg:pr-[26rem]">
+            <div className="flex flex-col lg:flex-row lg:gap-8">
+              <div className="flex-1 min-w-0">
                 <div className="mb-8">
                   <h2 className="text-3xl font-bold mb-2">Trading History</h2>
                   <p className="text-muted-foreground">Review recent trades and performance</p>
                 </div>
-                
                 {userStats?.recentTrades.length === 0 ? (
-                  <div className="bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-2xl p-12 text-center border-2 border-white/20 shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-sm">
+                  <div className="glass-3d rounded-2xl p-12 text-center">
                     <div className="flex flex-col items-center gap-6">
                       <div className="w-20 h-20 bg-muted/50 rounded-full flex items-center justify-center">
                         <Calendar className="h-10 w-10 text-muted-foreground" />
@@ -328,107 +340,56 @@ export default function UserProfilePage() {
                       <div>
                         <p className="text-muted-foreground font-semibold text-lg mb-3">No public trades available yet</p>
                         <p className="text-sm text-muted-foreground/70 max-w-md">
-                          {userProfile.username} hasn't shared any trades publicly, or there are no trades in your current space.
+                          {userProfile.username} hasn&apos;t shared any trades publicly.
                         </p>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {userStats?.recentTrades.map((entry) => (
-                      <div key={entry.id} id={`trade-${entry.id}`} className={`bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-xl p-5 border-2 border-white/20 shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-sm hover:shadow-xl transition-all duration-200 hover:scale-[1.01] ${highlightedTradeId === entry.id ? 'ring-4 ring-primary/50 ring-offset-2' : ''}`}>
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex-1">
-                            {/* Profile Name at Top */}
-                            <div className="flex items-center gap-2 mb-3">
-                              <span className="text-lg font-bold text-foreground">
-                                {userProfile.username}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {format(new Date(entry.createdAt), "MMM d, yyyy 'at' h:mm a")}
-                              </span>
-                            </div>
-                            
-                            {/* P&L and Mood */}
-                            <div className="flex items-center gap-2 mb-3">
-                              {entry.profitLoss !== undefined && (
-                                <span className={`px-3 py-1 rounded-lg text-sm font-bold ${
-                                  entry.profitLoss >= 0 
-                                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                    : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                                }`}>
-                                  {entry.profitLoss >= 0 ? "+" : ""}${Math.abs(entry.profitLoss).toFixed(2)}
-                                </span>
-                              )}
-                              {entry.mentalState && (
-                                <span className={`px-3 py-1 ${getMoodColorClasses(entry.mentalState).bg} ${getMoodColorClasses(entry.mentalState).text} rounded-lg text-sm font-medium`}>
-                                  {entry.mentalState}
-                                </span>
-                              )}
-                              <span className="px-3 py-1 text-primary rounded-lg text-sm font-semibold">
-                                {entry.tradeType.replace(/day-trade/gi, '').trim()}
-                              </span>
-                            </div>
-                            
-                            {/* Description */}
-                            <p className="text-foreground text-base mb-3 leading-relaxed">{entry.content}</p>
-                            
-                            {/* Picture */}
-                            {entry.image && (
-                              <div className="mb-3">
-                                <div className="relative group cursor-pointer" onClick={() => setEnlargedImage(entry.image)}>
-                                  <img
-                                    src={entry.image}
-                                    alt="Trade screenshot"
-                                    className="w-full max-w-md rounded-lg border border-border/30 shadow-sm hover:shadow-lg transition-all duration-200"
-                                    onError={(e) => {
-                                      e.currentTarget.style.display = 'none';
-                                      const parent = e.currentTarget.parentElement;
-                                      if (parent) {
-                                        parent.innerHTML = '<div class="text-sm text-muted-foreground flex items-center gap-2"><ImageIcon class="h-4 w-4" />Image failed to load</div>';
-                                      }
-                                    }}
-                                  />
-                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-lg transition-all duration-200 flex items-center justify-center">
-                                    <ImageIcon className="h-8 w-8 text-white opacity-0 group-hover:opacity-90 transition-opacity" />
-                                    <span className="text-white text-xs font-medium opacity-0 group-hover:opacity-90 transition-opacity">Click to enlarge</span>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                            
-                            {/* Tags */}
-                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                              {entry.tags.length > 0 && (
-                                <span className="flex items-center gap-1">
-                                  <Tag className="h-3 w-3" />
-                                  {(() => {
-                                    try {
-                                      return entry.tags.slice(0, 3).join(", ")
-                                    } catch (e) {
-                                      return ''
-                                    }
-                                  })()}
-                                  {(() => {
-                                    try {
-                                      return entry.tags.length > 3 ? `+${entry.tags.length - 3}` : ''
-                                    } catch (e) {
-                                      return ''
-                                    }
-                                  })()}
-                                </span>
-                              )}
-                            </div>
+                  <div className="relative space-y-0">
+                    <div className="absolute left-[7px] top-6 bottom-6 w-px bg-border hidden sm:block" />
+                    {userStats?.recentTrades.map((entry: any) => (
+                      <div key={entry.id} className="relative flex gap-4 mb-4">
+                        <div className="hidden sm:flex flex-col items-center pt-6 z-10 shrink-0">
+                          <div className={`w-3.5 h-3.5 rounded-full border-2 ${entry.profitLoss !== undefined ? (entry.profitLoss >= 0 ? 'bg-green-500 border-green-500' : 'bg-red-500 border-red-500') : 'bg-muted border-border'}`} />
+                        </div>
+                        <div id={`trade-${entry.id}`} className={`flex-1 glass-3d lift-3d rounded-xl p-5 ${highlightedTradeId === entry.id ? 'ring-4 ring-primary/50 ring-offset-2' : ''}`}>
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-lg font-bold text-foreground">{userProfile.username}</span>
+                            <span className="text-xs text-muted-foreground">{format(new Date(entry.createdAt), "MMM d, yyyy 'at' h:mm a")}</span>
                           </div>
+                          <div className="flex items-center gap-2 mb-3">
+                            {entry.profitLoss !== undefined && (
+                              <span className={`px-3 py-1 rounded-lg text-sm font-bold ${entry.profitLoss >= 0 ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-600"}`}>
+                                {entry.profitLoss >= 0 ? "+" : ""}${Math.abs(entry.profitLoss).toFixed(2)}
+                              </span>
+                            )}
+                            {entry.mentalState && (
+                              <span className={`px-3 py-1 ${getMoodColorClasses(entry.mentalState).bg} ${getMoodColorClasses(entry.mentalState).text} rounded-lg text-sm font-medium`}>{entry.mentalState}</span>
+                            )}
+                            {entry.tradeType && (
+                              <span className="px-3 py-1 text-primary rounded-lg text-sm font-semibold">{entry.tradeType.replace(/day-trade/gi, '').trim()}</span>
+                            )}
+                          </div>
+                          <p className="text-foreground text-base mb-3 leading-relaxed">{entry.content}</p>
+                          {entry.image && (
+                            <div className="mb-3 relative group cursor-pointer" onClick={() => setEnlargedImage(entry.image)}>
+                              <img src={entry.image} alt="Trade screenshot" className="w-full max-w-md rounded-lg border border-border/30" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                            </div>
+                          )}
+                          {entry.tags?.length > 0 && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Tag className="h-3 w-3" />
+                              <span>{entry.tags.slice(0, 3).join(", ")}{entry.tags.length > 3 ? ` +${entry.tags.length - 3}` : ''}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-
-              {/* PnL Calendar - Fixed Position on Right */}
-              <div className="absolute top-6 right-0 w-80 lg:w-[24rem]">
+              <div className="w-full lg:w-[24rem] lg:shrink-0 mt-8 lg:mt-0">
                 <div className="sticky top-10">
                   <div className="mb-6">
                     <h3 className="text-xl font-bold mb-2">P&L Calendar</h3>
@@ -437,11 +398,9 @@ export default function UserProfilePage() {
                   <div className="transform scale-110 origin-top">
                     <PnLCalendar userId={userId} compact={false} onTradeClick={handleTradeClick} />
                   </div>
-                  
-                  {/* About Section Only */}
                   {userProfile.bio && (
                     <div className="mt-8">
-                      <div className="bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-2xl p-6 border-2 border-white/20 shadow-lg shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-sm">
+                      <div className="glass-3d rounded-2xl p-6">
                         <h4 className="font-semibold mb-3 text-lg">About</h4>
                         <p className="text-sm text-muted-foreground leading-relaxed">{userProfile.bio}</p>
                       </div>
@@ -453,25 +412,16 @@ export default function UserProfilePage() {
           </div>
         )}
 
-      {/* Enlarged Image Modal */}
-      {enlargedImage && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="relative max-w-4xl max-h-[90vh]">
-            <button
-              onClick={() => setEnlargedImage(null)}
-              className="absolute -top-2 -right-2 z-10 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors"
-            >
-              <X className="h-5 w-5" />
-            </button>
-            <img
-              src={enlargedImage}
-              alt="Enlarged trade screenshot"
-              className="w-full h-full object-contain rounded-lg shadow-2xl"
-              onClick={() => setEnlargedImage(null)}
-            />
+        {enlargedImage && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setEnlargedImage(null)}>
+            <div className="relative max-w-4xl max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setEnlargedImage(null)} className="absolute -top-2 -right-2 z-10 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+              <img src={enlargedImage} alt="Enlarged trade screenshot" className="w-full h-full object-contain rounded-lg shadow-2xl" />
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   )

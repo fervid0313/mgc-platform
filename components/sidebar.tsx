@@ -23,7 +23,7 @@ export function Sidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 w-72 glass z-50 p-6 shadow-2xl transition-transform duration-400 ease-out ${
+        className={`fixed inset-y-0 left-0 w-72 glass-3d z-50 p-6 shadow-2xl transition-transform duration-400 ease-out ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } lg:fixed lg:translate-x-0 lg:z-0`}
       >
@@ -96,7 +96,7 @@ export function Sidebar() {
         <div className="absolute bottom-6 left-6 right-6">
           <button
             onClick={() => setShowCreateModal(true)}
-            className="w-full p-2 rounded-lg bg-white/10 hover:bg-white/20 text-muted-foreground hover:text-foreground font-medium transition-all duration-200 flex items-center justify-center gap-2 text-sm"
+            className="btn-3d w-full p-2 rounded-lg bg-white/10 hover:bg-white/20 text-muted-foreground hover:text-foreground font-medium transition-all duration-200 flex items-center justify-center gap-2 text-sm"
           >
             <Plus className="h-3 w-3" />
             Create Space

@@ -1,13 +1,17 @@
 "use client"
 
 import type React from "react"
-import type { JournalEntry, MentalState } from "../lib/types"
+import type { JournalEntry, MentalState, ImportedTrade } from "../lib/types"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useAppStore } from "@/lib/store"
 import { TrendingUp, TrendingDown, ChevronDown, ImagePlus, X } from "lucide-react"
 import Image from "next/image"
 import { MentalStateSelector } from "./mental-state-selector"
+import { TradeTemplates } from "./trade-templates"
+import { TagAutocomplete } from "./tag-autocomplete"
+import { useToast } from "@/hooks/use-toast"
+import type { TradeTemplate } from "./trade-templates"
 
 const tradeTypes: { value: JournalEntry["tradeType"]; label: string }[] = [
   { value: "day-trade", label: "Day Trade" },
@@ -17,13 +21,23 @@ const tradeTypes: { value: JournalEntry["tradeType"]; label: string }[] = [
   { value: "general", label: "General" },
 ]
 
-export function EntryComposer() {
-  const { addEntry, currentSpaceId, spaces } = useAppStore()
-  const [content, setContent] = useState("")
+interface EntryComposerProps {
+  prefillTrade?: ImportedTrade | null
+  onPrefillConsumed?: () => void
+}
+
+export function EntryComposer({ prefillTrade, onPrefillConsumed }: EntryComposerProps = {}) {
+  const { addEntry, currentSpaceId, spaces, dismissImportedTrade } = useAppStore()
+  const { toast } = useToast()
+  const draftKey = `mgc-draft-${currentSpaceId || "default"}`
+  const [content, setContent] = useState(() => {
+    if (typeof window === "undefined") return ""
+    return localStorage.getItem(draftKey) || ""
+  })
   const [tradeType, setTradeType] = useState<JournalEntry["tradeType"]>("general")
   const [profitLoss, setProfitLoss] = useState("")
   const [showOptions, setShowOptions] = useState(false)
-  const [image, setImage] = useState<string | null>(null)
+  const [images, setImages] = useState<string[]>([])
   const [mentalState, setMentalState] = useState<MentalState | undefined>(undefined)
   const [symbol, setSymbol] = useState("")
   const [strategy, setStrategy] = useState("")
@@ -33,30 +47,69 @@ export function EntryComposer() {
   const [exitPrice, setExitPrice] = useState("")
   const [riskAmount, setRiskAmount] = useState("")
   const [rMultiple, setRMultiple] = useState("")
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (content.trim()) {
+      localStorage.setItem(draftKey, content)
+    } else {
+      localStorage.removeItem(draftKey)
+    }
+  }, [content, draftKey])
+
+  // Pre-fill from imported trade
+  useEffect(() => {
+    if (prefillTrade) {
+      const dir = prefillTrade.direction === "long" ? "Long" : prefillTrade.direction === "short" ? "Short" : ""
+      const pnlStr = prefillTrade.pnl !== undefined ? (prefillTrade.pnl >= 0 ? "+" : "") + `$${Math.abs(prefillTrade.pnl).toFixed(2)}` : ""
+      setContent(`${prefillTrade.symbol} ${dir} | ${pnlStr}`.trim())
+      setTradeType("day-trade")
+      if (prefillTrade.pnl !== undefined) setProfitLoss(String(prefillTrade.pnl))
+      if (prefillTrade.symbol) setSymbol(prefillTrade.symbol)
+      if (prefillTrade.direction) setDirection(prefillTrade.direction)
+      if (prefillTrade.entryPrice) setEntryPrice(String(prefillTrade.entryPrice))
+      if (prefillTrade.exitPrice) setExitPrice(String(prefillTrade.exitPrice))
+      setShowOptions(true)
+      // Mark trade as posted in DB
+      dismissImportedTrade(prefillTrade.id)
+      onPrefillConsumed?.()
+    }
+  }, [prefillTrade])
+
+  const handleApplyTemplate = (template: TradeTemplate) => {
+    if (template.symbol) setSymbol(template.symbol)
+    if (template.strategy) setStrategy(template.strategy)
+    if (template.timeframe) setTimeframe(template.timeframe)
+    if (template.direction) setDirection(template.direction)
+    if (template.tradeType) setTradeType(template.tradeType as any)
+    setShowOptions(true)
+  }
 
   const currentSpace = spaces.find((s) => s.id === currentSpaceId)
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
+    const files = Array.from(e.target.files || [])
+    if (images.length + files.length > 4) {
+      alert("Maximum 4 images per entry")
+      return
+    }
+    for (const file of files) {
       if (file.size > 5 * 1024 * 1024) {
-        alert("Image must be less than 5MB")
-        return
+        alert(`${file.name} is over 5MB limit`)
+        continue
       }
       const reader = new FileReader()
       reader.onloadend = () => {
-        setImage(reader.result as string)
+        setImages((prev) => [...prev, reader.result as string])
       }
       reader.readAsDataURL(file)
     }
+    if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
-  const removeImage = () => {
-    setImage(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ""
-    }
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index))
   }
 
   const handleSubmit = () => {
@@ -87,12 +140,14 @@ export function EntryComposer() {
     }
 
     const shouldIncludeTrade = Object.values(trade).some((v) => v !== undefined)
-    addEntry(content, [], tradeType, pl, image || undefined, mentalState, shouldIncludeTrade ? trade : undefined)
+    addEntry(content, selectedTags, tradeType, pl, images.length > 0 ? images : undefined, mentalState, shouldIncludeTrade ? trade : undefined)
+    toast({ title: "Entry posted", description: "Your journal entry has been published." })
 
     setContent("")
+    localStorage.removeItem(draftKey)
     setProfitLoss("")
     setShowOptions(false)
-    setImage(null)
+    setImages([])
     setMentalState(undefined)
     setSymbol("")
     setStrategy("")
@@ -102,6 +157,7 @@ export function EntryComposer() {
     setExitPrice("")
     setRiskAmount("")
     setRMultiple("")
+    setSelectedTags([])
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
@@ -114,7 +170,7 @@ export function EntryComposer() {
   }
 
   return (
-    <div className="glass rounded-[2rem] p-6 mb-10 vibe-glow border border-white/10">
+    <div className="glass-3d lift-3d press-3d rounded-[2rem] p-6 mb-10 border border-white/10">
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
@@ -127,23 +183,27 @@ export function EntryComposer() {
         className="w-full bg-transparent border-none outline-none text-base font-medium placeholder:text-muted-foreground resize-none h-24 mb-4"
       />
 
-      {image && (
-        <div className="relative mb-4 inline-block">
-          <div className="relative rounded-xl overflow-hidden border border-border">
-            <Image
-              src={image || "/placeholder.svg"}
-              alt="Trade proof"
-              width={300}
-              height={200}
-              className="max-h-48 w-auto object-contain"
-            />
-          </div>
-          <button
-            onClick={removeImage}
-            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors shadow-lg"
-          >
-            <X className="h-4 w-4" />
-          </button>
+      {images.length > 0 && (
+        <div className="flex gap-2 mb-4 flex-wrap">
+          {images.map((img, i) => (
+            <div key={i} className="relative inline-block">
+              <div className="relative rounded-xl overflow-hidden border border-border">
+                <Image
+                  src={img}
+                  alt={`Trade proof ${i + 1}`}
+                  width={200}
+                  height={150}
+                  className="max-h-36 w-auto object-contain"
+                />
+              </div>
+              <button
+                onClick={() => removeImage(i)}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors shadow-lg"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
         </div>
       )}
 
@@ -175,6 +235,34 @@ export function EntryComposer() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Trade Quality Tags */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Tags</label>
+            <div className="flex flex-wrap gap-2">
+              {["A+ Setup", "B Setup", "Revenge Trade", "FOMO", "Overtraded", "Followed Plan", "Break Even", "Scaled In", "Early Exit", "Let It Run", "News Play", "Breakout", "Pullback", "Reversal", "Trend", "Range"].map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => setSelectedTags((prev) =>
+                    prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+                  )}
+                  className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition-all ${
+                    selectedTags.includes(tag)
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/50"
+                  }`}
+                >
+                  #{tag}
+                </button>
+              ))}
+            </div>
+            <TagAutocomplete
+              selectedTags={selectedTags}
+              onAdd={(tag) => setSelectedTags((prev) => prev.includes(tag) ? prev : [...prev, tag])}
+              onRemove={(tag) => setSelectedTags((prev) => prev.filter((t) => t !== tag))}
+            />
           </div>
 
           {/* P/L Input */}
@@ -279,19 +367,21 @@ export function EntryComposer() {
               ref={fileInputRef}
               type="file"
               accept="image/*"
+              multiple
               onChange={handleImageSelect}
               className="hidden"
               id="image-upload"
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 text-[10px] font-bold px-3 py-2 rounded-xl border border-border text-muted-foreground hover:border-primary/50 hover:text-primary transition-all"
+              disabled={images.length >= 4}
+              className="flex items-center gap-2 text-[10px] font-bold px-3 py-2 rounded-xl border border-border text-muted-foreground hover:border-primary/50 hover:text-primary transition-all disabled:opacity-40"
             >
               <ImagePlus className="h-4 w-4" />
-              {image ? "Change Photo" : "Add Photo"}
+              {images.length > 0 ? `Add More (${images.length}/4)` : "Add Photos"}
             </button>
             <span className="text-[10px] text-muted-foreground">
-              {tradeType !== "general" ? "Attach proof of your trade" : "Add an image to your entry"}
+              {tradeType !== "general" ? "Attach proof of your trade" : "Up to 4 images per entry"}
             </span>
           </div>
         </div>
@@ -316,6 +406,7 @@ export function EntryComposer() {
             Options
             <ChevronDown className={`h-3 w-3 transition-transform ${showOptions ? "rotate-180" : ""}`} />
           </button>
+          <TradeTemplates onApply={handleApplyTemplate} />
         </div>
         <div className="flex items-center gap-3">
           {mentalState && (
@@ -336,10 +427,11 @@ export function EntryComposer() {
           <button
             onClick={handleSubmit}
             disabled={!content || !content.trim()}
-            className="bg-foreground text-background px-6 py-2.5 rounded-2xl text-xs font-black shadow-xl active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-3d bg-foreground text-background px-6 py-2.5 rounded-2xl text-xs font-black shadow-xl active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Post Entry
           </button>
+          <span className="text-[9px] text-muted-foreground/40 hidden sm:inline">⌘+Enter</span>
         </div>
       </div>
     </div>

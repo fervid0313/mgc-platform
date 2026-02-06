@@ -305,7 +305,7 @@ export default function TradeAnalyticsPage() {
         <div className="flex items-center gap-4 mb-10">
           <button
             onClick={() => router.back()}
-            className="p-3 hover:bg-secondary/50 rounded-xl transition-all duration-200 hover:scale-105 shadow-sm"
+            className="btn-3d p-3 hover:bg-secondary/50 rounded-xl transition-all duration-200 hover:scale-105"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
@@ -322,7 +322,7 @@ export default function TradeAnalyticsPage() {
           {/* Stats Overview */}
           {userStats && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div className="bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-2xl p-6 border-2 border-white/20 shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-sm hover:shadow-xl transition-all duration-200 hover:scale-105 flex flex-col h-full">
+              <div className="glass-3d lift-3d rounded-2xl p-6 flex flex-col h-full">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-primary/10 rounded-lg shrink-0">
                     <Calendar className="h-5 w-5 text-primary" />
@@ -334,7 +334,7 @@ export default function TradeAnalyticsPage() {
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-2xl p-6 border-2 border-white/20 shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-sm hover:shadow-xl transition-all duration-200 hover:scale-105 flex flex-col h-full">
+              <div className="glass-3d lift-3d rounded-2xl p-6 flex flex-col h-full">
                 <div className="flex items-center gap-3">
                   <div className={`p-2 ${userStats.totalPnL >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'} rounded-lg shrink-0`}>
                     <DollarSign className={`h-5 w-5 ${userStats.totalPnL >= 0 ? 'text-green-600' : 'text-red-600'}`} />
@@ -350,7 +350,7 @@ export default function TradeAnalyticsPage() {
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-2xl p-6 border-2 border-white/20 shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-sm hover:shadow-xl transition-all duration-200 hover:scale-105 flex flex-col h-full">
+              <div className="glass-3d lift-3d rounded-2xl p-6 flex flex-col h-full">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-500/10 rounded-lg shrink-0">
                     <Users className="h-5 w-5 text-blue-600" />
@@ -362,7 +362,7 @@ export default function TradeAnalyticsPage() {
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-2xl p-6 border-2 border-white/20 shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-sm hover:shadow-xl transition-all duration-200 hover:scale-105 flex flex-col h-full">
+              <div className="glass-3d lift-3d rounded-2xl p-6 flex flex-col h-full">
                 <div className="flex items-center gap-3">
                   <div className={`p-2 ${userStats.avgTrade >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'} rounded-lg shrink-0`}>
                     <Tag className={`h-5 w-5 ${userStats.avgTrade >= 0 ? 'text-green-600' : 'text-red-600'}`} />
@@ -382,7 +382,7 @@ export default function TradeAnalyticsPage() {
 
           {userStats && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-2xl p-6 border-2 border-white/20 shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-sm">
+              <div className="lg:col-span-2 glass-3d rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold">Equity curve</h3>
                   <div className="text-xs text-muted-foreground font-medium">{userStats.equityCurve.length} trades</div>
@@ -404,7 +404,7 @@ export default function TradeAnalyticsPage() {
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-2xl p-6 border-2 border-white/20 shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-sm">
+              <div className="glass-3d rounded-2xl p-6">
                 <h3 className="text-lg font-bold mb-4">Advanced</h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
@@ -444,7 +444,7 @@ export default function TradeAnalyticsPage() {
                 ["By timeframe", "timeframe"],
                 ["By direction", "direction"],
               ] as const).map(([title, key]) => (
-                <div key={key} className="bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-2xl p-6 border-2 border-white/20 shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-sm">
+                <div key={key} className="glass-3d rounded-2xl p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-bold">{title}</h3>
                     <div className="text-xs text-muted-foreground font-medium">Top {userStats.breakdowns[key].length}</div>
@@ -475,7 +475,7 @@ export default function TradeAnalyticsPage() {
               </div>
               
               {userStats?.recentTrades.length === 0 ? (
-                <div className="bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-2xl p-12 text-center border-2 border-white/20 shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-sm">
+                <div className="glass-3d rounded-2xl p-12 text-center">
                   <div className="flex flex-col items-center gap-6">
                     <div className="w-20 h-20 bg-muted/50 rounded-full flex items-center justify-center">
                       <Calendar className="h-10 w-10 text-muted-foreground" />
@@ -491,7 +491,7 @@ export default function TradeAnalyticsPage() {
               ) : (
                 <div className="space-y-4">
                   {userStats?.recentTrades.map((entry) => (
-                    <div key={entry.id} id={`trade-${entry.id}`} className={`bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-xl p-5 border-2 border-white/20 shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-sm hover:shadow-xl transition-all duration-200 hover:scale-[1.01] ${highlightedTradeId === entry.id ? 'ring-4 ring-primary/50 ring-offset-2' : ''}`}>
+                    <div key={entry.id} id={`trade-${entry.id}`} className={`glass-3d lift-3d rounded-xl p-5 ${highlightedTradeId === entry.id ? 'ring-4 ring-primary/50 ring-offset-2' : ''}`}>
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
                           {/* Profile Name at Top */}
@@ -605,7 +605,7 @@ export default function TradeAnalyticsPage() {
                 {/* About Section Only */}
                 {userProfile.bio && (
                   <div className="mt-8">
-                    <div className="bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-2xl p-6 border-2 border-white/20 shadow-lg shadow-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] backdrop-blur-sm">
+                    <div className="glass-3d rounded-2xl p-6">
                       <h4 className="font-semibold mb-3 text-lg">About</h4>
                       <p className="text-sm text-muted-foreground leading-relaxed">{userProfile.bio}</p>
                     </div>

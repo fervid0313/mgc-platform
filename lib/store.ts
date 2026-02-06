@@ -11,8 +11,12 @@ import type {
   MilestoneLevel,
   UserProfile,
   Like,
+  Comment,
   Notification,
   WatchedEvent,
+  LinkedAccount,
+  ImportedTrade,
+  BrokerType,
 } from "./types"
 import {
   calculateCollectiveVibe,
@@ -108,7 +112,7 @@ interface AppState {
     tags?: string[],
     tradeType?: JournalEntry["tradeType"],
     profitLoss?: number,
-    image?: string,
+    images?: string[],
     mentalState?: MentalState,
     trade?: Partial<TradeMetadata>,
   ) => void
@@ -123,6 +127,7 @@ interface AppState {
     trade?: Partial<TradeMetadata>,
   ) => void
   deleteEntry: (entryId: string, spaceId: string) => void
+  togglePinEntry: (entryId: string, spaceId: string) => void
   loadEntries: (spaceId: string) => Promise<void>
   forceLoadEntries: (spaceId: string) => Promise<void>
   loadMoreEntries: (spaceId: string) => Promise<void>
@@ -183,13 +188,18 @@ interface AppState {
   findUserByTag: (usernameWithTag: string) => Promise<UserProfile | undefined>
   getUsernameFromAuth: (userId: string) => Promise<string | null>
 
-  // Likes only (comments removed)
+  // Likes & Comments
   likes: Record<string, Like[]>
+  comments: Record<string, Comment[]>
   loadCommentsAndLikes: (spaceId: string) => Promise<void>
   addLike: (entryId: string) => Promise<void>
   removeLike: (entryId: string) => Promise<void>
   hasLiked: (entryId: string) => boolean
   getLikeCount: (entryId: string) => number
+  addComment: (entryId: string, content: string) => Promise<void>
+  deleteComment: (commentId: string) => Promise<void>
+  getComments: (entryId: string) => Comment[]
+  getCommentCount: (entryId: string) => number
 
   notifications: Notification[]
   loadNotifications: () => Promise<void>
@@ -200,6 +210,18 @@ interface AppState {
   loadWatchedEvents: () => Promise<void>
   watchEvent: (fingerprint: string, name: string, time: string, date: string, impact: "High" | "Medium" | "Low", leadMinutes: 1 | 5 | 15) => Promise<void>
   unwatchEvent: (fingerprint: string) => Promise<void>
+
+  // Broker Integration
+  linkedAccounts: LinkedAccount[]
+  importedTrades: ImportedTrade[]
+  loadLinkedAccounts: () => Promise<void>
+  loadImportedTrades: () => Promise<void>
+  connectBroker: (broker: BrokerType, username: string, password: string, environment: "demo" | "live") => Promise<{ success: boolean; error?: string }>
+  disconnectBroker: (broker: BrokerType) => Promise<boolean>
+  syncBrokerTrades: (broker: BrokerType) => Promise<{ success: boolean; imported?: number; error?: string }>
+  importCSV: (file: File, broker: BrokerType) => Promise<{ success: boolean; imported?: number; error?: string }>
+  dismissImportedTrade: (tradeId: string) => Promise<void>
+  prefillFromImportedTrade: (tradeId: string) => ImportedTrade | undefined
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -1109,10 +1131,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     tags?: string[],
     tradeType?: JournalEntry["tradeType"],
     profitLoss?: number,
-    image?: string,
+    images?: string[],
     mentalState?: MentalState,
     trade?: Partial<TradeMetadata>,
   ) => {
+    const image = images?.[0]
     const { currentSpaceId, user, entries } = get()
     if (!currentSpaceId || !user || !user.id) {
       console.error("[ENTRY] 🚨 MISSING REQUIRED DATA:", { 
@@ -1134,6 +1157,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       tradeType,
       profitLoss,
       image,
+      images,
       mentalState,
       symbol: trade?.symbol,
       strategy: trade?.strategy,
@@ -1300,6 +1324,25 @@ export const useAppStore = create<AppState>((set, get) => ({
       entries: {
         ...state.entries,
         [spaceId]: state.entries[spaceId]?.filter((e) => e.id !== entryId) || [],
+      },
+    }))
+  },
+
+  togglePinEntry: async (entryId: string, spaceId: string) => {
+    const { entries } = get()
+    const entry = entries[spaceId]?.find((e) => e.id === entryId)
+    if (!entry) return
+
+    const newPinned = !entry.pinned
+    const supabase = createClient()
+    await supabase.from("entries").update({ pinned: newPinned }).eq("id", entryId)
+
+    set((state) => ({
+      entries: {
+        ...state.entries,
+        [spaceId]: state.entries[spaceId]?.map((e) =>
+          e.id === entryId ? { ...e, pinned: newPinned } : e
+        ) || [],
       },
     }))
   },
@@ -2287,13 +2330,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     console.log("[LIKES] Loading for space:", spaceId, "→", actualSpaceId)
     console.log("[LIKES] Entry IDs:", Object.values(get().entries[spaceId] || []).map(e => e.id))
 
-    // Only load likes (comments removed)
+    const entryIds = Object.values(get().entries[spaceId] || []).map(e => e.id)
+    if (entryIds.length === 0) {
+      set({ likes: { ...get().likes, [spaceId]: [] }, comments: { ...get().comments, [spaceId]: [] } })
+      return
+    }
+
+    // Load likes
     const likesResult = await supabase
       .from("likes")
       .select("*")
-      .in("entry_id", 
-        Object.values(get().entries[spaceId] || []).map(e => e.id)
-      )
+      .in("entry_id", entryIds)
 
     const likes = (likesResult.data || []).filter(l => l != null).map((l: any) => ({
       id: l.id,
@@ -2302,10 +2349,29 @@ export const useAppStore = create<AppState>((set, get) => ({
       createdAt: new Date(l.created_at),
     }))
 
-    console.log("[LIKES] Loaded likes:", likes.length, likes)
+    // Load comments
+    const commentsResult = await supabase
+      .from("comments")
+      .select("*")
+      .in("entry_id", entryIds)
+      .order("created_at", { ascending: true })
+
+    const profiles = get().profiles
+    const comments: Comment[] = (commentsResult.data || []).map((c: any) => {
+      const profile = profiles.find(p => p.id === c.user_id)
+      return {
+        id: c.id,
+        entryId: c.entry_id,
+        userId: c.user_id,
+        username: profile?.username || "Unknown",
+        content: c.content,
+        createdAt: new Date(c.created_at),
+      }
+    })
 
     set({
       likes: { ...get().likes, [spaceId]: likes },
+      comments: { ...get().comments, [spaceId]: comments },
     })
   },
 
@@ -2328,34 +2394,42 @@ export const useAppStore = create<AppState>((set, get) => ({
     const entry = entries[spaceId]?.find(e => e.id === entryId)
     if (!entry) return
 
-    const supabase = createClient()
-    const { data, error } = await supabase
-      .from("likes")
-      .insert({
-        entry_id: entryId,
-        user_id: user.id,
-      })
-      .select()
-      .single()
-
-    if (error || !data) {
-      console.error("[LIKE] Add error:", error)
-      return
-    }
-
-    const like: Like = {
-      id: data.id,
-      entryId: data.entry_id,
-      userId: data.user_id,
-      createdAt: new Date(data.created_at),
+    // Optimistically update local state first
+    const tempLike: Like = {
+      id: crypto.randomUUID(),
+      entryId,
+      userId: user.id,
+      createdAt: new Date(),
     }
 
     set((state) => ({
       likes: {
         ...state.likes,
-        [spaceId]: [...(state.likes[spaceId] || []), like],
+        [spaceId]: [...(state.likes[spaceId] || []), tempLike],
       },
     }))
+
+    const supabase = createClient()
+    const { error } = await supabase
+      .from("likes")
+      .insert({
+        entry_id: entryId,
+        user_id: user.id,
+      })
+
+    if (error) {
+      // Silently handle duplicate/constraint errors — like already exists in DB
+      if (error.code === "23505" || error.message?.includes("duplicate") || error.message?.includes("unique")) return
+      // Rollback optimistic update on real errors
+      console.error("[LIKE] Add error:", error.message, error.code)
+      set((state) => ({
+        likes: {
+          ...state.likes,
+          [spaceId]: (state.likes[spaceId] || []).filter(l => l.id !== tempLike.id),
+        },
+      }))
+      return
+    }
 
     if (entry.userId !== user.id) {
       const { error: notificationError } = await supabase
@@ -2423,6 +2497,102 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { likes, currentSpaceId } = get()
     if (!currentSpaceId) return 0
     return likes[currentSpaceId]?.filter(l => l.entryId === entryId).length || 0
+  },
+
+  addComment: async (entryId: string, content: string) => {
+    const { user, entries } = get()
+    if (!user || !content.trim()) return
+
+    const spaceId = Object.keys(entries).find(sid =>
+      entries[sid]?.some(e => e.id === entryId)
+    )
+    if (!spaceId) return
+
+    const entry = entries[spaceId]?.find(e => e.id === entryId)
+    if (!entry) return
+
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("comments")
+      .insert({
+        entry_id: entryId,
+        user_id: user.id,
+        content: content.trim(),
+      })
+      .select()
+      .single()
+
+    if (error || !data) {
+      console.error("[COMMENT] Add error:", error)
+      return
+    }
+
+    const comment: Comment = {
+      id: data.id,
+      entryId: data.entry_id,
+      userId: data.user_id,
+      username: user.username,
+      content: data.content,
+      createdAt: new Date(data.created_at),
+    }
+
+    set((state) => ({
+      comments: {
+        ...state.comments,
+        [spaceId]: [...(state.comments[spaceId] || []), comment],
+      },
+    }))
+
+    // Notify the entry author
+    if (entry.userId !== user.id) {
+      await supabase
+        .from("notifications")
+        .insert({
+          user_id: entry.userId,
+          from_user_id: user.id,
+          type: "comment",
+          target_entry_id: entryId,
+          target_entry_content: entry.content?.slice(0, 240) || "",
+          message: `${user.username} commented on your post`,
+          read: false,
+        })
+      void get().loadNotifications()
+    }
+  },
+
+  deleteComment: async (commentId: string) => {
+    const { currentSpaceId } = get()
+    if (!currentSpaceId) return
+
+    const supabase = createClient()
+    const { error } = await supabase
+      .from("comments")
+      .delete()
+      .eq("id", commentId)
+
+    if (error) {
+      console.error("[COMMENT] Delete error:", error)
+      return
+    }
+
+    set((state) => ({
+      comments: {
+        ...state.comments,
+        [currentSpaceId]: (state.comments[currentSpaceId] || []).filter(c => c.id !== commentId),
+      },
+    }))
+  },
+
+  getComments: (entryId: string) => {
+    const { comments, currentSpaceId } = get()
+    if (!currentSpaceId) return []
+    return comments[currentSpaceId]?.filter(c => c.entryId === entryId) || []
+  },
+
+  getCommentCount: (entryId: string) => {
+    const { comments, currentSpaceId } = get()
+    if (!currentSpaceId) return 0
+    return comments[currentSpaceId]?.filter(c => c.entryId === entryId).length || 0
   },
 
   // Social Connections
@@ -2785,6 +2955,147 @@ export const useAppStore = create<AppState>((set, get) => ({
         console.log("[ONLINE] User went offline:", profile.username)
       }
     })
+  },
+
+  // Broker Integration
+  linkedAccounts: [],
+  importedTrades: [],
+
+  loadLinkedAccounts: async () => {
+    const supabase = createClient()
+    const { data } = await supabase
+      .from("linked_accounts")
+      .select("*")
+      .order("created_at", { ascending: false })
+
+    if (data) {
+      set({
+        linkedAccounts: data.map((a: any) => ({
+          id: a.id,
+          userId: a.user_id,
+          broker: a.broker,
+          environment: a.environment,
+          isActive: a.is_active,
+          lastSyncedAt: a.last_synced_at ? new Date(a.last_synced_at) : null,
+          createdAt: new Date(a.created_at),
+        })),
+      })
+    }
+  },
+
+  loadImportedTrades: async () => {
+    const supabase = createClient()
+    const { data } = await supabase
+      .from("imported_trades")
+      .select("*")
+      .eq("status", "pending")
+      .order("closed_at", { ascending: false })
+
+    if (data) {
+      set({
+        importedTrades: data.map((t: any) => ({
+          id: t.id,
+          userId: t.user_id,
+          broker: t.broker,
+          externalId: t.external_id,
+          symbol: t.symbol,
+          direction: t.direction,
+          entryPrice: t.entry_price,
+          exitPrice: t.exit_price,
+          quantity: t.quantity,
+          pnl: t.pnl,
+          fees: t.fees,
+          openedAt: t.opened_at ? new Date(t.opened_at) : undefined,
+          closedAt: t.closed_at ? new Date(t.closed_at) : undefined,
+          rawData: t.raw_data,
+          status: t.status,
+          postedEntryId: t.posted_entry_id,
+          createdAt: new Date(t.created_at),
+        })),
+      })
+    }
+  },
+
+  connectBroker: async (broker, username, password, environment) => {
+    try {
+      const res = await fetch("/api/broker/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ broker, username, password, environment }),
+      })
+      const data = await res.json()
+      if (!res.ok) return { success: false, error: data.error }
+      await get().loadLinkedAccounts()
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  },
+
+  disconnectBroker: async (broker) => {
+    try {
+      const res = await fetch("/api/broker/disconnect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ broker }),
+      })
+      if (!res.ok) return false
+      await get().loadLinkedAccounts()
+      await get().loadImportedTrades()
+      return true
+    } catch {
+      return false
+    }
+  },
+
+  syncBrokerTrades: async (broker) => {
+    try {
+      const res = await fetch("/api/broker/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ broker }),
+      })
+      const data = await res.json()
+      if (!res.ok) return { success: false, error: data.error }
+      await get().loadImportedTrades()
+      await get().loadLinkedAccounts()
+      return { success: true, imported: data.imported }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  },
+
+  importCSV: async (file, broker) => {
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("broker", broker)
+      const res = await fetch("/api/broker/import-csv", {
+        method: "POST",
+        body: formData,
+      })
+      const data = await res.json()
+      if (!res.ok) return { success: false, error: data.error }
+      await get().loadImportedTrades()
+      return { success: true, imported: data.imported }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  },
+
+  dismissImportedTrade: async (tradeId) => {
+    const supabase = createClient()
+    await supabase
+      .from("imported_trades")
+      .update({ status: "dismissed" })
+      .eq("id", tradeId)
+    set({
+      importedTrades: get().importedTrades.filter((t) => t.id !== tradeId),
+    })
+  },
+
+  prefillFromImportedTrade: (tradeId) => {
+    return get().importedTrades.find((t) => t.id === tradeId)
   },
 
 }))

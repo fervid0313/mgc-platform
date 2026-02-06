@@ -276,13 +276,13 @@ export function EconomicCalendarButton() {
   ]
 
   return (
-    <div className="mb-6">
+    <div>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" className="w-full">
-            <Calendar className="h-4 w-4 mr-2" />
-            Economic Calendar
-          </Button>
+          <button className="btn-3d flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-secondary/50 hover:bg-secondary rounded-lg transition-colors">
+            <Calendar className="h-3.5 w-3.5" />
+            <span>Economic Calendar</span>
+          </button>
         </DialogTrigger>
         
         <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto bg-background border-0 shadow-2xl">

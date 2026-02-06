@@ -62,13 +62,13 @@ export function JoinPrivateSpaceButton() {
   }
 
   return (
-    <div className="mb-6">
+    <div>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" className="w-full">
-            <Users className="h-4 w-4 mr-2" />
-            Join Private Space
-          </Button>
+          <button className="btn-3d flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-secondary/50 hover:bg-secondary rounded-lg transition-colors">
+            <Users className="h-3.5 w-3.5" />
+            <span>Join Private Space</span>
+          </button>
         </DialogTrigger>
         
         <DialogContent className="sm:max-w-[425px]">

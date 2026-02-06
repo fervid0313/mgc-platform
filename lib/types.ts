@@ -53,7 +53,10 @@ export interface JournalEntry extends TradeMetadata {
   tradeType?: "day-trade" | "swing" | "investment" | "ecommerce" | "general"
   profitLoss?: number
   image?: string
+  images?: string[]
   mentalState?: MentalState
+  pinned?: boolean
+  updatedAt?: Date
   createdAt: Date
 }
 
@@ -114,6 +117,15 @@ export interface Like {
   createdAt: Date
 }
 
+export interface Comment {
+  id: string
+  entryId: string
+  userId: string
+  username: string
+  content: string
+  createdAt: Date
+}
+
 export interface Notification {
   id: string
   userId: string
@@ -146,6 +158,40 @@ export interface Invitation {
   inviterId: string
   inviteeEmail: string
   status: "pending" | "accepted" | "declined"
+  createdAt: Date
+}
+
+export type BrokerType = "tradovate" | "projectx"
+export type BrokerEnvironment = "demo" | "live"
+export type ImportedTradeStatus = "pending" | "posted" | "dismissed"
+
+export interface LinkedAccount {
+  id: string
+  userId: string
+  broker: BrokerType
+  environment: BrokerEnvironment
+  isActive: boolean
+  lastSyncedAt: Date | null
+  createdAt: Date
+}
+
+export interface ImportedTrade {
+  id: string
+  userId: string
+  broker: BrokerType
+  externalId?: string
+  symbol: string
+  direction?: "long" | "short"
+  entryPrice?: number
+  exitPrice?: number
+  quantity?: number
+  pnl?: number
+  fees?: number
+  openedAt?: Date
+  closedAt?: Date
+  rawData?: Record<string, any>
+  status: ImportedTradeStatus
+  postedEntryId?: string
   createdAt: Date
 }
 

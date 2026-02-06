@@ -38,8 +38,8 @@ export function OnlineUsers() {
   const totalUsers = profiles.length
 
   return (
-    <div className="fixed top-32 right-4 lg:right-6 w-64 hidden lg:block">
-      <div className="bg-secondary/20 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden transition-all duration-300">
+    <div>
+      <div className="glass-3d rounded-xl overflow-hidden transition-all duration-300">
         {/* Header - Always Visible */}
         <div 
           className="flex items-center justify-between p-3 cursor-pointer hover:bg-secondary/30 transition-colors"
