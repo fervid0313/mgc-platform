@@ -137,6 +137,18 @@ export function JournalEntryCard({ entry, index, isGlobal = false }: JournalEntr
           </div>
         </div>
 
+        {(entry.symbol || entry.strategy || entry.timeframe || entry.direction || entry.entryPrice !== undefined || entry.exitPrice !== undefined || entry.rMultiple !== undefined) && (
+          <div className="flex flex-wrap gap-2 text-[10px] font-bold text-muted-foreground">
+            {entry.symbol && <span className="px-2 py-0.5 rounded-full bg-muted/50">{entry.symbol}</span>}
+            {entry.direction && <span className="px-2 py-0.5 rounded-full bg-muted/50">{entry.direction.toUpperCase()}</span>}
+            {entry.timeframe && <span className="px-2 py-0.5 rounded-full bg-muted/50">{entry.timeframe}</span>}
+            {entry.strategy && <span className="px-2 py-0.5 rounded-full bg-muted/50">{entry.strategy}</span>}
+            {entry.entryPrice !== undefined && <span className="px-2 py-0.5 rounded-full bg-muted/50">Entry {entry.entryPrice}</span>}
+            {entry.exitPrice !== undefined && <span className="px-2 py-0.5 rounded-full bg-muted/50">Exit {entry.exitPrice}</span>}
+            {entry.rMultiple !== undefined && <span className="px-2 py-0.5 rounded-full bg-muted/50">{entry.rMultiple}R</span>}
+          </div>
+        )}
+
         <p className="text-sm text-foreground/80 leading-relaxed font-medium">{entry.content}</p>
 
         {/* Debug: Check if image exists */}

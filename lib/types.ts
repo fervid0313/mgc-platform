@@ -26,7 +26,24 @@ export interface SpaceMember {
   joinedAt: Date
 }
 
-export interface JournalEntry {
+export type TradeDirection = "long" | "short"
+
+export interface TradeMetadata {
+  symbol?: string
+  strategy?: string
+  timeframe?: string
+  direction?: TradeDirection
+  entryPrice?: number
+  exitPrice?: number
+  stopLoss?: number
+  takeProfit?: number
+  riskAmount?: number
+  riskPercent?: number
+  rMultiple?: number
+  positionSize?: number
+}
+
+export interface JournalEntry extends TradeMetadata {
   id: string
   spaceId: string
   userId: string

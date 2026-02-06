@@ -5,6 +5,7 @@ import type {
   User,
   Space,
   JournalEntry,
+  TradeMetadata,
   Theme,
   MentalState,
   MilestoneLevel,
@@ -36,6 +37,20 @@ function safeParsePnL(value: any): number | undefined {
   
   const parsed = parseFloat(strValue);
   return isNaN(parsed) ? undefined : parsed;
+}
+
+function safeParseNumber(value: any): number | undefined {
+  if (value === null || value === undefined || value === "") {
+    return undefined
+  }
+
+  const strValue = String(value).trim()
+  if (strValue === "") {
+    return undefined
+  }
+
+  const parsed = parseFloat(strValue)
+  return Number.isFinite(parsed) ? parsed : undefined
 }
 
 const ADMIN_EMAIL = "fervid2023@gmail.com"
@@ -95,6 +110,7 @@ interface AppState {
     profitLoss?: number,
     image?: string,
     mentalState?: MentalState,
+    trade?: Partial<TradeMetadata>,
   ) => void
   updateEntry: (
     entryId: string,
@@ -104,6 +120,7 @@ interface AppState {
     profitLoss?: number,
     image?: string,
     mentalState?: MentalState,
+    trade?: Partial<TradeMetadata>,
   ) => void
   deleteEntry: (entryId: string, spaceId: string) => void
   loadEntries: (spaceId: string) => Promise<void>
@@ -1094,6 +1111,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     profitLoss?: number,
     image?: string,
     mentalState?: MentalState,
+    trade?: Partial<TradeMetadata>,
   ) => {
     const { currentSpaceId, user, entries } = get()
     if (!currentSpaceId || !user || !user.id) {
@@ -1117,6 +1135,18 @@ export const useAppStore = create<AppState>((set, get) => ({
       profitLoss,
       image,
       mentalState,
+      symbol: trade?.symbol,
+      strategy: trade?.strategy,
+      timeframe: trade?.timeframe,
+      direction: trade?.direction,
+      entryPrice: trade?.entryPrice,
+      exitPrice: trade?.exitPrice,
+      stopLoss: trade?.stopLoss,
+      takeProfit: trade?.takeProfit,
+      riskAmount: trade?.riskAmount,
+      riskPercent: trade?.riskPercent,
+      rMultiple: trade?.rMultiple,
+      positionSize: trade?.positionSize,
       createdAt: new Date(),
     }
 
@@ -1142,6 +1172,18 @@ export const useAppStore = create<AppState>((set, get) => ({
       image,
       mental_state: mentalState,
       user_id: user.id,
+      symbol: trade?.symbol,
+      strategy: trade?.strategy,
+      timeframe: trade?.timeframe,
+      direction: trade?.direction,
+      entry_price: trade?.entryPrice,
+      exit_price: trade?.exitPrice,
+      stop_loss: trade?.stopLoss,
+      take_profit: trade?.takeProfit,
+      risk_amount: trade?.riskAmount,
+      risk_percent: trade?.riskPercent,
+      r_multiple: trade?.rMultiple,
+      position_size: trade?.positionSize,
     }
 
     console.log("[ENTRY] 📝 Saving entry:", {
@@ -1153,11 +1195,29 @@ export const useAppStore = create<AppState>((set, get) => ({
       mentalState
     })
 
-    const { data, error } = await supabase
-      .from("entries")
-      .insert(insertData)
-      .select()
-      .single()
+    const insertLegacyData = {
+      space_id: actualSpaceId,
+      content,
+      tags: tags || [],
+      trade_type: tradeType,
+      pnl: profitLoss,
+      image,
+      mental_state: mentalState,
+      user_id: user.id,
+    }
+
+    let data: any = null
+    let error: any = null
+
+    const res = await supabase.from("entries").insert(insertData).select().single()
+    data = res.data
+    error = res.error
+
+    if (error && (error.code === "42703" || String(error.message || "").includes("does not exist"))) {
+      const legacyRes = await supabase.from("entries").insert(insertLegacyData).select().single()
+      data = legacyRes.data
+      error = legacyRes.error
+    }
 
     if (error || !data) {
       console.error("[ENTRY] Add error:", error)
@@ -1194,6 +1254,18 @@ export const useAppStore = create<AppState>((set, get) => ({
       profitLoss: data.pnl,
       image: data.image,
       mentalState: data.mental_state,
+      symbol: data.symbol || undefined,
+      strategy: data.strategy || undefined,
+      timeframe: data.timeframe || undefined,
+      direction: data.direction || undefined,
+      entryPrice: safeParseNumber(data.entry_price),
+      exitPrice: safeParseNumber(data.exit_price),
+      stopLoss: safeParseNumber(data.stop_loss),
+      takeProfit: safeParseNumber(data.take_profit),
+      riskAmount: safeParseNumber(data.risk_amount),
+      riskPercent: safeParseNumber(data.risk_percent),
+      rMultiple: safeParseNumber(data.r_multiple),
+      positionSize: safeParseNumber(data.position_size),
       createdAt: new Date(data.created_at),
     }
 
@@ -1240,6 +1312,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     profitLoss?: number,
     image?: string,
     mentalState?: MentalState,
+    trade?: Partial<TradeMetadata>,
   ) => {
     const { currentSpaceId, user, entries } = get()
     if (!currentSpaceId || !user || !user.id) {
@@ -1267,6 +1340,18 @@ export const useAppStore = create<AppState>((set, get) => ({
       profitLoss,
       image,
       mentalState,
+      symbol: trade?.symbol ?? existingEntry.symbol,
+      strategy: trade?.strategy ?? existingEntry.strategy,
+      timeframe: trade?.timeframe ?? existingEntry.timeframe,
+      direction: trade?.direction ?? existingEntry.direction,
+      entryPrice: trade?.entryPrice ?? existingEntry.entryPrice,
+      exitPrice: trade?.exitPrice ?? existingEntry.exitPrice,
+      stopLoss: trade?.stopLoss ?? existingEntry.stopLoss,
+      takeProfit: trade?.takeProfit ?? existingEntry.takeProfit,
+      riskAmount: trade?.riskAmount ?? existingEntry.riskAmount,
+      riskPercent: trade?.riskPercent ?? existingEntry.riskPercent,
+      rMultiple: trade?.rMultiple ?? existingEntry.rMultiple,
+      positionSize: trade?.positionSize ?? existingEntry.positionSize,
     }
 
     // Update entry optimistically
@@ -1291,6 +1376,20 @@ export const useAppStore = create<AppState>((set, get) => ({
       pnl: profitLoss,
       image,
       mental_state: mentalState,
+      ...(trade ? {
+        symbol: trade.symbol,
+        strategy: trade.strategy,
+        timeframe: trade.timeframe,
+        direction: trade.direction,
+        entry_price: trade.entryPrice,
+        exit_price: trade.exitPrice,
+        stop_loss: trade.stopLoss,
+        take_profit: trade.takeProfit,
+        risk_amount: trade.riskAmount,
+        risk_percent: trade.riskPercent,
+        r_multiple: trade.rMultiple,
+        position_size: trade.positionSize,
+      } : {}),
     }
 
     console.log("[ENTRY] 📝 Updating entry:", {
@@ -1303,12 +1402,27 @@ export const useAppStore = create<AppState>((set, get) => ({
       mentalState
     })
 
-    const { data, error } = await supabase
-      .from("entries")
-      .update(updateData)
-      .eq("id", entryId)
-      .select()
-      .single()
+    const updateLegacyData = {
+      content,
+      tags: tags || [],
+      trade_type: tradeType,
+      pnl: profitLoss,
+      image,
+      mental_state: mentalState,
+    }
+
+    let data: any = null
+    let error: any = null
+
+    const res = await supabase.from("entries").update(updateData).eq("id", entryId).select().single()
+    data = res.data
+    error = res.error
+
+    if (error && (error.code === "42703" || String(error.message || "").includes("does not exist"))) {
+      const legacyRes = await supabase.from("entries").update(updateLegacyData).eq("id", entryId).select().single()
+      data = legacyRes.data
+      error = legacyRes.error
+    }
 
     if (error || !data) {
       console.error("[ENTRY] Update error:", error)
@@ -1342,6 +1456,18 @@ export const useAppStore = create<AppState>((set, get) => ({
       profitLoss: data.pnl,
       image: data.image,
       mentalState: data.mental_state,
+      symbol: data.symbol || undefined,
+      strategy: data.strategy || undefined,
+      timeframe: data.timeframe || undefined,
+      direction: data.direction || undefined,
+      entryPrice: safeParseNumber(data.entry_price),
+      exitPrice: safeParseNumber(data.exit_price),
+      stopLoss: safeParseNumber(data.stop_loss),
+      takeProfit: safeParseNumber(data.take_profit),
+      riskAmount: safeParseNumber(data.risk_amount),
+      riskPercent: safeParseNumber(data.risk_percent),
+      rMultiple: safeParseNumber(data.r_multiple),
+      positionSize: safeParseNumber(data.position_size),
       createdAt: new Date(data.created_at),
     }
 
@@ -1372,10 +1498,32 @@ export const useAppStore = create<AppState>((set, get) => ({
     console.log("[ENTRY] 🔄 Loading entries for space:", spaceId, "→", actualSpaceId)
 
     try {
-      // Simplified query - just get the basic entry data
-      const { data: entriesData, error: entriesError } = await supabase
-        .from("entries")
-        .select(`
+      const selectFull = `
+          id, 
+          space_id, 
+          user_id, 
+          content, 
+          image, 
+          pnl,
+          tags,
+          trade_type,
+          mental_state,
+          symbol,
+          strategy,
+          timeframe,
+          direction,
+          entry_price,
+          exit_price,
+          stop_loss,
+          take_profit,
+          risk_amount,
+          risk_percent,
+          r_multiple,
+          position_size,
+          created_at
+        `
+
+      const selectFallback = `
           id, 
           space_id, 
           user_id, 
@@ -1386,10 +1534,28 @@ export const useAppStore = create<AppState>((set, get) => ({
           trade_type,
           mental_state,
           created_at
-        `)
-        .eq("space_id", actualSpaceId)
-        .order("created_at", { ascending: false })
-        .limit(200)
+        `
+
+      const loadQuery = async (select: string) =>
+        supabase
+          .from("entries")
+          .select(select)
+          .eq("space_id", actualSpaceId)
+          .order("created_at", { ascending: false })
+          .limit(200)
+
+      let entriesData: any[] | null = null
+      let entriesError: any = null
+
+      const fullRes = await loadQuery(selectFull)
+      entriesData = fullRes.data
+      entriesError = fullRes.error
+
+      if (entriesError) {
+        const fallbackRes = await loadQuery(selectFallback)
+        entriesData = fallbackRes.data
+        entriesError = fallbackRes.error
+      }
 
       if (entriesError) {
         console.error("[ENTRY] ❌ Failed to load entries:", entriesError)
@@ -1433,6 +1599,18 @@ export const useAppStore = create<AppState>((set, get) => ({
             profitLoss: safeParsePnL(e.pnl),
             image: e.image,
             mentalState: e.mental_state,
+            symbol: e.symbol || undefined,
+            strategy: e.strategy || undefined,
+            timeframe: e.timeframe || undefined,
+            direction: e.direction || undefined,
+            entryPrice: safeParseNumber(e.entry_price),
+            exitPrice: safeParseNumber(e.exit_price),
+            stopLoss: safeParseNumber(e.stop_loss),
+            takeProfit: safeParseNumber(e.take_profit),
+            riskAmount: safeParseNumber(e.risk_amount),
+            riskPercent: safeParseNumber(e.risk_percent),
+            rMultiple: safeParseNumber(e.r_multiple),
+            positionSize: safeParseNumber(e.position_size),
             createdAt: new Date(e.created_at),
           };
         } catch (mapError) {
@@ -1565,7 +1743,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       : spaceId
 
     const pageSize = 20
-    const entrySelectFull = "id, space_id, user_id, username, content, tags, trade_type, pnl, image, mental_state, created_at"
+    const entrySelectFull = "id, space_id, user_id, username, content, tags, trade_type, pnl, image, mental_state, symbol, strategy, timeframe, direction, entry_price, exit_price, stop_loss, take_profit, risk_amount, risk_percent, r_multiple, position_size, created_at"
     const entrySelectFallback = "id, space_id, user_id, username, content, tags, trade_type, pnl, image, mental_state, created_at"
 
     const baseQuery = (select: string) =>
@@ -1615,6 +1793,18 @@ export const useAppStore = create<AppState>((set, get) => ({
         profitLoss: safeParsePnL(e.pnl),
         image: e.image,
         mentalState: e.mental_state,
+        symbol: e.symbol || undefined,
+        strategy: e.strategy || undefined,
+        timeframe: e.timeframe || undefined,
+        direction: e.direction || undefined,
+        entryPrice: safeParseNumber(e.entry_price),
+        exitPrice: safeParseNumber(e.exit_price),
+        stopLoss: safeParseNumber(e.stop_loss),
+        takeProfit: safeParseNumber(e.take_profit),
+        riskAmount: safeParseNumber(e.risk_amount),
+        riskPercent: safeParseNumber(e.risk_percent),
+        rMultiple: safeParseNumber(e.r_multiple),
+        positionSize: safeParseNumber(e.position_size),
         createdAt: new Date(e.created_at),
       }
     })

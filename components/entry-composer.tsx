@@ -25,6 +25,14 @@ export function EntryComposer() {
   const [showOptions, setShowOptions] = useState(false)
   const [image, setImage] = useState<string | null>(null)
   const [mentalState, setMentalState] = useState<MentalState | undefined>(undefined)
+  const [symbol, setSymbol] = useState("")
+  const [strategy, setStrategy] = useState("")
+  const [timeframe, setTimeframe] = useState("")
+  const [direction, setDirection] = useState<"long" | "short" | "">("")
+  const [entryPrice, setEntryPrice] = useState("")
+  const [exitPrice, setExitPrice] = useState("")
+  const [riskAmount, setRiskAmount] = useState("")
+  const [rMultiple, setRMultiple] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const currentSpace = spaces.find((s) => s.id === currentSpaceId)
@@ -60,13 +68,40 @@ export function EntryComposer() {
     }
 
     const pl = tradeType !== "general" && profitLoss ? Number.parseFloat(profitLoss) : undefined
-    addEntry(content, [], tradeType, pl, image || undefined, mentalState)
+    const toOptionalNumber = (v: string) => {
+      const trimmed = v.trim()
+      if (!trimmed) return undefined
+      const n = Number.parseFloat(trimmed)
+      return Number.isFinite(n) ? n : undefined
+    }
+
+    const trade = {
+      symbol: symbol.trim() || undefined,
+      strategy: strategy.trim() || undefined,
+      timeframe: timeframe.trim() || undefined,
+      direction: direction || undefined,
+      entryPrice: toOptionalNumber(entryPrice),
+      exitPrice: toOptionalNumber(exitPrice),
+      riskAmount: toOptionalNumber(riskAmount),
+      rMultiple: toOptionalNumber(rMultiple),
+    }
+
+    const shouldIncludeTrade = Object.values(trade).some((v) => v !== undefined)
+    addEntry(content, [], tradeType, pl, image || undefined, mentalState, shouldIncludeTrade ? trade : undefined)
 
     setContent("")
     setProfitLoss("")
     setShowOptions(false)
     setImage(null)
     setMentalState(undefined)
+    setSymbol("")
+    setStrategy("")
+    setTimeframe("")
+    setDirection("")
+    setEntryPrice("")
+    setExitPrice("")
+    setRiskAmount("")
+    setRMultiple("")
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
@@ -159,6 +194,80 @@ export function EntryComposer() {
                   onChange={(e) => setProfitLoss(e.target.value)}
                   placeholder="Enter profit/loss"
                   className="flex-1 bg-background/50 border border-border rounded-xl px-3 py-2 text-sm outline-none focus:border-primary transition-colors"
+                />
+              </div>
+            </div>
+          )}
+
+          {tradeType !== "general" && (
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Trade Details</label>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  value={symbol}
+                  onChange={(e) => setSymbol(e.target.value)}
+                  placeholder="Symbol (e.g. SPY)"
+                  className="bg-background/50 border border-border rounded-xl px-3 py-2 text-sm outline-none focus:border-primary transition-colors"
+                />
+                <input
+                  value={strategy}
+                  onChange={(e) => setStrategy(e.target.value)}
+                  placeholder="Strategy"
+                  className="bg-background/50 border border-border rounded-xl px-3 py-2 text-sm outline-none focus:border-primary transition-colors"
+                />
+                <input
+                  value={timeframe}
+                  onChange={(e) => setTimeframe(e.target.value)}
+                  placeholder="Timeframe (e.g. 5m)"
+                  className="bg-background/50 border border-border rounded-xl px-3 py-2 text-sm outline-none focus:border-primary transition-colors"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDirection(direction === "long" ? "" : "long")}
+                    className={`flex-1 text-[10px] font-bold px-3 py-2 rounded-xl border transition-all ${
+                      direction === "long" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/50"
+                    }`}
+                  >
+                    Long
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDirection(direction === "short" ? "" : "short")}
+                    className={`flex-1 text-[10px] font-bold px-3 py-2 rounded-xl border transition-all ${
+                      direction === "short" ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/50"
+                    }`}
+                  >
+                    Short
+                  </button>
+                </div>
+                <input
+                  type="number"
+                  value={entryPrice}
+                  onChange={(e) => setEntryPrice(e.target.value)}
+                  placeholder="Entry price"
+                  className="bg-background/50 border border-border rounded-xl px-3 py-2 text-sm outline-none focus:border-primary transition-colors"
+                />
+                <input
+                  type="number"
+                  value={exitPrice}
+                  onChange={(e) => setExitPrice(e.target.value)}
+                  placeholder="Exit price"
+                  className="bg-background/50 border border-border rounded-xl px-3 py-2 text-sm outline-none focus:border-primary transition-colors"
+                />
+                <input
+                  type="number"
+                  value={riskAmount}
+                  onChange={(e) => setRiskAmount(e.target.value)}
+                  placeholder="Risk ($)"
+                  className="bg-background/50 border border-border rounded-xl px-3 py-2 text-sm outline-none focus:border-primary transition-colors"
+                />
+                <input
+                  type="number"
+                  value={rMultiple}
+                  onChange={(e) => setRMultiple(e.target.value)}
+                  placeholder="R multiple"
+                  className="bg-background/50 border border-border rounded-xl px-3 py-2 text-sm outline-none focus:border-primary transition-colors"
                 />
               </div>
             </div>
