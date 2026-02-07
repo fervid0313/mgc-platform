@@ -6,7 +6,8 @@ import type { JournalEntry } from "@/lib/types"
 import { getAvatarUrl } from "@/lib/avatar-generator"
 import { safeSubstring } from "@/lib/string-safety"
 import { JournalEntryCard } from "./journal-entry-card"
-import { Search, Bookmark, BookmarkCheck, X, BookOpen } from "lucide-react"
+import { Search, Bookmark, BookmarkCheck, X, BookOpen, Users } from "lucide-react"
+import { useFollows } from "./follow-system"
 
 interface SavedFilter {
   name: string
@@ -22,9 +23,11 @@ const SAVED_FILTERS_KEY = "mgc-saved-filters"
 
 export function JournalFeed() {
   const { entries, currentSpaceId, spaces, loadMoreEntries, hasMoreEntries, isLoadingMoreEntries, forceLoadEntries } = useAppStore()
+  const { following } = useFollows()
   const currentSpace = spaces.find((s) => s.id === currentSpaceId)
   const spaceEntries = currentSpaceId ? entries[currentSpaceId] || [] : []
   const isGlobalFeed = currentSpaceId === "space-global"
+  const [followingOnly, setFollowingOnly] = useState(false)
 
   const [query, setQuery] = useState("")
   const [symbol, setSymbol] = useState("")
@@ -103,9 +106,11 @@ export function JournalFeed() {
         if (!haystack.includes(q)) return false
       }
 
+      if (followingOnly && !following.includes(e.userId)) return false
+
       return true
     })
-  }, [spaceEntries, query, symbol, strategy, timeframe, direction, tradeType])
+  }, [spaceEntries, query, symbol, strategy, timeframe, direction, tradeType, followingOnly, following])
 
   const canLoadMore = currentSpaceId ? hasMoreEntries[currentSpaceId] !== false : false
   const isLoadingMore = currentSpaceId ? isLoadingMoreEntries[currentSpaceId] === true : false
@@ -207,6 +212,15 @@ export function JournalFeed() {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setFollowingOnly(!followingOnly)}
+              className={`text-[10px] font-bold px-3 py-1.5 rounded-full border transition-all flex items-center gap-1 ${
+                followingOnly ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/50"
+              }`}
+            >
+              <Users className="h-3 w-3" />
+              Following
+            </button>
             <button
               onClick={() => setShowSaveInput(!showSaveInput)}
               className="text-[10px] font-bold px-2 py-1 rounded-full border border-border text-muted-foreground hover:border-primary/50 hover:text-primary transition-all flex items-center gap-1"

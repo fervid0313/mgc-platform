@@ -40,6 +40,12 @@ import { WinLossDistribution } from "@/components/win-loss-distribution"
 import { TradeIdeas } from "@/components/trade-ideas"
 import { CommentNotifier } from "@/components/comment-notifier"
 import { TradingInsights } from "@/components/trading-insights"
+import { PlaybookBuilder } from "@/components/playbook-builder"
+import { RuleEnforcer } from "@/components/rule-enforcer"
+import { DrawdownMonitor } from "@/components/drawdown-monitor"
+import { SessionView } from "@/components/session-view"
+import { TradeComparison } from "@/components/trade-comparison"
+import { PushNotificationManager } from "@/components/push-notification-manager"
 import { Loader2, ExternalLink } from "lucide-react"
 import { useEventScheduler } from "@/hooks/use-event-scheduler"
 import type { ImportedTrade } from "@/lib/types"
@@ -136,6 +142,9 @@ export default function Home() {
             {mountedTabs.stats && (
               <div className={showStatus ? "space-y-6" : "hidden"}>
                 <TradingInsights />
+                <DrawdownMonitor />
+                <SessionView />
+                <RuleEnforcer />
                 <EquityCurve />
                 <YearlyHeatmap />
                 <TradeBreakdown />
@@ -144,6 +153,8 @@ export default function Home() {
                 <TimeOfDayAnalysis />
                 <SymbolPerformance />
                 <WinLossDistribution />
+                <PlaybookBuilder />
+                <TradeComparison />
                 <TagManager />
                 <TradeStreaks />
                 <WeeklyReport />
@@ -169,6 +180,7 @@ export default function Home() {
 
             {/* Journal — always mounted */}
             <div className={!showFAQ && !showStatus && !showCommunity ? "space-y-6" : "hidden"}>
+              <DrawdownMonitor />
               <InviteToSpaceButton />
               <GoalTracker />
               <StreakAlert />
