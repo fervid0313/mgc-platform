@@ -4,6 +4,7 @@ import { useMemo } from "react"
 import { useAppStore } from "@/lib/store"
 import type { JournalEntry, MentalState } from "@/lib/types"
 import { Sparkles, TrendingUp, TrendingDown, Brain, AlertTriangle, CheckCircle } from "lucide-react"
+import { format } from "date-fns"
 
 interface Insight {
   type: "positive" | "warning" | "neutral"
@@ -144,14 +145,14 @@ function analyzeEntries(entries: JournalEntry[]): Insight[] {
   // 5. Overtrading detection
   const dayTradeCounts: Record<string, number> = {}
   for (const e of tradesWithPnL) {
-    const day = new Date(e.createdAt).toISOString().split("T")[0]
+    const day = format(new Date(e.createdAt), "yyyy-MM-dd")
     dayTradeCounts[day] = (dayTradeCounts[day] || 0) + 1
   }
   const highDays = Object.entries(dayTradeCounts).filter(([, c]) => c >= 5)
   if (highDays.length >= 2) {
     const avgPnlHighDays = highDays.reduce((sum, [day]) => {
       return sum + tradesWithPnL
-        .filter((e) => new Date(e.createdAt).toISOString().split("T")[0] === day)
+        .filter((e) => format(new Date(e.createdAt), "yyyy-MM-dd") === day)
         .reduce((s, e) => s + (e.profitLoss || 0), 0)
     }, 0) / highDays.length
 

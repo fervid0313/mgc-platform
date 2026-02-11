@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { useAppStore } from "@/lib/store"
 import { Shield, Plus, Trash2, CheckCircle, XCircle, AlertTriangle } from "lucide-react"
+import { format } from "date-fns"
 
 interface TradingRule {
   id: string
@@ -46,9 +47,9 @@ export function RuleEnforcer() {
 
   const ruleResults = useMemo(() => {
     const today = new Date()
-    const todayStr = today.toISOString().slice(0, 10)
+    const todayStr = format(today, "yyyy-MM-dd")
     const myEntries = spaceEntries.filter((e) => e.userId === user?.id)
-    const todayEntries = myEntries.filter((e) => new Date(e.createdAt).toISOString().slice(0, 10) === todayStr)
+    const todayEntries = myEntries.filter((e) => format(new Date(e.createdAt), "yyyy-MM-dd") === todayStr)
     const todayPnL = todayEntries.reduce((s, e) => s + (e.profitLoss || 0), 0)
     const currentHour = today.getHours()
 

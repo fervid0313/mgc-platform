@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react"
 import { useAppStore } from "@/lib/store"
 import { Clock, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Minus } from "lucide-react"
+import { format } from "date-fns"
 
 export function SessionView() {
   const { entries, currentSpaceId, user } = useAppStore()
@@ -13,10 +14,10 @@ export function SessionView() {
   const { selectedDate, dayEntries, runningPnL, totalPnL, wins, losses, bestTrade, worstTrade } = useMemo(() => {
     const date = new Date()
     date.setDate(date.getDate() - dateOffset)
-    const dateStr = date.toISOString().slice(0, 10)
+    const dateStr = format(date, "yyyy-MM-dd")
 
     const dayEntries = spaceEntries
-      .filter((e) => e.userId === user?.id && new Date(e.createdAt).toISOString().slice(0, 10) === dateStr)
+      .filter((e) => e.userId === user?.id && format(new Date(e.createdAt), "yyyy-MM-dd") === dateStr)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
 
     let running = 0

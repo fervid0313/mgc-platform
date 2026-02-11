@@ -3,7 +3,7 @@
 import { useMemo } from "react"
 import { useAppStore } from "@/lib/store"
 import { Flame, AlertTriangle } from "lucide-react"
-import { isToday, isYesterday, differenceInHours } from "date-fns"
+import { isToday, isYesterday, differenceInHours, format } from "date-fns"
 
 export function StreakAlert() {
   const { entries, currentSpaceId, user } = useAppStore()
@@ -24,7 +24,7 @@ export function StreakAlert() {
     let streak = 0
     const dates = new Set<string>()
     sorted.forEach((e) => {
-      dates.add(new Date(e.createdAt).toISOString().split("T")[0])
+      dates.add(format(new Date(e.createdAt), "yyyy-MM-dd"))
     })
 
     const sortedDates = Array.from(dates).sort().reverse()
@@ -32,7 +32,7 @@ export function StreakAlert() {
       const d = new Date(sortedDates[i])
       const expected = new Date()
       expected.setDate(expected.getDate() - (i + 1))
-      if (d.toISOString().split("T")[0] === expected.toISOString().split("T")[0]) {
+      if (format(d, "yyyy-MM-dd") === format(expected, "yyyy-MM-dd")) {
         streak++
       } else {
         break

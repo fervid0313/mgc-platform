@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { useAppStore } from "@/lib/store"
 import { ShieldAlert, Settings, X } from "lucide-react"
+import { format } from "date-fns"
 
 const STORAGE_KEY = "mgc-drawdown-settings"
 
@@ -39,11 +40,11 @@ export function DrawdownMonitor() {
       .filter((e) => e.userId === user?.id && e.profitLoss !== undefined)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
 
-    const today = new Date().toISOString().slice(0, 10)
+    const today = format(new Date(), "yyyy-MM-dd")
     const weekAgo = new Date(Date.now() - 7 * 86400000)
 
     const dailyPnL = myEntries
-      .filter((e) => new Date(e.createdAt).toISOString().slice(0, 10) === today)
+      .filter((e) => format(new Date(e.createdAt), "yyyy-MM-dd") === today)
       .reduce((s, e) => s + (e.profitLoss || 0), 0)
 
     const weeklyPnL = myEntries

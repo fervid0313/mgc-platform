@@ -75,56 +75,68 @@ const getMoodColorClasses = (mood: string) => {
 export default function TradeAnalyticsPage() {
   const params = useParams()
   const router = useRouter()
-  const { entries, profiles, currentSpaceId, user } = useAppStore()
+  const { entries, profiles, currentSpaceId, user, initializeAuth, loadEntries } = useAppStore()
   const [userStats, setUserStats] = useState<UserProfileStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null)
   const [highlightedTradeId, setHighlightedTradeId] = useState<string | null>(null)
+  const [authReady, setAuthReady] = useState(false)
 
   const userId = params.userId as string
   const isOwnProfile = user?.id === userId
 
+  // Ensure auth is initialized (handles direct URL access / hard refresh)
   useEffect(() => {
-    console.log("[ANALYTICS] Component loading with userId:", userId)
-    console.log("[ANALYTICS] Available profiles:", profiles.length)
-    console.log("[ANALYTICS] Current space ID:", currentSpaceId)
-    console.log("[ANALYTICS] Current user ID:", user?.id)
-    console.log("[ANALYTICS] Is own profile:", isOwnProfile)
-    
-    if (!userId) return
+    initializeAuth().then(() => setAuthReady(true))
+  }, [initializeAuth])
 
-    // Force load profiles if none are available (common in production)
+  // Load entries once auth is ready and we have a space
+  useEffect(() => {
+    if (authReady && currentSpaceId) {
+      loadEntries(currentSpaceId)
+    }
+  }, [authReady, currentSpaceId, loadEntries])
+
+  useEffect(() => {
+    if (!userId) return
+    if (!authReady) return
+
+    // Force load profiles if none are available
     if (profiles.length === 0) {
-      console.log("[ANALYTICS] No profiles available, attempting to force load...")
       const { forceLoadProfiles } = useAppStore.getState()
       forceLoadProfiles().then(() => {
-        console.log("[ANALYTICS] Force loaded profiles, retrying user lookup...")
         const updatedProfiles = useAppStore.getState().profiles
         const userProfile = updatedProfiles.find(p => p.id === userId)
-        console.log("[ANALYTICS] Found user profile after force load:", userProfile ? userProfile.username : "Not found")
         
         if (!userProfile) {
           setLoading(false)
           return
         }
         
-        // Continue with user stats calculation...
         calculateUserStats(userProfile)
       })
       return
     }
 
     const userProfile = profiles.find(p => p.id === userId)
-    console.log("[ANALYTICS] Found user profile:", userProfile ? userProfile.username : "Not found")
     
     if (!userProfile) {
-      console.log("[ANALYTICS] User profile not found, setting loading to false")
-      setLoading(false)
+      // Profiles are loaded but user not found — try one force reload before giving up
+      const { forceLoadProfiles } = useAppStore.getState()
+      forceLoadProfiles().then(() => {
+        const updatedProfiles = useAppStore.getState().profiles
+        const found = updatedProfiles.find(p => p.id === userId)
+        if (found) {
+          calculateUserStats(found)
+        } else {
+          setLoading(false)
+        }
+      })
       return
     }
 
     calculateUserStats(userProfile)
-  }, [userId, entries, profiles, currentSpaceId, user])
+  }, [userId, entries, profiles, currentSpaceId, authReady])
 
   const calculateUserStats = (userProfile: any) => {
     // Get all entries for this user in current space (if available)
