@@ -46,6 +46,7 @@ import { DrawdownMonitor } from "@/components/drawdown-monitor"
 import { SessionView } from "@/components/session-view"
 import { TradeComparison } from "@/components/trade-comparison"
 import { PushNotificationManager } from "@/components/push-notification-manager"
+import { IntradayAnalysis } from "@/components/intraday-analysis"
 import { Loader2, ExternalLink } from "lucide-react"
 import { useEventScheduler } from "@/hooks/use-event-scheduler"
 import type { ImportedTrade } from "@/lib/types"
@@ -56,7 +57,8 @@ export default function Home() {
   const [showCommunity, setShowCommunity] = useState(false)
   const [showFAQ, setShowFAQ] = useState(false)
   const [showStatus, setShowStatus] = useState(false)
-  const [mountedTabs, setMountedTabs] = useState({ faq: false, stats: false, community: false })
+  const [showAnalysis, setShowAnalysis] = useState(false)
+  const [mountedTabs, setMountedTabs] = useState({ faq: false, stats: false, community: false, analysis: false })
   const [, startTransition] = useTransition()
   const [prefillTrade, setPrefillTrade] = useState<ImportedTrade | null>(null)
 
@@ -127,9 +129,11 @@ export default function Home() {
               showCommunity={showCommunity} 
               showFAQ={showFAQ}
               showStatus={showStatus}
-              onToggleCommunity={() => { startTransition(() => { setShowCommunity(!showCommunity); setShowStatus(false) }); if (!mountedTabs.community) setMountedTabs(p => ({ ...p, community: true })) }}
-              onToggleFAQ={() => { startTransition(() => { setShowFAQ(!showFAQ); setShowStatus(false) }); if (!mountedTabs.faq) setMountedTabs(p => ({ ...p, faq: true })) }}
-              onToggleStatus={() => { startTransition(() => { setShowStatus(!showStatus); setShowCommunity(false); setShowFAQ(false) }); if (!mountedTabs.stats) setMountedTabs(p => ({ ...p, stats: true })) }}
+              showAnalysis={showAnalysis}
+              onToggleCommunity={() => { startTransition(() => { setShowCommunity(!showCommunity); setShowStatus(false); setShowAnalysis(false) }); if (!mountedTabs.community) setMountedTabs(p => ({ ...p, community: true })) }}
+              onToggleFAQ={() => { startTransition(() => { setShowFAQ(!showFAQ); setShowStatus(false); setShowAnalysis(false) }); if (!mountedTabs.faq) setMountedTabs(p => ({ ...p, faq: true })) }}
+              onToggleStatus={() => { startTransition(() => { setShowStatus(!showStatus); setShowCommunity(false); setShowFAQ(false); setShowAnalysis(false) }); if (!mountedTabs.stats) setMountedTabs(p => ({ ...p, stats: true })) }}
+              onToggleAnalysis={() => { startTransition(() => { setShowAnalysis(!showAnalysis); setShowCommunity(false); setShowFAQ(false); setShowStatus(false) }); if (!mountedTabs.analysis) setMountedTabs(p => ({ ...p, analysis: true })) }}
             />
 
             {/* Lazy-mounted tabs: only render after first visit, then persist via CSS hidden */}
@@ -164,6 +168,12 @@ export default function Home() {
               </div>
             )}
 
+            {mountedTabs.analysis && (
+              <div className={showAnalysis ? "space-y-6" : "hidden"}>
+                <IntradayAnalysis />
+              </div>
+            )}
+
             {mountedTabs.community && (
               <div className={showCommunity && !showFAQ && !showStatus ? "flex flex-col lg:flex-row gap-6 lg:-mx-32 lg:w-[calc(100%+16rem)]" : "hidden"}>
                 <div className="flex-1 min-w-0 order-2 lg:order-1">
@@ -179,7 +189,7 @@ export default function Home() {
             )}
 
             {/* Journal — always mounted */}
-            <div className={!showFAQ && !showStatus && !showCommunity ? "space-y-6" : "hidden"}>
+            <div className={!showFAQ && !showStatus && !showCommunity && !showAnalysis ? "space-y-6" : "hidden"}>
               <DrawdownMonitor />
               <InviteToSpaceButton />
               <GoalTracker />

@@ -1,25 +1,28 @@
 "use client"
 
 import { useAppStore } from "@/lib/store"
-import { BookOpen, Users, MessageCircleQuestion, BarChart3 } from "lucide-react"
+import { BookOpen, Users, MessageCircleQuestion, BarChart3, Brain } from "lucide-react"
 
 interface ViewToggleProps {
   showCommunity: boolean
   showFAQ: boolean
   showStatus: boolean
+  showAnalysis: boolean
   onToggleCommunity: () => void
   onToggleFAQ: () => void
   onToggleStatus: () => void
+  onToggleAnalysis: () => void
 }
 
-export function ViewToggle({ showCommunity, showFAQ, showStatus, onToggleCommunity, onToggleFAQ, onToggleStatus }: ViewToggleProps) {
+export function ViewToggle({ showCommunity, showFAQ, showStatus, showAnalysis, onToggleCommunity, onToggleFAQ, onToggleStatus, onToggleAnalysis }: ViewToggleProps) {
   const currentSpace = useAppStore(state => state.spaces.find((s) => s.id === state.currentSpaceId))
   const isPrivate = currentSpace?.isPrivate
 
-  const isJournalActive = !showCommunity && !showFAQ && !showStatus
+  const isJournalActive = !showCommunity && !showFAQ && !showStatus && !showAnalysis
   const isStatusActive = showStatus
-  const isCommunityActive = showCommunity && !showFAQ && !showStatus
+  const isCommunityActive = showCommunity && !showFAQ && !showStatus && !showAnalysis
   const isFAQActive = showFAQ
+  const isAnalysisActive = showAnalysis
 
   return (
     <div className="flex items-center gap-1 glass-3d rounded-xl p-1 mb-6">
@@ -28,6 +31,7 @@ export function ViewToggle({ showCommunity, showFAQ, showStatus, onToggleCommuni
           if (showCommunity) onToggleCommunity()
           if (showFAQ) onToggleFAQ()
           if (showStatus) onToggleStatus()
+          if (showAnalysis) onToggleAnalysis()
         }}
         className={`btn-3d flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
           isJournalActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
@@ -60,6 +64,16 @@ export function ViewToggle({ showCommunity, showFAQ, showStatus, onToggleCommuni
       >
         <Users className="h-4 w-4" />
         Community
+      </button>
+
+      <button
+        onClick={onToggleAnalysis}
+        className={`btn-3d flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+          isAnalysisActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        <Brain className="h-4 w-4" />
+        Analysis
       </button>
 
       <button
