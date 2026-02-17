@@ -101,16 +101,18 @@ interface VisualEnhancements {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-function VisualEnhancements() {
+function VisualEnhancements({ market }: { market?: string }) {
   const { isAuthenticated } = useAppStore()
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
   const [enhancements, setEnhancements] = useState<VisualEnhancements | null>(null)
-  const [selectedMarket, setSelectedMarket] = useState("NQ100")
+  const [selectedMarket, setSelectedMarket] = useState(market || "NQ100")
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
   const [isPlaying, setIsPlaying] = useState(true)
   const [showSettings, setShowSettings] = useState(false)
+
+  useEffect(() => { if (market) setSelectedMarket(market) }, [market])
 
   const markets = ["NQ100", "ES", "BTC", "ETH", "US10Y"]
 

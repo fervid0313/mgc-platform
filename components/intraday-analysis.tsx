@@ -150,9 +150,9 @@ function saveLimits(limits: UsageLimits) {
   localStorage.setItem(LIMITS_KEY, JSON.stringify(limits))
 }
 
-export function IntradayAnalysis() {
+export function IntradayAnalysis({ market: parentMarket }: { market?: string }) {
   const { user } = useAppStore()
-  const [market, setMarket] = useState("")
+  const [market, setMarket] = useState(parentMarket || "")
   const [session, setSession] = useState("")
   const [region, setRegion] = useState("US")
   const [additionalNotes, setAdditionalNotes] = useState("")
@@ -176,6 +176,9 @@ export function IntradayAnalysis() {
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const chatEndRef = useRef<HTMLDivElement | null>(null)
   const chatInputRef = useRef<HTMLTextAreaElement | null>(null)
+
+  // Sync parent market prop
+  useEffect(() => { if (parentMarket) setMarket(parentMarket) }, [parentMarket])
 
   // Load saved data on mount
   useEffect(() => {

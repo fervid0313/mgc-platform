@@ -84,14 +84,16 @@ interface EnsemblePrediction {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-function AIEnsemblePredictions() {
+function AIEnsemblePredictions({ market }: { market?: string }) {
   const { isAuthenticated } = useAppStore()
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
   const [predictions, setPredictions] = useState<EnsemblePrediction | null>(null)
-  const [selectedMarket, setSelectedMarket] = useState("NQ100")
+  const [selectedMarket, setSelectedMarket] = useState(market || "NQ100")
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
+
+  useEffect(() => { if (market) setSelectedMarket(market) }, [market])
 
   const markets = ["NQ100", "ES", "BTC", "ETH", "US10Y"]
 

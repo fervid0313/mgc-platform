@@ -109,7 +109,7 @@ const REGIONS = [
   "Africa"
 ]
 
-export function RealTimeIntelligence() {
+export function RealTimeIntelligence({ market }: { market?: string }) {
   const { isAuthenticated } = useAppStore()
   const [mounted, setMounted] = useState(false)
   const [activeTab, setActiveTab] = useState("news")

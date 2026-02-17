@@ -79,7 +79,7 @@ interface VolumeProfileData {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-function VolumeProfileAnalysis() {
+function VolumeProfileAnalysis({ market }: { market?: string }) {
   const { isAuthenticated } = useAppStore()
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)

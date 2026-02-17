@@ -116,14 +116,16 @@ interface MultiTimeframeAlignment {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-function MultiTimeframeAlignment() {
+function MultiTimeframeAlignment({ market }: { market?: string }) {
   const { isAuthenticated } = useAppStore()
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
   const [analysis, setAnalysis] = useState<MultiTimeframeAlignment | null>(null)
-  const [selectedMarket, setSelectedMarket] = useState("NQ100")
+  const [selectedMarket, setSelectedMarket] = useState(market || "NQ100")
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
+
+  useEffect(() => { if (market) setSelectedMarket(market) }, [market])
 
   const markets = ["NQ100", "ES", "BTC", "ETH", "US10Y"]
 

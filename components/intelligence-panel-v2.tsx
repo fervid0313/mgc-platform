@@ -457,16 +457,54 @@ function IntelligencePanelV2() {
   }
 
   return (
-    <div className="w-full mx-auto space-y-4">
+    <div className="w-full mx-auto space-y-6">
       
-      
+      {/* ── Market Selector Header ── */}
+      <div className="flex items-center justify-between bg-gradient-to-r from-background via-background/95 to-background border border-border/40 rounded-xl px-6 py-4 backdrop-blur-sm shadow-md">
+        <div className="flex items-center gap-3">
+          <Brain className="h-6 w-6 text-primary" />
+          <span className="text-base font-bold text-foreground">Intelligence Hub</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-muted-foreground font-medium">Market:</span>
+          <div className="flex gap-2">
+            {MARKETS.map((m) => (
+              <button
+                key={m.value}
+                onClick={() => setSelectedMarket(m.value)}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  selectedMarket === m.value
+                    ? "bg-primary text-primary-foreground shadow-md"
+                    : "bg-background/50 border border-border/30 text-muted-foreground hover:text-foreground hover:bg-background/80"
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => {
+              fetchSentiment(selectedMarket)
+              fetchBias(selectedMarket)
+              fetchEvents()
+              fetchHodLod(selectedMarket)
+              setLastUpdate(new Date())
+            }}
+            disabled={loading}
+            className="p-2 rounded-lg bg-background/50 border border-border/30 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
+          </button>
+        </div>
+      </div>
+
       {/* ── Analysis Components Grid ── */}
-      <div className="space-y-8 w-full">
+      <div className="space-y-10 w-full">
         {/* Top Row: Core Analysis | Intraday Analysis AI | Advanced Outlook */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr_1fr] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr_1fr] gap-8">
           {/* Core Analysis - Left */}
-          <div className="space-y-4">
-            <div className="text-lg font-semibold text-foreground border-b border-border/30 pb-2">Core Analysis</div>
+          <div className="space-y-6">
+            <div className="text-xl font-bold text-foreground border-b border-border/30 pb-3">Core Analysis</div>
             {COMPONENT_CATEGORIES.core.components
               .filter((comp: any) => 
                 comp.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -477,11 +515,10 @@ function IntelligencePanelV2() {
                 return (
                   <div 
                   key={comp.id} 
-                  className="min-h-[300px] bg-gradient-to-br from-background via-background/95 to-background border border-border/30 rounded-xl overflow-hidden"
+                  className="min-h-[350px] bg-gradient-to-br from-background via-background/95 to-background border border-border/30 rounded-xl overflow-hidden"
                 >
-                  {/* Component Content */}
-                  <div className="px-4 pb-4 pt-3">
-                    <Component />
+                  <div className="p-5">
+                    <Component market={selectedMarket} />
                   </div>
                 </div>
               )
@@ -489,18 +526,18 @@ function IntelligencePanelV2() {
           </div>
 
           {/* Intraday Analysis AI - Center */}
-          <div className="space-y-4">
-            <div className="text-lg font-semibold text-foreground border-b border-border/30 pb-2">Intraday Analysis AI</div>
-            <div className="min-h-[300px] bg-gradient-to-br from-background via-background/95 to-background border border-border/30 rounded-xl overflow-hidden">
-              <div className="px-4 pb-4 pt-3">
-                <IntradayAnalysis />
+          <div className="space-y-6">
+            <div className="text-xl font-bold text-foreground border-b border-border/30 pb-3">Intraday Analysis AI</div>
+            <div className="min-h-[350px] bg-gradient-to-br from-background via-background/95 to-background border border-border/30 rounded-xl overflow-hidden">
+              <div className="p-5">
+                <IntradayAnalysis market={selectedMarket} />
               </div>
             </div>
           </div>
 
           {/* Advanced Outlook - Right */}
-          <div className="space-y-4">
-            <div className="text-lg font-semibold text-foreground border-b border-border/30 pb-2">Advanced Outlook</div>
+          <div className="space-y-6">
+            <div className="text-xl font-bold text-foreground border-b border-border/30 pb-3">Advanced Outlook</div>
             {COMPONENT_CATEGORIES.advanced.components
               .filter((comp: any) => 
                 comp.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -511,11 +548,10 @@ function IntelligencePanelV2() {
                 return (
                   <div 
                   key={comp.id} 
-                  className="min-h-[300px] bg-gradient-to-br from-background via-background/95 to-background border border-border/30 rounded-xl overflow-hidden"
+                  className="min-h-[350px] bg-gradient-to-br from-background via-background/95 to-background border border-border/30 rounded-xl overflow-hidden"
                 >
-                  {/* Component Content */}
-                  <div className="px-4 pb-4 pt-3">
-                    <Component />
+                  <div className="p-5">
+                    <Component market={selectedMarket} />
                   </div>
                 </div>
               )
@@ -524,9 +560,9 @@ function IntelligencePanelV2() {
         </div>
 
         {/* Bottom Row: Real-Time Tools */}
-        <div className="space-y-4">
-          <div className="text-lg font-semibold text-foreground border-b border-border/30 pb-2">Real-Time</div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="space-y-6">
+          <div className="text-xl font-bold text-foreground border-b border-border/30 pb-3">Real-Time</div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {COMPONENT_CATEGORIES.realtime.components
               .filter((comp: any) => 
                 comp.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -537,11 +573,10 @@ function IntelligencePanelV2() {
                 return (
                   <div 
                   key={comp.id} 
-                  className="min-h-[300px] bg-gradient-to-br from-background via-background/95 to-background border border-border/30 rounded-xl overflow-hidden"
+                  className="min-h-[350px] bg-gradient-to-br from-background via-background/95 to-background border border-border/30 rounded-xl overflow-hidden"
                 >
-                  {/* Component Content */}
-                  <div className="px-4 pb-4 pt-3">
-                    <Component />
+                  <div className="p-5">
+                    <Component market={selectedMarket} />
                   </div>
                 </div>
               )
@@ -551,18 +586,18 @@ function IntelligencePanelV2() {
       </div>
 
       {/* ── Footer ── */}
-      <div className="bg-gradient-to-r from-background via-background/95 to-background border border-border/50 rounded-xl p-4 backdrop-blur-sm shadow-md">
+      <div className="bg-gradient-to-r from-background via-background/95 to-background border border-border/50 rounded-xl p-5 backdrop-blur-sm shadow-md">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-primary/50" />
-            <span className="text-sm text-muted-foreground/40 font-medium">
+          <div className="flex items-center gap-3">
+            <Zap className="h-5 w-5 text-primary/50" />
+            <span className="text-base text-muted-foreground/50 font-medium">
               Intelligence Hub v2.0 • Real-time analysis powered by AI
             </span>
           </div>
-          <div className="flex items-center gap-4 text-xs text-muted-foreground/40 font-medium">
-            <span>15 Analysis Tools</span>
+          <div className="flex items-center gap-4 text-sm text-muted-foreground/50 font-medium">
+            <span>Analyzing: {selectedMarket}</span>
             <span>•</span>
-            <span>Real-time Data</span>
+            <span>15 Analysis Tools</span>
             <span>•</span>
             <span>AI Enhanced</span>
           </div>

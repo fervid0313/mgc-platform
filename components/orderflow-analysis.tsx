@@ -93,7 +93,7 @@ interface OrderFlowAnalysis {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-function OrderFlowAnalysis() {
+function OrderFlowAnalysis({ market }: { market?: string }) {
   const { isAuthenticated } = useAppStore()
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)

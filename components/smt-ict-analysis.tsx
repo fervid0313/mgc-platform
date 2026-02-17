@@ -93,7 +93,7 @@ interface SMTICTAnalysis {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-function SMTICTAnalysis() {
+function SMTICTAnalysis({ market }: { market?: string }) {
   const { isAuthenticated } = useAppStore()
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)

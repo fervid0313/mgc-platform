@@ -102,7 +102,7 @@ interface EconomicContext {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-function EconomicContext() {
+function EconomicContext({ market }: { market?: string }) {
   const { isAuthenticated } = useAppStore()
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)

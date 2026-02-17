@@ -72,7 +72,7 @@ interface AlertStats {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-function ActionableAlerts() {
+function ActionableAlerts({ market }: { market?: string }) {
   const { isAuthenticated } = useAppStore()
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)
