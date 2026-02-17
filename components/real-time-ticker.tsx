@@ -28,6 +28,10 @@ export function RealTimeTicker() {
       case "GC":
       case "XAU":
         return "$" + price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      case "VIX":
+        return price.toFixed(2)
+      case "DXY":
+        return price.toFixed(2)
       default:
         return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     }

@@ -185,6 +185,8 @@ const MARKETS = [
   { value: "US10Y", label: "US10Y" },
   { value: "GC", label: "GC1!" },
   { value: "XAU", label: "XAUUSD" },
+  { value: "VIX", label: "VIX" },
+  { value: "DXY", label: "DXY" },
 ]
 
 const THRESHOLD = 0.15

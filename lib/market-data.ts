@@ -98,6 +98,30 @@ export const MARKET_PROFILES: Record<string, MarketProfile> = {
     typicalVolume: 12000000,
     sessionHours: { eth: "24/7", rth: "24/7" },
   },
+  VIX: {
+    symbol: "VIX",
+    name: "CBOE Volatility Index",
+    tvSymbol: "CBOE:VIX",
+    basePrice: 18.50,
+    priceRange: { low: 15.00, high: 25.00 },
+    tickSize: 0.01,
+    decimals: 2,
+    volatilityMultiplier: 2.5,
+    typicalVolume: 0,
+    sessionHours: { eth: "24/7", rth: "24/7" },
+  },
+  DXY: {
+    symbol: "DXY",
+    name: "US Dollar Index",
+    tvSymbol: "ICEUS:DXY",
+    basePrice: 106.25,
+    priceRange: { low: 100.00, high: 110.00 },
+    tickSize: 0.01,
+    decimals: 2,
+    volatilityMultiplier: 0.8,
+    typicalVolume: 0,
+    sessionHours: { eth: "24/7", rth: "24/7" },
+  },
 }
 
 export function getMarketProfile(market: string): MarketProfile {
@@ -133,6 +157,8 @@ export const MARKETS = [
   { value: "US10Y", label: "US10Y" },
   { value: "GC", label: "GC1!" },
   { value: "XAU", label: "XAUUSD" },
+  { value: "VIX", label: "VIX" },
+  { value: "DXY", label: "DXY" },
 ] as const
 
 export const NQ_BASE = 24590.00

@@ -93,6 +93,24 @@ const initialPrices: Record<string, PriceData> = {
     high: 2032.80,
     low: 2032.80,
   },
+  VIX: {
+    price: 18.50,
+    change: 0,
+    changePercent: 0,
+    volume: 0,
+    timestamp: Date.now(),
+    high: 18.50,
+    low: 18.50,
+  },
+  DXY: {
+    price: 106.25,
+    change: 0,
+    changePercent: 0,
+    volume: 0,
+    timestamp: Date.now(),
+    high: 106.25,
+    low: 106.25,
+  },
 }
 
 export const usePriceStore = create<PriceState>()(
