@@ -46,7 +46,8 @@ import { DrawdownMonitor } from "@/components/drawdown-monitor"
 import { SessionView } from "@/components/session-view"
 import { TradeComparison } from "@/components/trade-comparison"
 import { PushNotificationManager } from "@/components/push-notification-manager"
-import { IntradayAnalysis } from "@/components/intraday-analysis"
+import IntradayAnalysis from "@/components/intraday-analysis"
+import IntelligencePanel from "@/components/intelligence-panel"
 import { Loader2, ExternalLink } from "lucide-react"
 import { useEventScheduler } from "@/hooks/use-event-scheduler"
 import type { ImportedTrade } from "@/lib/types"
@@ -171,6 +172,7 @@ export default function Home() {
             {mountedTabs.analysis && (
               <div className={showAnalysis ? "space-y-6" : "hidden"}>
                 <IntradayAnalysis />
+                <IntelligencePanel />
               </div>
             )}
 

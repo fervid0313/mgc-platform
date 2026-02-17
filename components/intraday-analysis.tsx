@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
+import dynamic from "next/dynamic"
 import { format } from "date-fns"
 import { useAppStore } from "@/lib/store"
 import {
@@ -996,3 +997,12 @@ export function IntradayAnalysis() {
     </div>
   )
 }
+
+export default dynamic(() => Promise.resolve(IntradayAnalysis), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center p-8">
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+    </div>
+  )
+})
