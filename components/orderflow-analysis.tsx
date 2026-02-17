@@ -279,7 +279,7 @@ function OrderFlowAnalysis({ market = "NQ100" }: { market?: string }) {
                 "bg-gray-500/10 text-gray-400"
               }`}>
                 {currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                {priceChange && (
+                {typeof priceChange === 'number' && (
                   <span className="ml-1">
                     {priceChange >= 0 ? "+" : ""}{priceChange.toFixed(2)}
                   </span>

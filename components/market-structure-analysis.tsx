@@ -280,9 +280,9 @@ function MarketStructureAnalysis({ market = "NQ100" }: { market?: string }) {
                 "bg-gray-500/10 text-gray-400"
               }`}>
                 {currentPrice ? currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "Loading..."}
-                {priceChange !== null && (
+                {typeof priceChange === 'number' && (
                   <span className="ml-1">
-                    {priceChange ? (priceChange >= 0 ? "+" : "") + priceChange.toFixed(2) : "0.00"}
+                    {priceChange >= 0 ? "+" : ""}{priceChange.toFixed(2)}
                   </span>
                 )}
               </span>

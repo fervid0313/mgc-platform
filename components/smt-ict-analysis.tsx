@@ -274,7 +274,7 @@ function SMTICTAnalysis({ market = "NQ100" }: { market?: string }) {
                 "bg-gray-500/10 text-gray-400"
               }`}>
                 {currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                {priceChange !== 0 && (
+                {typeof priceChange === 'number' && priceChange !== 0 && (
                   <span className="ml-1">
                     {priceChange >= 0 ? "+" : ""}{priceChange.toFixed(2)}
                   </span>
