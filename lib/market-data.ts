@@ -18,8 +18,8 @@ export const MARKET_PROFILES: Record<string, MarketProfile> = {
     symbol: "NQ100",
     name: "Nasdaq 100 Futures",
     tvSymbol: "OANDA:NAS100USD",
-    basePrice: 21805.50,
-    priceRange: { low: 21550, high: 22050 },
+    basePrice: 24590.00,
+    priceRange: { low: 24200, high: 24900 },
     tickSize: 0.25,
     decimals: 2,
     volatilityMultiplier: 1.0,
@@ -30,8 +30,8 @@ export const MARKET_PROFILES: Record<string, MarketProfile> = {
     symbol: "ES",
     name: "S&P 500 Futures",
     tvSymbol: "OANDA:SPX500USD",
-    basePrice: 6083.25,
-    priceRange: { low: 5980, high: 6180 },
+    basePrice: 6080.00,
+    priceRange: { low: 6000, high: 6160 },
     tickSize: 0.25,
     decimals: 2,
     volatilityMultiplier: 0.7,
@@ -74,6 +74,30 @@ export const MARKET_PROFILES: Record<string, MarketProfile> = {
     typicalVolume: 950000,
     sessionHours: { eth: "18:00-09:30", rth: "09:30-16:00" },
   },
+  GC: {
+    symbol: "GC",
+    name: "Gold Futures",
+    tvSymbol: "COMEX:GC1!",
+    basePrice: 2035.50,
+    priceRange: { low: 1980, high: 2090 },
+    tickSize: 0.1,
+    decimals: 2,
+    volatilityMultiplier: 1.2,
+    typicalVolume: 15000000,
+    sessionHours: { eth: "18:00-09:30", rth: "09:30-16:00" },
+  },
+  XAU: {
+    symbol: "XAU",
+    name: "Gold/USD Spot",
+    tvSymbol: "FX:XAUUSD",
+    basePrice: 2032.80,
+    priceRange: { low: 1985, high: 2085 },
+    tickSize: 0.01,
+    decimals: 2,
+    volatilityMultiplier: 1.1,
+    typicalVolume: 12000000,
+    sessionHours: { eth: "24/7", rth: "24/7" },
+  },
 }
 
 export function getMarketProfile(market: string): MarketProfile {
@@ -101,7 +125,17 @@ export function scaleVolume(profile: MarketProfile, baseVolume: number): number 
 
 // Scale a price from NQ100 base (~15830) to the target market
 // This lets us reuse NQ100 mock data for any market
-const NQ_BASE = 21805.50
+export const MARKETS = [
+  { value: "NQ100", label: "NQ1!" },
+  { value: "ES", label: "ES1!" },
+  { value: "BTC", label: "BTC" },
+  { value: "ETH", label: "ETH" },
+  { value: "US10Y", label: "US10Y" },
+  { value: "GC", label: "GC1!" },
+  { value: "XAU", label: "XAUUSD" },
+] as const
+
+export const NQ_BASE = 24590.00
 export function scaleFromNQ(nqPrice: number, market: string): number {
   const profile = getMarketProfile(market)
   const ratio = profile.basePrice / NQ_BASE
@@ -112,4 +146,45 @@ export function scaleFromNQ(nqPrice: number, market: string): number {
 export function scaleVolumeFromNQ(nqVolume: number, market: string): number {
   const profile = getMarketProfile(market)
   return Math.round(nqVolume * (profile.typicalVolume / 85000000))
+}
+
+// Real-time price functions
+export function getCurrentPrice(market: string): number {
+  if (typeof window === "undefined") return getMarketProfile(market).basePrice
+  
+  try {
+    const { usePriceStore } = require("./price-store")
+    const priceStore = usePriceStore.getState()
+    return priceStore.getCurrentPrice(market) || getMarketProfile(market).basePrice
+  } catch {
+    return getMarketProfile(market).basePrice
+  }
+}
+
+export function getPriceChange(market: string): { change: number; changePercent: number } {
+  if (typeof window === "undefined") return { change: 0, changePercent: 0 }
+  
+  try {
+    const { usePriceStore } = require("./price-store")
+    const priceStore = usePriceStore.getState()
+    return priceStore.getPriceChange(market) || { change: 0, changePercent: 0 }
+  } catch {
+    return { change: 0, changePercent: 0 }
+  }
+}
+
+// Helper to create price-aware scaling functions
+export function createPriceScaler(market: string) {
+  const profile = getMarketProfile(market)
+  const currentPrice = getCurrentPrice(market)
+  const basePrice = profile.basePrice
+  const ratio = currentPrice / basePrice
+  
+  return {
+    scalePrice: (basePrice: number) => parseFloat((basePrice * ratio).toFixed(profile.decimals)),
+    scaleVolume: (baseVolume: number) => Math.round(baseVolume * (profile.typicalVolume / 85000000)),
+    currentPrice,
+    basePrice,
+    ratio,
+  }
 }

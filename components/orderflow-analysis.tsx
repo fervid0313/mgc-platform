@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react"
 import dynamic from "next/dynamic"
 import { useAppStore } from "@/lib/store"
-import { scaleFromNQ, scaleVolumeFromNQ } from "@/lib/market-data"
+import { scaleFromNQ, scaleVolumeFromNQ, createPriceScaler } from "@/lib/market-data"
+import { usePriceStore } from "@/lib/price-store"
 import {
   TrendingUp,
   TrendingDown,
@@ -94,13 +95,18 @@ interface OrderFlowAnalysis {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-function OrderFlowAnalysis({ market }: { market?: string }) {
+function OrderFlowAnalysis({ market = "NQ100" }: { market?: string }) {
   const { isAuthenticated } = useAppStore()
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
   const [analysis, setAnalysis] = useState<OrderFlowAnalysis | null>(null)
-  const [selectedTimeframe, setSelectedTimeframe] = useState("5m")
+  const [selectedTimeframe, setSelectedTimeframe] = useState("15m")
+  
+  // Real-time price tracking
+  const currentPrice = usePriceStore((state) => state.getCurrentPrice(market))
+  const priceChange = usePriceStore((state) => state.getPriceChange(market))
+  const priceScaler = createPriceScaler(market)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
 
   const timeframes = ["1m", "5m", "15m", "1H", "4H"]
@@ -124,18 +130,18 @@ function OrderFlowAnalysis({ market }: { market?: string }) {
       const mockAnalysis: OrderFlowAnalysis = {
         heatmap: {
           levels: [
-            { price: p(21832.50), intensity: 85, type: "buy", volume: v(1500000), delta: v(250000) },
-            { price: p(21800.25), intensity: 72, type: "buy", volume: v(1200000), delta: v(180000) },
-            { price: p(21775.00), intensity: 45, type: "neutral", volume: v(900000), delta: v(50000) },
-            { price: p(21745.25), intensity: 68, type: "sell", volume: v(1100000), delta: v(-150000) },
-            { price: p(21720.50), intensity: 91, type: "sell", volume: v(1800000), delta: v(-320000) }
+            { price: priceScaler.scalePrice(21832.50), intensity: 85, type: "buy", volume: v(1500000), delta: v(250000) },
+            { price: priceScaler.scalePrice(21800.25), intensity: 72, type: "buy", volume: v(1200000), delta: v(180000) },
+            { price: priceScaler.scalePrice(21775.00), intensity: 45, type: "neutral", volume: v(900000), delta: v(50000) },
+            { price: priceScaler.scalePrice(21745.25), intensity: 68, type: "sell", volume: v(1100000), delta: v(-150000) },
+            { price: priceScaler.scalePrice(21720.50), intensity: 91, type: "sell", volume: v(1800000), delta: v(-320000) }
           ],
           maxIntensity: 100,
-          currentPrice: p(21805.50)
+          currentPrice: currentPrice || priceScaler.scalePrice(21805.50)
         },
         levels: [
           {
-            price: p(21832.50),
+            price: priceScaler.scalePrice(21832.50),
             buyVolume: v(875000),
             sellVolume: v(625000),
             delta: v(250000),
@@ -146,7 +152,7 @@ function OrderFlowAnalysis({ market }: { market?: string }) {
             stackedImbalances: 3
           },
           {
-            price: p(21800.25),
+            price: priceScaler.scalePrice(21800.25),
             buyVolume: v(690000),
             sellVolume: v(510000),
             delta: v(180000),
@@ -157,7 +163,7 @@ function OrderFlowAnalysis({ market }: { market?: string }) {
             stackedImbalances: 2
           },
           {
-            price: p(21745.25),
+            price: priceScaler.scalePrice(21745.25),
             buyVolume: v(475000),
             sellVolume: v(625000),
             delta: v(-150000),
@@ -170,7 +176,7 @@ function OrderFlowAnalysis({ market }: { market?: string }) {
         ],
         absorption: {
           detected: true,
-          price: p(21800.25),
+          price: priceScaler.scalePrice(21800.25),
           strength: "moderate",
           type: "buy",
           volume: v(1200000),
@@ -178,7 +184,7 @@ function OrderFlowAnalysis({ market }: { market?: string }) {
         },
         exhaustion: {
           detected: true,
-          price: p(21745.25),
+          price: priceScaler.scalePrice(21745.25),
           type: "sell",
           volumeSpike: 2.8,
           reversalProbability: 0.73
@@ -186,15 +192,18 @@ function OrderFlowAnalysis({ market }: { market?: string }) {
         deltaProfile: {
           cumulativeDelta: v(450000),
           deltaPerBar: [v(120000), v(80000), v(150000), v(95000), v(180000), v(125000)],
-          deltaTrend: "increasing",
+          deltaTrend: priceChange?.change && priceChange.change > 0 ? "increasing" : 
+                     priceChange?.change && priceChange.change < 0 ? "decreasing" : "flat",
           divergence: false,
-          volumeWeightedPrice: p(21803.00)
+          volumeWeightedPrice: currentPrice || priceScaler.scalePrice(21803.00)
         },
         predictions: {
-          nextLevel: p(21855.50),
-          direction: "bullish",
+          nextLevel: priceScaler.scalePrice(21855.50),
+          direction: priceChange?.change && priceChange.change > 0 ? "bullish" : 
+                   priceChange?.change && priceChange.change < 0 ? "bearish" : "neutral",
           confidence: 0.78,
-          reasoning: `Strong buying pressure on ${selectedMarket} at current levels with absorption detected. Delta trending up suggests continuation.`
+          reasoning: `${priceChange?.change && priceChange.change > 0 ? "Strong buying" : 
+                     priceChange?.change && priceChange.change < 0 ? "Strong selling" : "Neutral"} pressure on ${selectedMarket} at current levels.`
         },
         realTime: {
           currentDelta: v(45000),
@@ -265,6 +274,20 @@ function OrderFlowAnalysis({ market }: { market?: string }) {
           <div className="flex items-center gap-2">
             <Activity className="h-4 w-4 text-orange-400" />
             <span className="text-xs font-black">Order Flow Analysis</span>
+            {currentPrice && (
+              <span className={`text-[8px] px-1.5 py-0.5 rounded ${
+                priceChange?.change && priceChange.change > 0 ? "bg-emerald-500/10 text-emerald-400" :
+                priceChange?.change && priceChange.change < 0 ? "bg-red-500/10 text-red-400" :
+                "bg-gray-500/10 text-gray-400"
+              }`}>
+                {currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {priceChange && (
+                  <span className="ml-1">
+                    {priceChange.change >= 0 ? "+" : ""}{priceChange.change.toFixed(2)}
+                  </span>
+                )}
+              </span>
+            )}
             {analysis && (
               <span className={`text-[8px] px-1.5 py-0.5 rounded-full ${
                 analysis.predictions.direction === "bullish" ? "bg-emerald-500/10 text-emerald-400" :

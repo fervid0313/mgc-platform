@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react"
 import dynamic from "next/dynamic"
 import { useAppStore } from "@/lib/store"
-import { scaleFromNQ, scaleVolumeFromNQ } from "@/lib/market-data"
+import { scaleFromNQ, scaleVolumeFromNQ, getCurrentPrice, createPriceScaler } from "@/lib/market-data"
+import { usePriceStore } from "@/lib/price-store"
 import {
   TrendingUp,
   TrendingDown,
@@ -94,13 +95,18 @@ interface SMTICTAnalysis {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-function SMTICTAnalysis({ market }: { market?: string }) {
+function SMTICTAnalysis({ market = "NQ100" }: { market?: string }) {
   const { isAuthenticated } = useAppStore()
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
   const [analysis, setAnalysis] = useState<SMTICTAnalysis | null>(null)
   const [selectedTimeframe, setSelectedTimeframe] = useState("15m")
+  
+  // Real-time price tracking
+  const currentPrice = usePriceStore((state) => state.getCurrentPrice(market))
+  const priceChange = usePriceStore((state) => state.getPriceChange(market))
+  const priceScaler = createPriceScaler(market)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
 
   const timeframes = ["5m", "15m", "1H", "4H", "1D"]
@@ -123,18 +129,19 @@ function SMTICTAnalysis({ market }: { market?: string }) {
     try {
       const mockAnalysis: SMTICTAnalysis = {
         marketStructure: {
-          trend: "bullish",
-          higherHighs: true,
-          higherLows: true,
-          lowerHighs: false,
-          lowerLows: false,
+          trend: priceChange?.change && priceChange.change > 0 ? "bullish" : 
+                 priceChange?.change && priceChange.change < 0 ? "bearish" : "sideways",
+          higherHighs: !!(priceChange?.change && priceChange.change > 0),
+          higherLows: !!(priceChange?.change && priceChange.change > 0),
+          lowerHighs: !!(priceChange?.change && priceChange.change < 0),
+          lowerLows: !!(priceChange?.change && priceChange.change < 0),
           structureBreak: false,
           currentPhase: "trending"
         },
         ictLevels: [
           {
             type: "BOS",
-            price: p(21832.50),
+            price: priceScaler.scalePrice(21832.50),
             timeframe: "1H",
             strength: "high",
             bias: "bullish",
@@ -143,7 +150,7 @@ function SMTICTAnalysis({ market }: { market?: string }) {
           },
           {
             type: "FVG",
-            price: p(21745.50),
+            price: priceScaler.scalePrice(21745.50),
             timeframe: "15m",
             strength: "medium",
             bias: "bullish",
@@ -256,10 +263,24 @@ function SMTICTAnalysis({ market }: { market?: string }) {
     <div className="rounded-2xl border border-border/50 bg-secondary/10 overflow-hidden">
       {/* ── Header ── */}
       <div className="p-4 pb-0">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Target className="h-4 w-4 text-purple-400" />
-            <span className="text-xs font-black">SMT/ICT Analysis</span>
+            <Target className="h-3.5 w-3.5 text-primary" />
+            <span className="text-[10px] font-bold text-foreground">SMT/ICT Analysis</span>
+            {currentPrice && (
+              <span className={`text-[8px] px-1.5 py-0.5 rounded ${
+                priceChange?.change && priceChange.change > 0 ? "bg-emerald-500/10 text-emerald-400" :
+                priceChange?.change && priceChange.change < 0 ? "bg-red-500/10 text-red-400" :
+                "bg-gray-500/10 text-gray-400"
+              }`}>
+                {currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {priceChange && (
+                  <span className="ml-1">
+                    {priceChange.change >= 0 ? "+" : ""}{priceChange.change.toFixed(2)}
+                  </span>
+                )}
+              </span>
+            )}
             {analysis && (
               <span className={`text-[8px] px-1.5 py-0.5 rounded-full ${
                 analysis.marketStructure.trend === "bullish" ? "bg-emerald-500/10 text-emerald-400" :

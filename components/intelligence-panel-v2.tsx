@@ -88,11 +88,12 @@ import MarketStructureAnalysis from "./market-structure-analysis"
 import MultiTimeframeAlignment from "./multi-timeframe-alignment"
 import EconomicContext from "./economic-context"
 import AIEnsemblePredictions from "./ai-ensemble-predictions"
+import MarketMicrostructure from "./market-microstructure"
 import IntradayAnalysis from "./intraday-analysis"
 import { RealTimeIntelligence } from "./realtime-intelligence"
 import ActionableAlerts from "./actionable-alerts"
-import MarketMicrostructure from "./market-microstructure"
 import VisualEnhancements from "./visual-enhancements"
+import { RealTimeTicker } from "./real-time-ticker"
 import { TradingViewChart, TradingViewTicker } from "./tradingview-chart"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -176,11 +177,13 @@ const COMPONENT_CATEGORIES = {
 // ─── Constants ────────────────────────────────────────────────────────────────────
 
 const MARKETS = [
-  { value: "NQ100", label: "NQ100" },
-  { value: "ES", label: "ES" },
+  { value: "NQ100", label: "NQ1!" },
+  { value: "ES", label: "ES1!" },
   { value: "BTC", label: "BTC" },
   { value: "ETH", label: "ETH" },
   { value: "US10Y", label: "US10Y" },
+  { value: "GC", label: "GC1!" },
+  { value: "XAU", label: "XAUUSD" },
 ]
 
 const THRESHOLD = 0.15
@@ -509,6 +512,9 @@ function IntelligencePanelV2() {
       <div className="rounded-xl overflow-hidden border border-border/30">
         <TradingViewTicker theme="dark" />
       </div>
+
+      {/* ── Real-Time Price Ticker ── */}
+      <RealTimeTicker />
 
       {/* ── TradingView Live Chart ── */}
       <div className="bg-gradient-to-br from-background via-background/95 to-background border border-border/30 rounded-xl overflow-hidden">

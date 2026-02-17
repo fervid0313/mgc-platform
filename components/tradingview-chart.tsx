@@ -109,11 +109,13 @@ export const TradingViewMiniChart = memo(TradingViewMiniChartInner)
 function TradingViewTickerInner({ theme = "dark" }: { theme?: "dark" | "light" }) {
   const config = JSON.stringify({
     symbols: [
-      { proName: "OANDA:NAS100USD", title: "NQ100" },
-      { proName: "OANDA:SPX500USD", title: "ES" },
+      { proName: "CME_MINI:NQ1!", title: "NQ1!" },
+      { proName: "CME_MINI:ES1!", title: "ES1!" },
       { proName: "COINBASE:BTCUSD", title: "BTC" },
       { proName: "COINBASE:ETHUSD", title: "ETH" },
       { proName: "PYTH:US10Y", title: "US10Y" },
+      { proName: "COMEX:GC1!", title: "GC1!" },
+      { proName: "FX:XAUUSD", title: "XAUUSD" },
       { proName: "CBOE:VIX", title: "VIX" },
       { proName: "ICEUS:DXY", title: "DXY" },
     ],

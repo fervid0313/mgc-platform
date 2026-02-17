@@ -183,7 +183,7 @@ export function Sidebar({ collapsed = false, onToggleCollapse, activeTab = "jour
       {collapsed && (
         <button
           onClick={onToggleCollapse}
-          className="fixed top-4 left-4 z-50 p-2.5 rounded-xl bg-background/90 border border-border/40 shadow-lg backdrop-blur-sm text-muted-foreground hover:text-foreground hover:bg-background transition-all duration-200 hidden lg:flex items-center gap-2"
+          className="fixed top-1/2 left-0 z-50 -translate-y-1/2 p-2.5 rounded-r-xl bg-background/90 border border-border/40 shadow-lg backdrop-blur-sm text-muted-foreground hover:text-foreground hover:bg-background transition-all duration-200 hidden lg:flex items-center gap-2 border-l-0"
           title="Open sidebar"
         >
           <PanelLeftOpen className="h-5 w-5" />

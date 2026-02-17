@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react"
 import dynamic from "next/dynamic"
 import { useAppStore } from "@/lib/store"
-import { scaleFromNQ, scaleVolumeFromNQ } from "@/lib/market-data"
+import { scaleFromNQ, scaleVolumeFromNQ, createPriceScaler } from "@/lib/market-data"
+import { usePriceStore } from "@/lib/price-store"
 import {
   TrendingUp,
   TrendingDown,
@@ -98,7 +99,7 @@ interface MarketStructureAnalysis {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-function MarketStructureAnalysis({ market }: { market?: string }) {
+function MarketStructureAnalysis({ market = "NQ100" }: { market?: string }) {
   const { isAuthenticated } = useAppStore()
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -107,7 +108,12 @@ function MarketStructureAnalysis({ market }: { market?: string }) {
   const [selectedTimeframe, setSelectedTimeframe] = useState("1H")
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
 
-  const timeframes = ["5m", "15m", "1H", "4H", "1D"]
+  // Real-time price tracking
+  const currentPrice = usePriceStore((state) => state.getCurrentPrice(market))
+  const priceChange = usePriceStore((state) => state.getPriceChange(market))
+  const priceScaler = createPriceScaler(market)
+
+  const timeframes = ["15m", "1H", "4H", "1D"]
   const selectedMarket = market || "NQ100"
   const p = (nqPrice: number) => scaleFromNQ(nqPrice, selectedMarket)
   const v = (nqVol: number) => scaleVolumeFromNQ(nqVol, selectedMarket)
@@ -126,19 +132,21 @@ function MarketStructureAnalysis({ market }: { market?: string }) {
     try {
       // Mock data for now - will integrate with real market structure APIs
       const mockAnalysis: MarketStructureAnalysis = {
-        currentPrice: p(21805.50),
+        currentPrice: currentPrice || priceScaler.scalePrice(21805.50),
         trendAnalysis: {
-          direction: "bullish",
+          direction: priceChange?.change && priceChange.change > 0 ? "bullish" : 
+                   priceChange?.change && priceChange.change < 0 ? "bearish" : "sideways",
           strength: 78,
           duration: 47,
-          angle: 28.5,
-          momentum: "increasing"
+          angle: priceChange?.change && priceChange.change > 0 ? 28.5 : 
+                 priceChange?.change && priceChange.change < 0 ? -28.5 : 0,
+          momentum: priceChange?.change && Math.abs(priceChange.change) > 10 ? "increasing" : "stable"
         },
         structurePoints: [
-          { price: p(21910.50), timestamp: "2024-01-15T10:30:00Z", type: "high", strength: "strong", significance: 92 },
-          { price: p(21650.25), timestamp: "2024-01-15T08:45:00Z", type: "low", strength: "strong", significance: 88 },
-          { price: p(21832.50), timestamp: "2024-01-15T09:15:00Z", type: "break", strength: "moderate", significance: 75 },
-          { price: p(21700.50), timestamp: "2024-01-15T11:00:00Z", type: "reversal", strength: "moderate", significance: 68 }
+          { price: priceScaler.scalePrice(21910.50), timestamp: "2024-01-15T10:30:00Z", type: "high", strength: "strong", significance: 92 },
+          { price: priceScaler.scalePrice(21650.25), timestamp: "2024-01-15T08:45:00Z", type: "low", strength: "strong", significance: 88 },
+          { price: priceScaler.scalePrice(21832.50), timestamp: "2024-01-15T09:15:00Z", type: "break", strength: "moderate", significance: 75 },
+          { price: priceScaler.scalePrice(21700.50), timestamp: "2024-01-15T11:00:00Z", type: "reversal", strength: "moderate", significance: 68 }
         ],
         structureBreaks: [
           {
@@ -266,6 +274,20 @@ function MarketStructureAnalysis({ market }: { market?: string }) {
           <div className="flex items-center gap-2">
             <GitBranch className="h-4 w-4 text-blue-400" />
             <span className="text-xs font-black">Market Structure Analysis</span>
+            {currentPrice && (
+              <span className={`text-[8px] px-1.5 py-0.5 rounded ${
+                priceChange?.change && priceChange.change > 0 ? "bg-emerald-500/10 text-emerald-400" :
+                priceChange?.change && priceChange.change < 0 ? "bg-red-500/10 text-red-400" :
+                "bg-gray-500/10 text-gray-400"
+              }`}>
+                {currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {priceChange && (
+                  <span className="ml-1">
+                    {priceChange.change >= 0 ? "+" : ""}{priceChange.change.toFixed(2)}
+                  </span>
+                )}
+              </span>
+            )}
             {analysis && (
               <span className={`text-[8px] px-1.5 py-0.5 rounded-full ${getStrengthColor(analysis.quality.overallScore)}`}>
                 {fmtPercent(analysis.quality.overallScore)}

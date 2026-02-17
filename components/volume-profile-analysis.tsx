@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react"
 import dynamic from "next/dynamic"
 import { useAppStore } from "@/lib/store"
-import { scaleFromNQ, scaleVolumeFromNQ } from "@/lib/market-data"
+import { scaleFromNQ, scaleVolumeFromNQ, createPriceScaler } from "@/lib/market-data"
+import { usePriceStore } from "@/lib/price-store"
 import {
   BarChart3,
   TrendingUp,
@@ -80,7 +81,7 @@ interface VolumeProfileData {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-function VolumeProfileAnalysis({ market }: { market?: string }) {
+function VolumeProfileAnalysis({ market = "NQ100" }: { market?: string }) {
   const { isAuthenticated } = useAppStore()
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -88,6 +89,11 @@ function VolumeProfileAnalysis({ market }: { market?: string }) {
   const [analysis, setAnalysis] = useState<VolumeProfileData | null>(null)
   const [selectedTimeframe, setSelectedTimeframe] = useState("1H")
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
+
+  // Real-time price tracking
+  const currentPrice = usePriceStore((state) => state.getCurrentPrice(market))
+  const priceChange = usePriceStore((state) => state.getPriceChange(market))
+  const priceScaler = createPriceScaler(market)
 
   const timeframes = ["15m", "1H", "4H", "1D", "1W"]
   const selectedMarket = market || "NQ100"
@@ -108,32 +114,32 @@ function VolumeProfileAnalysis({ market }: { market?: string }) {
     try {
       // Mock data for now - will integrate with real volume profile APIs
       const mockAnalysis: VolumeProfileData = {
-        currentPrice: p(21805.50),
+        currentPrice: currentPrice || priceScaler.scalePrice(21805.50),
         valueArea: {
-          poc: p(21800.25),
-          vah: p(21855.50),
-          val: p(21725.75),
-          vwap: p(21803.00),
+          poc: priceScaler.scalePrice(21800.25),
+          vah: priceScaler.scalePrice(21855.50),
+          val: priceScaler.scalePrice(21725.75),
+          vwap: currentPrice || priceScaler.scalePrice(21803.00),
           valueAreaVolume: v(8500000),
           totalVolume: v(12000000),
           valueAreaPercentage: 70.8
         },
         nakedLevels: {
-          nvh: p(21935.00),
-          nvl: p(21670.25),
+          nvh: priceScaler.scalePrice(21935.00),
+          nvl: priceScaler.scalePrice(21670.25),
           nvhStrength: 0.85,
           nvlStrength: 0.72,
           nvhProbability: 0.78,
           nvlProbability: 0.65
         },
         levels: [
-          { price: p(21800.25), volume: v(1500000), percentage: 12.5, type: "poc", distanceFromCurrent: p(-5.25), strength: "high" },
-          { price: p(21855.50), volume: v(1200000), percentage: 10.0, type: "vah", distanceFromCurrent: p(50.0), strength: "high" },
-          { price: p(21725.75), volume: v(1100000), percentage: 9.2, type: "val", distanceFromCurrent: p(-79.75), strength: "high" },
-          { price: p(21935.00), volume: v(900000), percentage: 7.5, type: "nvh", distanceFromCurrent: p(129.50), strength: "medium" },
-          { price: p(21670.25), volume: v(850000), percentage: 7.1, type: "nvl", distanceFromCurrent: p(-135.25), strength: "medium" },
-          { price: p(21832.50), volume: v(750000), percentage: 6.3, type: "normal", distanceFromCurrent: p(27.0), strength: "medium" },
-          { price: p(21775.00), volume: v(680000), percentage: 5.7, type: "normal", distanceFromCurrent: p(-30.50), strength: "low" }
+          { price: priceScaler.scalePrice(21800.25), volume: v(1500000), percentage: 12.5, type: "poc", distanceFromCurrent: priceScaler.scalePrice(-5.25), strength: "high" },
+          { price: priceScaler.scalePrice(21855.50), volume: v(1200000), percentage: 10.0, type: "vah", distanceFromCurrent: priceScaler.scalePrice(50.0), strength: "high" },
+          { price: priceScaler.scalePrice(21725.75), volume: v(1100000), percentage: 9.2, type: "val", distanceFromCurrent: priceScaler.scalePrice(-79.75), strength: "high" },
+          { price: priceScaler.scalePrice(21935.00), volume: v(900000), percentage: 7.5, type: "nvh", distanceFromCurrent: priceScaler.scalePrice(129.50), strength: "medium" },
+          { price: priceScaler.scalePrice(21670.25), volume: v(850000), percentage: 7.1, type: "nvl", distanceFromCurrent: priceScaler.scalePrice(-135.25), strength: "medium" },
+          { price: priceScaler.scalePrice(21832.50), volume: v(750000), percentage: 6.3, type: "normal", distanceFromCurrent: priceScaler.scalePrice(27.0), strength: "medium" },
+          { price: priceScaler.scalePrice(21775.00), volume: v(680000), percentage: 5.7, type: "normal", distanceFromCurrent: priceScaler.scalePrice(-30.50), strength: "low" }
         ],
         distribution: {
           buying: 58.5,
@@ -231,6 +237,20 @@ function VolumeProfileAnalysis({ market }: { market?: string }) {
           <div className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-purple-400" />
             <span className="text-xs font-black">Volume Profile Analysis</span>
+            {currentPrice && (
+              <span className={`text-[8px] px-1.5 py-0.5 rounded ${
+                priceChange?.change && priceChange.change > 0 ? "bg-emerald-500/10 text-emerald-400" :
+                priceChange?.change && priceChange.change < 0 ? "bg-red-500/10 text-red-400" :
+                "bg-gray-500/10 text-gray-400"
+              }`}>
+                {currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {priceChange && (
+                  <span className="ml-1">
+                    {priceChange.change >= 0 ? "+" : ""}{priceChange.change.toFixed(2)}
+                  </span>
+                )}
+              </span>
+            )}
             {analysis && (
               <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400">
                 POC: {fmtPrice(analysis.valueArea.poc)}
