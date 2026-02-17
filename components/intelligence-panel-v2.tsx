@@ -88,6 +88,7 @@ import MarketStructureAnalysis from "./market-structure-analysis"
 import MultiTimeframeAlignment from "./multi-timeframe-alignment"
 import EconomicContext from "./economic-context"
 import AIEnsemblePredictions from "./ai-ensemble-predictions"
+import IntradayAnalysis from "./intraday-analysis"
 import { RealTimeIntelligence } from "./realtime-intelligence"
 import ActionableAlerts from "./actionable-alerts"
 import MarketMicrostructure from "./market-microstructure"
@@ -456,13 +457,13 @@ function IntelligencePanelV2() {
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-4">
+    <div className="w-full mx-auto space-y-4">
       
       
       {/* ── Analysis Components Grid ── */}
-      <div className="space-y-8">
+      <div className="space-y-8 w-full">
         {/* Top Row: Core Analysis | Intraday Analysis AI | Advanced Outlook */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr_1fr] gap-6">
           {/* Core Analysis - Left */}
           <div className="space-y-4">
             <div className="text-lg font-semibold text-foreground border-b border-border/30 pb-2">Core Analysis</div>
@@ -485,6 +486,16 @@ function IntelligencePanelV2() {
                 </div>
               )
               })}
+          </div>
+
+          {/* Intraday Analysis AI - Center */}
+          <div className="space-y-4">
+            <div className="text-lg font-semibold text-foreground border-b border-border/30 pb-2">Intraday Analysis AI</div>
+            <div className="min-h-[300px] bg-gradient-to-br from-background via-background/95 to-background border border-border/30 rounded-xl overflow-hidden">
+              <div className="px-4 pb-4 pt-3">
+                <IntradayAnalysis />
+              </div>
+            </div>
           </div>
 
           {/* Advanced Outlook - Right */}

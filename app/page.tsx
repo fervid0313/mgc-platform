@@ -170,8 +170,7 @@ export default function Home() {
             )}
 
             {mountedTabs.analysis && (
-              <div className={showAnalysis ? "space-y-6" : "hidden"}>
-                <IntradayAnalysis />
+              <div className={showAnalysis ? "space-y-6 -mx-5 lg:-mx-[calc(50vw-50%-9rem)] lg:w-[calc(100vw-18rem)]" : "hidden"}>
                 <IntelligencePanel />
               </div>
             )}
