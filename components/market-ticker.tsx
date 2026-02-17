@@ -54,9 +54,12 @@ export function MarketTicker() {
   const fetchBias = useCallback(async (data: MarketData[]) => {
     if (data.length === 0) return
 
+    console.log("Fetching bias for data:", data)
+
     // Check cache first
     const cached = loadCachedBias()
     if (cached) {
+      console.log("Using cached bias:", cached)
       setBiases(cached.biases)
       return
     }
@@ -64,19 +67,24 @@ export function MarketTicker() {
     setBiasLoading(true)
     setBiasError(false)
     try {
+      console.log("Calling /api/market-bias...")
       const res = await fetch("/api/market-bias", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ marketData: data }),
       })
+      console.log("Bias API response status:", res.status)
       const result = await res.json()
+      console.log("Bias API result:", result)
       if (res.ok && result.biases) {
         setBiases(result.biases)
         saveCachedBias({ biases: result.biases, generatedAt: result.generatedAt })
       } else {
+        console.log("Bias API error or no biases in response")
         setBiasError(true)
       }
-    } catch {
+    } catch (error) {
+      console.error("Bias API error:", error)
       setBiasError(true)
     }
     setBiasLoading(false)
@@ -85,8 +93,11 @@ export function MarketTicker() {
   const refresh = async () => {
     setLoading(true)
     try {
+      console.log("Fetching /api/market...")
       const res = await fetch("/api/market")
+      console.log("API response status:", res.status)
       const data = await res.json()
+      console.log("API data received:", data)
       setMarketData(data)
       setLastUpdated(new Date())
       fetchBias(data)
