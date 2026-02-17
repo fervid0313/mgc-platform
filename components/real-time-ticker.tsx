@@ -6,7 +6,9 @@ import { MARKETS } from "@/lib/market-data"
 import { TrendingUp, TrendingDown, Minus } from "lucide-react"
 
 export function RealTimeTicker() {
-  const { prices, isConnected, lastUpdate } = usePriceStore()
+  const prices = usePriceStore((state) => state.prices)
+  const isConnected = usePriceStore((state) => state.isConnected)
+  const lastUpdate = usePriceStore((state) => state.lastUpdate)
 
   // Start price simulator on mount
   useEffect(() => {

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import dynamic from "next/dynamic"
 import { useAppStore } from "@/lib/store"
 import { scaleFromNQ, scaleVolumeFromNQ, createPriceScaler } from "@/lib/market-data"
-import { usePriceStore } from "@/lib/price-store"
+import { usePriceStore, useCurrentPrice, usePriceChange, priceSimulator } from "@/lib/price-store"
 import {
   TrendingUp,
   TrendingDown,
@@ -104,8 +104,8 @@ function OrderFlowAnalysis({ market = "NQ100" }: { market?: string }) {
   const [selectedTimeframe, setSelectedTimeframe] = useState("15m")
   
   // Real-time price tracking
-  const currentPrice = usePriceStore((state) => state.getCurrentPrice(market))
-  const priceChange = usePriceStore((state) => state.getPriceChange(market))
+  const currentPrice = useCurrentPrice(market)
+  const priceChange = usePriceChange(market)
   const priceScaler = createPriceScaler(market)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
 

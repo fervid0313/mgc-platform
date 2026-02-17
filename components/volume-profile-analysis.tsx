@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import dynamic from "next/dynamic"
 import { useAppStore } from "@/lib/store"
 import { scaleFromNQ, scaleVolumeFromNQ, createPriceScaler } from "@/lib/market-data"
-import { usePriceStore } from "@/lib/price-store"
+import { usePriceStore, useCurrentPrice, usePriceChange, priceSimulator } from "@/lib/price-store"
 import {
   BarChart3,
   TrendingUp,
@@ -91,8 +91,8 @@ function VolumeProfileAnalysis({ market = "NQ100" }: { market?: string }) {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
 
   // Real-time price tracking
-  const currentPrice = usePriceStore((state) => state.getCurrentPrice(market))
-  const priceChange = usePriceStore((state) => state.getPriceChange(market))
+  const currentPrice = useCurrentPrice(market)
+  const priceChange = usePriceChange(market)
   const priceScaler = createPriceScaler(market)
 
   const timeframes = ["15m", "1H", "4H", "1D", "1W"]

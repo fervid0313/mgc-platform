@@ -2,6 +2,7 @@
 
 import { create } from "zustand"
 import { subscribeWithSelector } from "zustand/middleware"
+import { useCallback } from "react"
 import { getMarketProfile } from "./market-data"
 
 interface PriceData {
@@ -108,14 +109,8 @@ export const usePriceStore = create<PriceState>()(
 
       const updated = { ...current, ...data, timestamp: Date.now() }
       
-      // Calculate change if price updated
-      if (data.price !== undefined && data.price !== current.price) {
-        const change = data.price - current.price
-        const changePercent = current.price !== 0 ? (change / current.price) * 100 : 0
-        updated.change = change
-        updated.changePercent = changePercent
-        
-        // Update high/low
+      // Update high/low if price changed
+      if (data.price !== undefined) {
         updated.high = Math.max(current.high, data.price)
         updated.low = Math.min(current.low, data.price)
       }
@@ -148,6 +143,26 @@ export const usePriceStore = create<PriceState>()(
     },
   }))
 )
+
+// Memoized selectors to prevent infinite loops
+export const useCurrentPrice = (market: string) => {
+  return usePriceStore(
+    useCallback((state: PriceState) => state.prices[market]?.price || null, [market])
+  )
+}
+
+export const usePriceChange = (market: string) => {
+  return usePriceStore(
+    useCallback((state: PriceState) => {
+      const priceData = state.prices[market]
+      if (!priceData) return null
+      return {
+        change: priceData.change,
+        changePercent: priceData.changePercent,
+      }
+    }, [market])
+  )
+}
 
 // Mock price generator for demo purposes
 export function generateMockPriceUpdate(market: string, store: any): Partial<PriceData> {
