@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import dynamic from "next/dynamic"
 import { useAppStore } from "@/lib/store"
+import { scaleFromNQ, scaleVolumeFromNQ } from "@/lib/market-data"
 import {
   TrendingUp,
   TrendingDown,
@@ -103,6 +104,9 @@ function OrderFlowAnalysis({ market }: { market?: string }) {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
 
   const timeframes = ["1m", "5m", "15m", "1H", "4H"]
+  const selectedMarket = market || "NQ100"
+  const p = (nqPrice: number) => scaleFromNQ(nqPrice, selectedMarket)
+  const v = (nqVol: number) => scaleVolumeFromNQ(nqVol, selectedMarket)
 
   // Toggle section collapse
   const toggleSection = useCallback((sectionId: string) => {
@@ -120,21 +124,21 @@ function OrderFlowAnalysis({ market }: { market?: string }) {
       const mockAnalysis: OrderFlowAnalysis = {
         heatmap: {
           levels: [
-            { price: 15850.25, intensity: 85, type: "buy", volume: 1500000, delta: 250000 },
-            { price: 15825.50, intensity: 72, type: "buy", volume: 1200000, delta: 180000 },
-            { price: 15800.75, intensity: 45, type: "neutral", volume: 900000, delta: 50000 },
-            { price: 15775.25, intensity: 68, type: "sell", volume: 1100000, delta: -150000 },
-            { price: 15750.50, intensity: 91, type: "sell", volume: 1800000, delta: -320000 }
+            { price: p(15850.25), intensity: 85, type: "buy", volume: v(1500000), delta: v(250000) },
+            { price: p(15825.50), intensity: 72, type: "buy", volume: v(1200000), delta: v(180000) },
+            { price: p(15800.75), intensity: 45, type: "neutral", volume: v(900000), delta: v(50000) },
+            { price: p(15775.25), intensity: 68, type: "sell", volume: v(1100000), delta: v(-150000) },
+            { price: p(15750.50), intensity: 91, type: "sell", volume: v(1800000), delta: v(-320000) }
           ],
           maxIntensity: 100,
-          currentPrice: 15830.75
+          currentPrice: p(15830.75)
         },
         levels: [
           {
-            price: 15850.25,
-            buyVolume: 875000,
-            sellVolume: 625000,
-            delta: 250000,
+            price: p(15850.25),
+            buyVolume: v(875000),
+            sellVolume: v(625000),
+            delta: v(250000),
             buyPressure: 0.58,
             sellPressure: 0.42,
             absorption: false,
@@ -142,10 +146,10 @@ function OrderFlowAnalysis({ market }: { market?: string }) {
             stackedImbalances: 3
           },
           {
-            price: 15825.50,
-            buyVolume: 690000,
-            sellVolume: 510000,
-            delta: 180000,
+            price: p(15825.50),
+            buyVolume: v(690000),
+            sellVolume: v(510000),
+            delta: v(180000),
             buyPressure: 0.57,
             sellPressure: 0.43,
             absorption: true,
@@ -153,10 +157,10 @@ function OrderFlowAnalysis({ market }: { market?: string }) {
             stackedImbalances: 2
           },
           {
-            price: 15775.25,
-            buyVolume: 475000,
-            sellVolume: 625000,
-            delta: -150000,
+            price: p(15775.25),
+            buyVolume: v(475000),
+            sellVolume: v(625000),
+            delta: v(-150000),
             buyPressure: 0.43,
             sellPressure: 0.57,
             absorption: false,
@@ -166,36 +170,36 @@ function OrderFlowAnalysis({ market }: { market?: string }) {
         ],
         absorption: {
           detected: true,
-          price: 15825.50,
+          price: p(15825.50),
           strength: "moderate",
           type: "buy",
-          volume: 1200000,
+          volume: v(1200000),
           duration: 45
         },
         exhaustion: {
           detected: true,
-          price: 15775.25,
+          price: p(15775.25),
           type: "sell",
           volumeSpike: 2.8,
           reversalProbability: 0.73
         },
         deltaProfile: {
-          cumulativeDelta: 450000,
-          deltaPerBar: [120000, 80000, 150000, 95000, 180000, 125000],
+          cumulativeDelta: v(450000),
+          deltaPerBar: [v(120000), v(80000), v(150000), v(95000), v(180000), v(125000)],
           deltaTrend: "increasing",
           divergence: false,
-          volumeWeightedPrice: 15828.35
+          volumeWeightedPrice: p(15828.35)
         },
         predictions: {
-          nextLevel: 15875.50,
+          nextLevel: p(15875.50),
           direction: "bullish",
           confidence: 0.78,
-          reasoning: "Strong buying pressure at current levels with absorption detected. Delta trending up suggests continuation."
+          reasoning: `Strong buying pressure on ${selectedMarket} at current levels with absorption detected. Delta trending up suggests continuation.`
         },
         realTime: {
-          currentDelta: 45000,
-          buyVolume: 275000,
-          sellVolume: 230000,
+          currentDelta: v(45000),
+          buyVolume: v(275000),
+          sellVolume: v(230000),
           timestamp: new Date().toISOString()
         }
       }
@@ -206,13 +210,13 @@ function OrderFlowAnalysis({ market }: { market?: string }) {
       console.error("[ORDER-FLOW] Error fetching analysis:", error)
     }
     setLoading(false)
-  }, [])
+  }, [p, v, selectedMarket])
 
   // Effects
   useEffect(() => {
     setMounted(true)
     fetchAnalysis(selectedTimeframe)
-  }, [fetchAnalysis, selectedTimeframe])
+  }, [fetchAnalysis, selectedTimeframe, selectedMarket])
 
   // Format helpers
   const fmtPrice = (price: number) => price.toFixed(2)

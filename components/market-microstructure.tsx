@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import dynamic from "next/dynamic"
 import { useAppStore } from "@/lib/store"
+import { scaleFromNQ, scaleVolumeFromNQ } from "@/lib/market-data"
 import {
   TrendingUp,
   TrendingDown,
@@ -129,6 +130,9 @@ function MarketMicrostructure({ market }: { market?: string }) {
 
   useEffect(() => { if (market) setSelectedMarket(market) }, [market])
 
+  const p = (nqPrice: number) => scaleFromNQ(nqPrice, selectedMarket)
+  const v = (nqVol: number) => scaleVolumeFromNQ(nqVol, selectedMarket)
+
   const markets = ["NQ100", "ES", "BTC", "ETH", "US10Y"]
 
   // Toggle section collapse
@@ -145,62 +149,62 @@ function MarketMicrostructure({ market }: { market?: string }) {
     try {
       // Mock data for now - will integrate with real order book APIs
       const mockMicrostructure: MarketMicrostructure = {
-        currentPrice: 15830.75,
+        currentPrice: p(15830.75),
         liquidity: {
-          price: 15830.75,
-          buySide: 4500000,
-          sellSide: 3800000,
+          price: p(15830.75),
+          buySide: v(4500000),
+          sellSide: v(3800000),
           imbalance: 0.18,
-          depth: 8300000,
+          depth: v(8300000),
           spread: 0.25,
           timestamp: new Date().toISOString()
         },
         liquidityVoids: [
           {
-            price: 15775.50,
+            price: p(15775.50),
             type: "sell",
-            size: 250000,
+            size: v(250000),
             probability: 0.78,
             riskLevel: "high",
-            expectedMove: 50.25,
+            expectedMove: p(50.25),
             timeframe: "15m"
           },
           {
-            price: 15925.75,
+            price: p(15925.75),
             type: "buy",
-            size: 180000,
+            size: v(180000),
             probability: 0.65,
             riskLevel: "medium",
-            expectedMove: 35.50,
+            expectedMove: p(35.50),
             timeframe: "30m"
           },
           {
-            price: 15650.00,
+            price: p(15650.00),
             type: "sell",
-            size: 420000,
+            size: v(420000),
             probability: 0.85,
             riskLevel: "critical",
-            expectedMove: 75.25,
+            expectedMove: p(75.25),
             timeframe: "1H"
           }
         ],
         stopHuntZones: [
           {
-            price: 15750.25,
+            price: p(15750.25),
             type: "sell_stops",
             density: 0.72,
             probability: 0.68,
-            clusterSize: 125000,
-            estimatedValue: 1250000,
+            clusterSize: v(125000),
+            estimatedValue: v(1250000),
             riskReward: 2.8
           },
           {
-            price: 15950.50,
+            price: p(15950.50),
             type: "buy_stops",
             density: 0.65,
             probability: 0.58,
-            clusterSize: 95000,
-            estimatedValue: 950000,
+            clusterSize: v(95000),
+            estimatedValue: v(950000),
             riskReward: 2.2
           }
         ],
@@ -208,8 +212,8 @@ function MarketMicrostructure({ market }: { market?: string }) {
           {
             timestamp: new Date(Date.now() - 300000).toISOString(),
             type: "block_trade",
-            size: 500000,
-            price: 15828.50,
+            size: v(500000),
+            price: p(15828.50),
             direction: "buy",
             aggressiveness: 0.75,
             impact: 0.82,
@@ -218,8 +222,8 @@ function MarketMicrostructure({ market }: { market?: string }) {
           {
             timestamp: new Date(Date.now() - 600000).toISOString(),
             type: "iceberg",
-            size: 250000,
-            price: 15832.25,
+            size: v(250000),
+            price: p(15832.25),
             direction: "sell",
             aggressiveness: 0.35,
             impact: 0.45,
@@ -228,8 +232,8 @@ function MarketMicrostructure({ market }: { market?: string }) {
           {
             timestamp: new Date(Date.now() - 900000).toISOString(),
             type: "sweep",
-            size: 180000,
-            price: 15775.50,
+            size: v(180000),
+            price: p(15775.50),
             direction: "buy",
             aggressiveness: 0.92,
             impact: 0.68,
@@ -238,7 +242,7 @@ function MarketMicrostructure({ market }: { market?: string }) {
         ],
         orderBookImbalance: {
           ratio: 1.18,
-          delta: 700000,
+          delta: v(700000),
           momentum: "increasing",
           pressure: "buy",
           strength: 0.72,
@@ -246,20 +250,20 @@ function MarketMicrostructure({ market }: { market?: string }) {
         },
         marketDepth: {
           bidLevels: [
-            { price: 15830.50, size: 125000, orders: 450 },
-            { price: 15830.25, size: 98000, orders: 380 },
-            { price: 15830.00, size: 156000, orders: 520 },
-            { price: 15829.75, size: 87000, orders: 310 },
-            { price: 15829.50, size: 134000, orders: 490 }
+            { price: p(15830.50), size: v(125000), orders: 450 },
+            { price: p(15830.25), size: v(98000), orders: 380 },
+            { price: p(15830.00), size: v(156000), orders: 520 },
+            { price: p(15829.75), size: v(87000), orders: 310 },
+            { price: p(15829.50), size: v(134000), orders: 490 }
           ],
           askLevels: [
-            { price: 15831.00, size: 112000, orders: 410 },
-            { price: 15831.25, size: 89000, orders: 360 },
-            { price: 15831.50, size: 143000, orders: 540 },
-            { price: 15831.75, size: 76000, orders: 280 },
-            { price: 15832.00, size: 121000, orders: 440 }
+            { price: p(15831.00), size: v(112000), orders: 410 },
+            { price: p(15831.25), size: v(89000), orders: 360 },
+            { price: p(15831.50), size: v(143000), orders: 540 },
+            { price: p(15831.75), size: v(76000), orders: 280 },
+            { price: p(15832.00), size: v(121000), orders: 440 }
           ],
-          totalDepth: 1241000,
+          totalDepth: v(1241000),
           avgSpread: 0.25
         },
         analysis: {
@@ -272,10 +276,10 @@ function MarketMicrostructure({ market }: { market?: string }) {
         recommendations: {
           direction: "bullish_continuation",
           confidence: 0.75,
-          entryZone: 15835.25,
-          targetZone: 15925.75,
-          stopZone: 15775.50,
-          reasoning: "Strong buy-side imbalance with institutional buying pressure. Liquidity void at 15775 creates risk of sharp move if breached. Smart money activity supports bullish bias.",
+          entryZone: p(15835.25),
+          targetZone: p(15925.75),
+          stopZone: p(15775.50),
+          reasoning: `Strong ${selectedMarket} buy-side imbalance with institutional buying pressure. Smart money activity supports bullish bias.`,
           riskFactors: [
             "Liquidity void below current price",
             "Stop hunt zone nearby",
@@ -286,15 +290,15 @@ function MarketMicrostructure({ market }: { market?: string }) {
           {
             type: "liquidity_void",
             severity: "high",
-            message: "Significant liquidity void detected at 15775.50",
-            price: 15775.50,
+            message: `Significant liquidity void detected at ${p(15775.50)}`,
+            price: p(15775.50),
             timeframe: "15m"
           },
           {
             type: "stop_hunt",
             severity: "medium",
-            message: "Dense sell stop cluster at 15750.25",
-            price: 15750.25,
+            message: `Dense sell stop cluster at ${p(15750.25)}`,
+            price: p(15750.25),
             timeframe: "30m"
           }
         ]
@@ -306,7 +310,7 @@ function MarketMicrostructure({ market }: { market?: string }) {
       console.error("[MICROSTRUCTURE] Error fetching data:", error)
     }
     setLoading(false)
-  }, [])
+  }, [p, v, selectedMarket])
 
   // Effects
   useEffect(() => {

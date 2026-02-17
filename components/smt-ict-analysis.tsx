@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import dynamic from "next/dynamic"
 import { useAppStore } from "@/lib/store"
+import { scaleFromNQ, scaleVolumeFromNQ } from "@/lib/market-data"
 import {
   TrendingUp,
   TrendingDown,
@@ -112,11 +113,14 @@ function SMTICTAnalysis({ market }: { market?: string }) {
     }))
   }, [])
 
+  const selectedMarket = market || "NQ100"
+  const p = (nqPrice: number) => scaleFromNQ(nqPrice, selectedMarket)
+  const v = (nqVol: number) => scaleVolumeFromNQ(nqVol, selectedMarket)
+
   // Fetch SMT/ICT analysis
   const fetchAnalysis = useCallback(async (timeframe: string) => {
     setLoading(true)
     try {
-      // Mock data for now - will integrate with real APIs
       const mockAnalysis: SMTICTAnalysis = {
         marketStructure: {
           trend: "bullish",
@@ -130,7 +134,7 @@ function SMTICTAnalysis({ market }: { market?: string }) {
         ictLevels: [
           {
             type: "BOS",
-            price: 15850.25,
+            price: p(15850.25),
             timeframe: "1H",
             strength: "high",
             bias: "bullish",
@@ -139,7 +143,7 @@ function SMTICTAnalysis({ market }: { market?: string }) {
           },
           {
             type: "FVG",
-            price: 15775.50,
+            price: p(15775.50),
             timeframe: "15m",
             strength: "medium",
             bias: "bullish",
@@ -148,7 +152,7 @@ function SMTICTAnalysis({ market }: { market?: string }) {
           },
           {
             type: "Liquidity",
-            price: 15925.75,
+            price: p(15925.75),
             timeframe: "4H",
             strength: "high",
             bias: "bearish",
@@ -157,41 +161,41 @@ function SMTICTAnalysis({ market }: { market?: string }) {
           }
         ],
         volumeProfile: {
-          poc: 15825.50,
-          vah: 15875.25,
-          val: 15750.75,
-          nvh: 15950.00,
-          nvl: 15700.25,
+          poc: p(15825.50),
+          vah: p(15875.25),
+          val: p(15750.75),
+          nvh: p(15950.00),
+          nvl: p(15700.25),
           volumeProfile: [
-            { price: 15825.50, volume: 1500000, percentage: 15.5 },
-            { price: 15850.25, volume: 1200000, percentage: 12.4 },
-            { price: 15800.75, volume: 1100000, percentage: 11.4 }
+            { price: p(15825.50), volume: v(1500000), percentage: 15.5 },
+            { price: p(15850.25), volume: v(1200000), percentage: 12.4 },
+            { price: p(15800.75), volume: v(1100000), percentage: 11.4 }
           ]
         },
         orderFlow: {
-          delta: 250000,
-          buyVolume: 1500000,
-          sellVolume: 1250000,
+          delta: v(250000),
+          buyVolume: v(1500000),
+          sellVolume: v(1250000),
           absorption: false,
           exhaustion: false,
-          aggressiveBuyers: 750000,
-          aggressiveSellers: 500000,
+          aggressiveBuyers: v(750000),
+          aggressiveSellers: v(500000),
           levels: [
-            { price: 15850.25, buyPressure: 0.65, sellPressure: 0.35, delta: 150000 },
-            { price: 15825.50, buyPressure: 0.58, sellPressure: 0.42, delta: 100000 }
+            { price: p(15850.25), buyPressure: 0.65, sellPressure: 0.35, delta: v(150000) },
+            { price: p(15825.50), buyPressure: 0.58, sellPressure: 0.42, delta: v(100000) }
           ]
         },
         predictions: {
-          nextTarget: 15925.75,
-          stopLevel: 15775.50,
+          nextTarget: p(15925.75),
+          stopLevel: p(15775.50),
           confidence: 0.78,
           timeframe: "1H",
-          reasoning: "Strong bullish structure with BOS confirmation and positive delta. Targeting previous liquidity level."
+          reasoning: `Strong bullish structure on ${selectedMarket} with BOS confirmation and positive delta. Targeting previous liquidity level.`
         },
         sessions: {
-          asian: { high: 15750.25, low: 15675.50, bias: "neutral" },
-          london: { high: 15875.75, low: 15725.50, bias: "bullish" },
-          ny: { high: 15925.50, low: 15800.25, bias: "bullish" }
+          asian: { high: p(15750.25), low: p(15675.50), bias: "neutral" },
+          london: { high: p(15875.75), low: p(15725.50), bias: "bullish" },
+          ny: { high: p(15925.50), low: p(15800.25), bias: "bullish" }
         }
       }
       
@@ -201,13 +205,13 @@ function SMTICTAnalysis({ market }: { market?: string }) {
       console.error("[SMT-ICT] Error fetching analysis:", error)
     }
     setLoading(false)
-  }, [])
+  }, [p, v, selectedMarket])
 
   // Effects
   useEffect(() => {
     setMounted(true)
     fetchAnalysis(selectedTimeframe)
-  }, [fetchAnalysis, selectedTimeframe])
+  }, [fetchAnalysis, selectedTimeframe, selectedMarket])
 
   // Format helpers
   const fmtPrice = (price: number) => price.toFixed(2)
