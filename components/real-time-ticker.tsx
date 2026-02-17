@@ -73,7 +73,25 @@ export function RealTimeTicker() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         {MARKETS.map((market) => {
           const priceData = prices[market.value]
-          if (!priceData) return null
+          if (!priceData) {
+            console.log(`Missing price data for ${market.value}`, prices)
+            return (
+              <div
+                key={market.value}
+                className="bg-red-500/10 border border-red-500/20 rounded-lg p-3"
+              >
+                <div className="text-xs font-medium text-red-400 mb-1">
+                  {market.label}
+                </div>
+                <div className="text-lg font-bold text-red-400 mb-1">
+                  No Data
+                </div>
+                <div className="text-xs text-red-400">
+                  Check console
+                </div>
+              </div>
+            )
+          }
 
           return (
             <div
