@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import dynamic from "next/dynamic"
 import { useAppStore } from "@/lib/store"
 import { scaleFromNQ, scaleVolumeFromNQ, createPriceScaler } from "@/lib/market-data"
-import { usePriceStore, useCurrentPrice, usePriceChange, priceSimulator } from "@/lib/price-store"
+import { usePriceStore, priceSimulator } from "@/lib/price-store"
 import {
   TrendingUp,
   TrendingDown,
@@ -109,8 +109,15 @@ function MarketStructureAnalysis({ market = "NQ100" }: { market?: string }) {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
 
   // Real-time price tracking
-  const currentPrice = useCurrentPrice(market)
-  const priceChange = usePriceChange(market)
+  const currentPrice = usePriceStore(state => state.prices[market]?.price || null)
+  const priceChange = usePriceStore(state => {
+    const priceData = state.prices[market]
+    if (!priceData) return null
+    return {
+      change: priceData.change,
+      changePercent: priceData.changePercent,
+    }
+  })
   const priceScaler = createPriceScaler(market)
 
   const timeframes = ["15m", "1H", "4H", "1D"]

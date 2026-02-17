@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import dynamic from "next/dynamic"
 import { useAppStore } from "@/lib/store"
 import { scaleFromNQ, scaleVolumeFromNQ, getCurrentPrice, createPriceScaler } from "@/lib/market-data"
-import { usePriceStore, useCurrentPrice, usePriceChange, priceSimulator } from "@/lib/price-store"
+import { usePriceStore, priceSimulator } from "@/lib/price-store"
 import {
   TrendingUp,
   TrendingDown,
@@ -104,8 +104,15 @@ function SMTICTAnalysis({ market = "NQ100" }: { market?: string }) {
   const [selectedTimeframe, setSelectedTimeframe] = useState("15m")
   
   // Real-time price tracking
-  const currentPrice = useCurrentPrice(market)
-  const priceChange = usePriceChange(market)
+  const currentPrice = usePriceStore(state => state.prices[market]?.price || null)
+  const priceChange = usePriceStore(state => {
+    const priceData = state.prices[market]
+    if (!priceData) return null
+    return {
+      change: priceData.change,
+      changePercent: priceData.changePercent,
+    }
+  })
   const priceScaler = createPriceScaler(market)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
 

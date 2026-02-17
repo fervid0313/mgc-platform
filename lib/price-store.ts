@@ -2,7 +2,6 @@
 
 import { create } from "zustand"
 import { subscribeWithSelector } from "zustand/middleware"
-import { useCallback } from "react"
 import { getMarketProfile } from "./market-data"
 
 interface PriceData {
@@ -144,25 +143,6 @@ export const usePriceStore = create<PriceState>()(
   }))
 )
 
-// Memoized selectors to prevent infinite loops
-export const useCurrentPrice = (market: string) => {
-  return usePriceStore(
-    useCallback((state: PriceState) => state.prices[market]?.price || null, [market])
-  )
-}
-
-export const usePriceChange = (market: string) => {
-  return usePriceStore(
-    useCallback((state: PriceState) => {
-      const priceData = state.prices[market]
-      if (!priceData) return null
-      return {
-        change: priceData.change,
-        changePercent: priceData.changePercent,
-      }
-    }, [market])
-  )
-}
 
 // Mock price generator for demo purposes
 export function generateMockPriceUpdate(market: string, store: any): Partial<PriceData> {
