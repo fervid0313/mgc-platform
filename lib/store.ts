@@ -202,6 +202,7 @@ interface AppState {
   getCommentCount: (entryId: string) => number
 
   notifications: Notification[]
+  notificationsLoading: boolean
   loadNotifications: () => Promise<void>
   markNotificationRead: (notificationId: string) => Promise<void>
   markAllNotificationsRead: () => Promise<void>
@@ -1922,9 +1923,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   lastActivity: {},
   activityCheckInterval: null,
   notifications: [],
+  notificationsLoading: false,
   loadNotifications: async () => {
-    const { user } = get()
-    if (!user) return
+    const { user, notificationsLoading } = get()
+    if (!user || notificationsLoading) return
+
+    set({ notificationsLoading: true })
 
     const supabase = createClient()
     const { data, error } = await supabase
@@ -1936,6 +1940,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     if (error) {
       console.error("[NOTIFICATIONS] Load error:", error)
+      set({ notificationsLoading: false })
       return
     }
 
@@ -1952,7 +1957,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       updatedAt: new Date(n.updated_at),
     }))
 
-    set({ notifications: mapped })
+    set({ notifications: mapped, notificationsLoading: false })
   },
   markNotificationRead: async (notificationId: string) => {
     const { user, notifications } = get()

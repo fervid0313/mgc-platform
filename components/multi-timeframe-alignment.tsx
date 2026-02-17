@@ -288,7 +288,7 @@ function MultiTimeframeAlignment({ market }: { market?: string }) {
   useEffect(() => {
     setMounted(true)
     fetchAnalysis(selectedMarket)
-  }, [fetchAnalysis, selectedMarket])
+  }, [selectedMarket])
 
   // Format helpers
   const fmtPrice = (price: number) => price.toFixed(2)

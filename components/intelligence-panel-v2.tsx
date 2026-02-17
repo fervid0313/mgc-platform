@@ -290,14 +290,16 @@ function IntelligencePanelV2() {
         headers: { "Content-Type": "application/json" },
       })
 
-      if (!res.ok) throw new Error(`Sentiment fetch failed: ${res.status}`)
+      if (!res.ok) {
+        console.warn("[INTELLIGENCE] Sentiment endpoint not available")
+        return
+      }
 
       const data = await res.json()
       setSentiment(data)
       saveCachedSentiment(market, data)
     } catch (err) {
-      console.error("[INTELLIGENCE] Sentiment fetch error:", err)
-      setError("Failed to fetch sentiment")
+      // Silently fail - endpoints not implemented yet
     }
   }, [])
 
@@ -315,14 +317,16 @@ function IntelligencePanelV2() {
         headers: { "Content-Type": "application/json" },
       })
 
-      if (!res.ok) throw new Error(`Bias fetch failed: ${res.status}`)
+      if (!res.ok) {
+        console.warn("[INTELLIGENCE] Bias endpoint not available")
+        return
+      }
 
       const data = await res.json()
       setBias(data)
       saveBias(market, data)
     } catch (err) {
-      console.error("[INTELLIGENCE] Bias fetch error:", err)
-      setError("Failed to fetch bias")
+      // Silently fail - endpoints not implemented yet
     }
   }, [])
 
@@ -334,13 +338,15 @@ function IntelligencePanelV2() {
         headers: { "Content-Type": "application/json" },
       })
 
-      if (!res.ok) throw new Error(`Events fetch failed: ${res.status}`)
+      if (!res.ok) {
+        console.warn("[INTELLIGENCE] Events endpoint not available")
+        return
+      }
 
       const data = await res.json()
       setEvents(data.slice(0, 5))
     } catch (err) {
-      console.error("[INTELLIGENCE] Events fetch error:", err)
-      setError("Failed to fetch events")
+      // Silently fail - endpoints not implemented yet
     }
   }, [])
 
@@ -377,7 +383,7 @@ function IntelligencePanelV2() {
         setLastUpdate(new Date())
       })
     }
-  }, [isAuthenticated, selectedMarket, fetchSentiment, fetchBias, fetchEvents, fetchHodLod])
+  }, [isAuthenticated, selectedMarket])
 
   // Auto-refresh
   useEffect(() => {
@@ -390,7 +396,7 @@ function IntelligencePanelV2() {
       setLastUpdate(new Date())
     }, 60000) // 1 minute
     return () => clearInterval(interval)
-  }, [isAuthenticated, selectedMarket, fetchSentiment, fetchBias, fetchEvents, fetchHodLod])
+  }, [isAuthenticated, selectedMarket])
 
   // Toggle component collapse
   const toggleComponent = useCallback((componentId: string) => {

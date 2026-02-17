@@ -156,19 +156,6 @@ export default function Home() {
           <main className={`flex-1 mx-auto w-full px-5 pt-10 pb-32 space-y-8 transition-all duration-300 ${
             showAnalysis ? "max-w-full" : "max-w-2xl"
           }`}>
-            {/* Discord Button */}
-            <div className="flex justify-center">
-              <a
-                href="https://discord.gg/yhrgr3emk2"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-3d flex items-center gap-2 px-6 py-3 bg-black hover:bg-gray-900 text-white font-medium rounded-lg transition-all duration-200 border-2 border-white hover:border-white/80"
-              >
-                <ExternalLink className="h-4 w-4" />
-                Join our Discord!
-              </a>
-            </div>
-
             {/* Lazy-mounted tabs: only render after first visit, then persist via CSS hidden */}
             {mountedTabs.faq && (
               <div className={showFAQ ? "" : "hidden"}>

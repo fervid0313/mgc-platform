@@ -250,7 +250,7 @@ function ActionableAlerts({ market }: { market?: string }) {
     // Auto-refresh alerts every 30 seconds
     const interval = setInterval(fetchAlerts, 30000)
     return () => clearInterval(interval)
-  }, [fetchAlerts])
+  }, [])
 
   // Format helpers
   const fmtPrice = (price: number) => price.toFixed(2)

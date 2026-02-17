@@ -216,7 +216,7 @@ function OrderFlowAnalysis({ market }: { market?: string }) {
   useEffect(() => {
     setMounted(true)
     fetchAnalysis(selectedTimeframe)
-  }, [fetchAnalysis, selectedTimeframe, selectedMarket])
+  }, [selectedTimeframe, selectedMarket])
 
   // Format helpers
   const fmtPrice = (price: number) => price.toFixed(2)

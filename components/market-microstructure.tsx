@@ -320,7 +320,7 @@ function MarketMicrostructure({ market }: { market?: string }) {
     // Auto-refresh every 15 seconds for real-time data
     const interval = setInterval(() => fetchMicrostructure(selectedMarket), 15000)
     return () => clearInterval(interval)
-  }, [fetchMicrostructure, selectedMarket])
+  }, [selectedMarket])
 
   // Format helpers
   const fmtPrice = (price: number) => price.toFixed(2)

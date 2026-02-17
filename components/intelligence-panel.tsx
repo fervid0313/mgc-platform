@@ -206,7 +206,7 @@ function IntelligencePanel() {
       console.error("[INTELLIGENCE-PANEL] fetchAll error:", err)
     }
     setLoading(false)
-  }, [fetchSentiment])
+  }, [])
 
   // Effects
   useEffect(() => {
@@ -214,7 +214,7 @@ function IntelligencePanel() {
     const market = loadSelectedMarket()
     setSelectedMarket(market)
     fetchAll(market, true)
-  }, [fetchAll])
+  }, [])
 
   // Handle market change
   const handleMarketChange = useCallback((market: string) => {
@@ -225,7 +225,7 @@ function IntelligencePanel() {
     setAiBias(null)
     setHodLod(null)
     fetchAll(market, true)
-  }, [fetchAll])
+  }, [])
 
   // Derived data
   const signals: ("bullish" | "bearish" | "neutral")[] = []

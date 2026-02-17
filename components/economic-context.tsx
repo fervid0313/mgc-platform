@@ -253,7 +253,7 @@ function EconomicContext({ market }: { market?: string }) {
   useEffect(() => {
     setMounted(true)
     fetchContext()
-  }, [fetchContext, selectedMarket])
+  }, [selectedMarket])
 
   // Format helpers
   const fmtPercent = (value: number) => `${value.toFixed(1)}%`

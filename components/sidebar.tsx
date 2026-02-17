@@ -1,7 +1,7 @@
 "use client"
 
 import { useAppStore } from "@/lib/store"
-import { X, Plus, Lock, Users, Globe, LogOut, PanelLeftClose, PanelLeftOpen, BookOpen, BarChart3, Brain, MessageCircleQuestion } from "lucide-react"
+import { X, Plus, Lock, Users, Globe, LogOut, PanelLeftClose, PanelLeftOpen, BookOpen, BarChart3, Brain, MessageCircleQuestion, ExternalLink } from "lucide-react"
 import { useState } from "react"
 import { CreateSpaceModal } from "./create-space-modal"
 import { MilestoneProgress } from "./milestone-progress"
@@ -38,12 +38,12 @@ export function Sidebar({ collapsed = false, onToggleCollapse, activeTab = "jour
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 glass-3d z-50 shadow-2xl transition-all duration-300 ease-out flex flex-col ${
+        className={`fixed inset-y-0 left-0 glass-3d z-50 shadow-2xl transition-all duration-300 ease-out flex flex-col overflow-hidden ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } lg:fixed lg:z-0 ${
           collapsed
-            ? "lg:w-0 lg:-translate-x-full"
-            : "lg:w-72 lg:translate-x-0"
+            ? "lg:w-0 lg:-translate-x-full lg:opacity-0 lg:pointer-events-none"
+            : "lg:w-72 lg:translate-x-0 lg:opacity-100"
         } w-72`}
       >
         {/* Top section */}
@@ -68,6 +68,19 @@ export function Sidebar({ collapsed = false, onToggleCollapse, activeTab = "jour
           </div>
 
           <MarketTicker />
+        </div>
+
+        {/* Discord Invite */}
+        <div className="px-4 pb-2 shrink-0">
+          <a
+            href="https://discord.gg/yhrgr3emk2"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-3d w-full flex items-center justify-center gap-2 px-3 py-2 bg-black hover:bg-gray-900 text-white font-medium rounded-lg transition-all duration-200 border border-white/20 hover:border-white/40 text-sm"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            Join our Discord!
+          </a>
         </div>
 
         {/* Navigation Tabs */}

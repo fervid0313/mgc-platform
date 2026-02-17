@@ -289,7 +289,7 @@ function VisualEnhancements({ market }: { market?: string }) {
     return () => {
       if (interval) clearInterval(interval)
     }
-  }, [fetchEnhancements, selectedMarket, enhancements?.settings.autoRefresh, enhancements?.settings.refreshInterval])
+  }, [selectedMarket, enhancements?.settings.autoRefresh, enhancements?.settings.refreshInterval])
 
   // Format helpers
   const fmtPrice = (price: number) => price.toFixed(2)

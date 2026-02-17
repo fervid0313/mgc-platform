@@ -249,7 +249,7 @@ function AIEnsemblePredictions({ market }: { market?: string }) {
   useEffect(() => {
     setMounted(true)
     fetchPredictions(selectedMarket)
-  }, [fetchPredictions, selectedMarket])
+  }, [selectedMarket])
 
   // Format helpers
   const fmtPrice = (price: number) => price.toFixed(2)
