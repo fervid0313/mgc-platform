@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import dynamic from "next/dynamic"
 import { useAppStore } from "@/lib/store"
+import { scaleFromNQ } from "@/lib/market-data"
 import {
   Bell,
   TrendingUp,
@@ -95,6 +96,9 @@ function ActionableAlerts({ market }: { market?: string }) {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
   const [showSettings, setShowSettings] = useState(false)
 
+  const selectedMarket = market || "NQ100"
+  const p = (nqPrice: number) => scaleFromNQ(nqPrice, selectedMarket)
+
   // Toggle section collapse
   const toggleSection = useCallback((sectionId: string) => {
     setCollapsedSections(prev => ({
@@ -114,17 +118,17 @@ function ActionableAlerts({ market }: { market?: string }) {
           type: "level_break",
           severity: "high",
           title: "Resistance Break Detected",
-          message: "NQ100 breaking through key resistance at 15925.75 with strong volume confirmation.",
-          market: "NQ100",
-          price: 15928.50,
-          target: 15975.00,
-          stopLoss: 15875.25,
+          message: `${selectedMarket} breaking through key resistance at ${p(15925.75)} with strong volume confirmation.`,
+          market: selectedMarket,
+          price: p(15928.50),
+          target: p(15975.00),
+          stopLoss: p(15875.25),
           probability: 0.85,
           timeframe: "15m",
           timestamp: new Date(Date.now() - 300000).toISOString(),
           acknowledged: false,
           actionRequired: true,
-          suggestedAction: "Consider long position with target at 15975.00",
+          suggestedAction: `Consider long position with target at ${p(15975.00)}`,
           expiry: new Date(Date.now() + 900000).toISOString()
         },
         {
@@ -132,8 +136,8 @@ function ActionableAlerts({ market }: { market?: string }) {
           type: "session_transition",
           severity: "medium",
           title: "London Session Opening",
-          message: "London session opening in 15 minutes. Expect increased volatility and volume.",
-          market: "ES",
+          message: `London session opening in 15 minutes. Expect increased ${selectedMarket} volatility and volume.`,
+          market: selectedMarket,
           probability: 0.72,
           timeframe: "1H",
           timestamp: new Date(Date.now() - 600000).toISOString(),
@@ -147,8 +151,8 @@ function ActionableAlerts({ market }: { market?: string }) {
           type: "bias_shift",
           severity: "high",
           title: "Bias Shift Detected",
-          message: "AI ensemble bias shifted from neutral to bullish (78% confidence). Multiple models confirming.",
-          market: "BTC",
+          message: `${selectedMarket} AI ensemble bias shifted from neutral to bullish (78% confidence). Multiple models confirming.`,
+          market: selectedMarket,
           probability: 0.78,
           timeframe: "4H",
           timestamp: new Date(Date.now() - 900000).toISOString(),
@@ -162,9 +166,9 @@ function ActionableAlerts({ market }: { market?: string }) {
           type: "volume_spike",
           severity: "medium",
           title: "Unusual Volume Detected",
-          message: "Volume spike detected in ES - 3x average volume with price movement.",
-          market: "ES",
-          price: 4525.75,
+          message: `Volume spike detected in ${selectedMarket} - 3x average volume with price movement.`,
+          market: selectedMarket,
+          price: p(15830.75),
           probability: 0.65,
           timeframe: "5m",
           timestamp: new Date(Date.now() - 1200000).toISOString(),
@@ -177,8 +181,8 @@ function ActionableAlerts({ market }: { market?: string }) {
           type: "news_impact",
           severity: "critical",
           title: "Breaking News Impact",
-          message: "Fed announces unexpected policy change. High market impact expected.",
-          market: "All",
+          message: `Fed announces unexpected policy change. High ${selectedMarket} impact expected.`,
+          market: selectedMarket,
           probability: 0.92,
           timeframe: "Immediate",
           timestamp: new Date(Date.now() - 1500000).toISOString(),
@@ -192,8 +196,8 @@ function ActionableAlerts({ market }: { market?: string }) {
           type: "technical_signal",
           severity: "low",
           title: "Golden Cross Forming",
-          message: "50-day MA crossing above 200-day MA on NQ100 daily chart.",
-          market: "NQ100",
+          message: `50-day MA crossing above 200-day MA on ${selectedMarket} daily chart.`,
+          market: selectedMarket,
           probability: 0.58,
           timeframe: "1D",
           timestamp: new Date(Date.now() - 1800000).toISOString(),
@@ -219,7 +223,7 @@ function ActionableAlerts({ market }: { market?: string }) {
       console.error("[ALERTS] Error fetching alerts:", error)
     }
     setLoading(false)
-  }, [])
+  }, [selectedMarket, p])
 
   // Acknowledge alert
   const acknowledgeAlert = useCallback((alertId: string) => {

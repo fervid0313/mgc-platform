@@ -110,6 +110,8 @@ function EconomicContext({ market }: { market?: string }) {
   const [context, setContext] = useState<EconomicContext | null>(null)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
 
+  const selectedMarket = market || "NQ100"
+
   // Toggle section collapse
   const toggleSection = useCallback((sectionId: string) => {
     setCollapsedSections(prev => ({
@@ -210,7 +212,7 @@ function EconomicContext({ market }: { market?: string }) {
         recommendations: {
           bias: "bullish_equities",
           confidence: 0.78,
-          reasoning: "Strong risk-on environment with dovish Fed expectations and improving economic data. Lower volatility supports equity exposure.",
+          reasoning: `Strong risk-on environment for ${selectedMarket} with dovish Fed expectations and improving economic data. Lower volatility supports equity exposure.`,
           riskFactors: [
             "Fed policy uncertainty",
             "Geopolitical tensions",
@@ -245,13 +247,13 @@ function EconomicContext({ market }: { market?: string }) {
       console.error("[ECONOMIC-CONTEXT] Error fetching context:", error)
     }
     setLoading(false)
-  }, [])
+  }, [selectedMarket])
 
   // Effects
   useEffect(() => {
     setMounted(true)
     fetchContext()
-  }, [fetchContext])
+  }, [fetchContext, selectedMarket])
 
   // Format helpers
   const fmtPercent = (value: number) => `${value.toFixed(1)}%`

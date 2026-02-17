@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import dynamic from "next/dynamic"
 import { useAppStore } from "@/lib/store"
+import { scaleFromNQ, scaleVolumeFromNQ } from "@/lib/market-data"
 import {
   TrendingUp,
   TrendingDown,
@@ -114,6 +115,9 @@ function VisualEnhancements({ market }: { market?: string }) {
 
   useEffect(() => { if (market) setSelectedMarket(market) }, [market])
 
+  const p = (nqPrice: number) => scaleFromNQ(nqPrice, selectedMarket)
+  const v = (nqVol: number) => scaleVolumeFromNQ(nqVol, selectedMarket)
+
   const markets = ["NQ100", "ES", "BTC", "ETH", "US10Y"]
 
   // Toggle section collapse
@@ -131,21 +135,21 @@ function VisualEnhancements({ market }: { market?: string }) {
       // Mock data for now - will integrate with real price APIs
       const mockEnhancements: VisualEnhancements = {
         priceData: {
-          current: 15830.75,
-          open: 15750.25,
-          high: 15845.50,
-          low: 15725.75,
-          change: 80.50,
+          current: p(15830.75),
+          open: p(15750.25),
+          high: p(15845.50),
+          low: p(15725.75),
+          change: p(80.50),
           changePercent: 0.51,
-          volume: 125000000,
+          volume: v(125000000),
           timestamp: new Date().toISOString(),
-          bid: 15830.50,
-          ask: 15831.00,
+          bid: p(15830.50),
+          ask: p(15831.00),
           spread: 0.50
         },
         priceLevels: [
           {
-            price: 15925.75,
+            price: p(15925.75),
             type: "resistance",
             strength: 0.92,
             probability: 0.85,
@@ -153,7 +157,7 @@ function VisualEnhancements({ market }: { market?: string }) {
             timestamp: new Date(Date.now() - 3600000).toISOString()
           },
           {
-            price: 15775.50,
+            price: p(15775.50),
             type: "support",
             strength: 0.88,
             probability: 0.82,
@@ -161,7 +165,7 @@ function VisualEnhancements({ market }: { market?: string }) {
             timestamp: new Date(Date.now() - 7200000).toISOString()
           },
           {
-            price: 15850.25,
+            price: p(15850.25),
             type: "target",
             strength: 0.75,
             probability: 0.78,
@@ -169,7 +173,7 @@ function VisualEnhancements({ market }: { market?: string }) {
             timestamp: new Date(Date.now() - 1800000).toISOString()
           },
           {
-            price: 15750.25,
+            price: p(15750.25),
             type: "stop",
             strength: 0.65,
             probability: 0.68,
@@ -177,7 +181,7 @@ function VisualEnhancements({ market }: { market?: string }) {
             timestamp: new Date(Date.now() - 900000).toISOString()
           },
           {
-            price: 15815.00,
+            price: p(15815.00),
             type: "poc",
             strength: 0.95,
             probability: 0.90,
@@ -218,29 +222,29 @@ function VisualEnhancements({ market }: { market?: string }) {
         ],
         levelHistory: [
           {
-            level: 15815.00,
+            level: p(15815.00),
             type: "poc",
             hitTime: new Date(Date.now() - 600000).toISOString(),
-            approachPrice: 15812.50,
-            bouncePrice: 15825.75,
+            approachPrice: p(15812.50),
+            bouncePrice: p(15825.75),
             strength: 0.95,
             accuracy: 0.88
           },
           {
-            level: 15750.25,
+            level: p(15750.25),
             type: "support",
             hitTime: new Date(Date.now() - 3600000).toISOString(),
-            approachPrice: 15752.75,
-            bouncePrice: 15775.50,
+            approachPrice: p(15752.75),
+            bouncePrice: p(15775.50),
             strength: 0.88,
             accuracy: 0.92
           },
           {
-            level: 15900.00,
+            level: p(15900.00),
             type: "resistance",
             hitTime: new Date(Date.now() - 7200000).toISOString(),
-            approachPrice: 15895.25,
-            breakPrice: 15905.50,
+            approachPrice: p(15895.25),
+            breakPrice: p(15905.50),
             strength: 0.78,
             accuracy: 0.75
           }
@@ -269,7 +273,7 @@ function VisualEnhancements({ market }: { market?: string }) {
       console.error("[VISUAL-ENHANCEMENTS] Error fetching data:", error)
     }
     setLoading(false)
-  }, [])
+  }, [p, v, selectedMarket])
 
   // Effects
   useEffect(() => {

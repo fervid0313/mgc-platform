@@ -122,6 +122,8 @@ export function RealTimeIntelligence({ market }: { market?: string }) {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
   const [showDetails, setShowDetails] = useState(true)
 
+  const selectedMarket = market || "NQ100"
+
   // Client-side mount
   useEffect(() => {
     setMounted(true)
@@ -132,7 +134,8 @@ export function RealTimeIntelligence({ market }: { market?: string }) {
     }, 30000) // Update every 30 seconds
     
     return () => clearInterval(interval)
-  }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMarket])
 
   // Fetch real-time intelligence data
   const fetchIntelligenceData = useCallback(async () => {
