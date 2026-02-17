@@ -92,7 +92,7 @@ function VolumeProfileAnalysis({ market = "NQ100" }: { market?: string }) {
 
   // Temporarily disabled to prevent usePriceStore crashes
   const currentPrice = 21805.50 // Fallback value
-  const priceChange = 0
+  const priceChange: number = 0
   const priceChangePercent = 0
   const priceScaler = createPriceScaler(market)
 
