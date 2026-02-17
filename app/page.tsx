@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useTransition } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useAppStore, appStore } from "@/lib/store"
 import { Sidebar } from "@/components/sidebar"
 import { Navbar } from "@/components/navbar"
@@ -9,7 +9,6 @@ import { EntryComposer } from "@/components/entry-composer"
 import { AuthScreen } from "@/components/auth-screen"
 import { CommunityProfiles } from "@/components/community-profiles"
 import { OnlineUsers } from "@/components/online-users"
-import { ViewToggle } from "@/components/view-toggle"
 import { FAQ } from "@/components/faq"
 import { InviteToSpaceButton } from "@/components/invite-to-space-button"
 import { EconomicCalendarButton } from "@/components/economic-calendar-button"
@@ -52,15 +51,18 @@ import { Loader2, ExternalLink } from "lucide-react"
 import { useEventScheduler } from "@/hooks/use-event-scheduler"
 import type { ImportedTrade } from "@/lib/types"
 
+const SIDEBAR_COLLAPSED_KEY = "mgc-sidebar-collapsed"
+
 export default function Home() {
   const { isAuthenticated, isLoading, initializeAuth, sidebarOpen, spaces, currentSpaceId, loadEntries } =
     useAppStore()
-  const [showCommunity, setShowCommunity] = useState(false)
-  const [showFAQ, setShowFAQ] = useState(false)
-  const [showStatus, setShowStatus] = useState(false)
-  const [showAnalysis, setShowAnalysis] = useState(false)
+
+  // Sidebar collapse state (persisted in localStorage)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  // Active tab managed here, driven by sidebar nav
+  const [activeTab, setActiveTab] = useState("journal")
   const [mountedTabs, setMountedTabs] = useState({ faq: false, stats: false, community: false, analysis: false })
-  const [, startTransition] = useTransition()
   const [prefillTrade, setPrefillTrade] = useState<ImportedTrade | null>(null)
 
   const currentSpace = spaces.find((s) => s.id === currentSpaceId)
@@ -71,6 +73,14 @@ export default function Home() {
   useEffect(() => {
     initializeAuth()
   }, [initializeAuth])
+
+  // Load collapsed state from localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(SIDEBAR_COLLAPSED_KEY)
+      if (saved === "true") setSidebarCollapsed(true)
+    }
+  }, [])
 
   // Attach store to window for debugging
   useEffect(() => {
@@ -92,6 +102,23 @@ export default function Home() {
     }
   }, [isAuthenticated, currentSpaceId, loadEntries])
 
+  const toggleSidebarCollapse = useCallback(() => {
+    setSidebarCollapsed(prev => {
+      const next = !prev
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next))
+      return next
+    })
+  }, [])
+
+  const handleTabChange = useCallback((tab: string) => {
+    setActiveTab(tab)
+    // Ensure tab content is mounted on first visit
+    if (tab === "faq") setMountedTabs(p => ({ ...p, faq: true }))
+    if (tab === "stats") setMountedTabs(p => ({ ...p, stats: true }))
+    if (tab === "community") setMountedTabs(p => ({ ...p, community: true }))
+    if (tab === "analysis") setMountedTabs(p => ({ ...p, analysis: true }))
+  }, [])
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -104,15 +131,31 @@ export default function Home() {
     return <AuthScreen />
   }
 
+  // Derive tab visibility from activeTab
+  const showFAQ = activeTab === "faq"
+  const showStatus = activeTab === "stats"
+  const showCommunity = activeTab === "community"
+  const showAnalysis = activeTab === "analysis"
+  const showJournal = activeTab === "journal"
+
   return (
     <div className="min-h-screen flex flex-col relative">
       <div className="flex flex-1">
-        <Sidebar />
+        <Sidebar
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={toggleSidebarCollapse}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+        />
 
-        <div className={`flex-1 flex flex-col transition-all duration-400 lg:ml-72 ${sidebarOpen ? "ml-0" : ""}`}>
+        <div className={`flex-1 flex flex-col transition-all duration-300 ${
+          sidebarCollapsed ? "lg:ml-0" : "lg:ml-72"
+        } ${sidebarOpen ? "ml-0" : ""}`}>
           <Navbar />
 
-          <main className="flex-1 max-w-2xl mx-auto w-full px-5 pt-10 pb-32 space-y-8">
+          <main className={`flex-1 mx-auto w-full px-5 pt-10 pb-32 space-y-8 transition-all duration-300 ${
+            showAnalysis ? "max-w-full" : "max-w-2xl"
+          }`}>
             {/* Discord Button */}
             <div className="flex justify-center">
               <a
@@ -125,17 +168,6 @@ export default function Home() {
                 Join our Discord!
               </a>
             </div>
-
-            <ViewToggle 
-              showCommunity={showCommunity} 
-              showFAQ={showFAQ}
-              showStatus={showStatus}
-              showAnalysis={showAnalysis}
-              onToggleCommunity={() => { startTransition(() => { setShowCommunity(!showCommunity); setShowStatus(false); setShowAnalysis(false) }); if (!mountedTabs.community) setMountedTabs(p => ({ ...p, community: true })) }}
-              onToggleFAQ={() => { startTransition(() => { setShowFAQ(!showFAQ); setShowStatus(false); setShowAnalysis(false) }); if (!mountedTabs.faq) setMountedTabs(p => ({ ...p, faq: true })) }}
-              onToggleStatus={() => { startTransition(() => { setShowStatus(!showStatus); setShowCommunity(false); setShowFAQ(false); setShowAnalysis(false) }); if (!mountedTabs.stats) setMountedTabs(p => ({ ...p, stats: true })) }}
-              onToggleAnalysis={() => { startTransition(() => { setShowAnalysis(!showAnalysis); setShowCommunity(false); setShowFAQ(false); setShowStatus(false) }); if (!mountedTabs.analysis) setMountedTabs(p => ({ ...p, analysis: true })) }}
-            />
 
             {/* Lazy-mounted tabs: only render after first visit, then persist via CSS hidden */}
             {mountedTabs.faq && (
@@ -170,13 +202,13 @@ export default function Home() {
             )}
 
             {mountedTabs.analysis && (
-              <div className={showAnalysis ? "space-y-6 -mx-5 lg:-mx-[calc(50vw-50%-9rem)] lg:w-[calc(100vw-18rem)]" : "hidden"}>
+              <div className={showAnalysis ? "space-y-6" : "hidden"}>
                 <IntelligencePanel />
               </div>
             )}
 
             {mountedTabs.community && (
-              <div className={showCommunity && !showFAQ && !showStatus ? "flex flex-col lg:flex-row gap-6 lg:-mx-32 lg:w-[calc(100%+16rem)]" : "hidden"}>
+              <div className={showCommunity ? "flex flex-col lg:flex-row gap-6 lg:-mx-32 lg:w-[calc(100%+16rem)]" : "hidden"}>
                 <div className="flex-1 min-w-0 order-2 lg:order-1">
                   <CommunityProfiles />
                 </div>
@@ -190,7 +222,7 @@ export default function Home() {
             )}
 
             {/* Journal — always mounted */}
-            <div className={!showFAQ && !showStatus && !showCommunity && !showAnalysis ? "space-y-6" : "hidden"}>
+            <div className={showJournal ? "space-y-6" : "hidden"}>
               <DrawdownMonitor />
               <InviteToSpaceButton />
               <GoalTracker />
