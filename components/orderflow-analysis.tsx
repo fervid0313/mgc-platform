@@ -105,14 +105,8 @@ function OrderFlowAnalysis({ market = "NQ100" }: { market?: string }) {
   
   // Real-time price tracking
   const currentPrice = usePriceStore(state => state.prices[market]?.price || null)
-  const priceChange = usePriceStore(state => {
-    const priceData = state.prices[market]
-    if (!priceData) return null
-    return {
-      change: priceData.change,
-      changePercent: priceData.changePercent,
-    }
-  })
+  const priceChange = usePriceStore(state => state.prices[market]?.change || 0)
+  const priceChangePercent = usePriceStore(state => state.prices[market]?.changePercent || 0)
   const priceScaler = createPriceScaler(market)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
 
@@ -199,18 +193,15 @@ function OrderFlowAnalysis({ market = "NQ100" }: { market?: string }) {
         deltaProfile: {
           cumulativeDelta: v(450000),
           deltaPerBar: [v(120000), v(80000), v(150000), v(95000), v(180000), v(125000)],
-          deltaTrend: priceChange?.change && priceChange.change > 0 ? "increasing" : 
-                     priceChange?.change && priceChange.change < 0 ? "decreasing" : "flat",
+          deltaTrend: priceChange > 0 ? "increasing" : priceChange < 0 ? "decreasing" : "flat",
           divergence: false,
           volumeWeightedPrice: currentPrice || priceScaler.scalePrice(21803.00)
         },
         predictions: {
           nextLevel: priceScaler.scalePrice(21855.50),
-          direction: priceChange?.change && priceChange.change > 0 ? "bullish" : 
-                   priceChange?.change && priceChange.change < 0 ? "bearish" : "neutral",
+          direction: priceChange > 0 ? "bullish" : priceChange < 0 ? "bearish" : "neutral",
           confidence: 0.78,
-          reasoning: `${priceChange?.change && priceChange.change > 0 ? "Strong buying" : 
-                     priceChange?.change && priceChange.change < 0 ? "Strong selling" : "Neutral"} pressure on ${selectedMarket} at current levels.`
+          reasoning: `${priceChange > 0 ? "Strong buying" : priceChange < 0 ? "Strong selling" : "Neutral"} pressure on ${selectedMarket} at current levels.`
         },
         realTime: {
           currentDelta: v(45000),
@@ -283,14 +274,14 @@ function OrderFlowAnalysis({ market = "NQ100" }: { market?: string }) {
             <span className="text-xs font-black">Order Flow Analysis</span>
             {currentPrice && (
               <span className={`text-[8px] px-1.5 py-0.5 rounded ${
-                priceChange?.change && priceChange.change > 0 ? "bg-emerald-500/10 text-emerald-400" :
-                priceChange?.change && priceChange.change < 0 ? "bg-red-500/10 text-red-400" :
+                priceChange > 0 ? "bg-emerald-500/10 text-emerald-400" :
+                priceChange < 0 ? "bg-red-500/10 text-red-400" :
                 "bg-gray-500/10 text-gray-400"
               }`}>
                 {currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 {priceChange && (
                   <span className="ml-1">
-                    {priceChange.change >= 0 ? "+" : ""}{priceChange.change.toFixed(2)}
+                    {priceChange >= 0 ? "+" : ""}{priceChange.toFixed(2)}
                   </span>
                 )}
               </span>

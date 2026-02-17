@@ -105,14 +105,8 @@ function SMTICTAnalysis({ market = "NQ100" }: { market?: string }) {
   
   // Real-time price tracking
   const currentPrice = usePriceStore(state => state.prices[market]?.price || null)
-  const priceChange = usePriceStore(state => {
-    const priceData = state.prices[market]
-    if (!priceData) return null
-    return {
-      change: priceData.change,
-      changePercent: priceData.changePercent,
-    }
-  })
+  const priceChange = usePriceStore(state => state.prices[market]?.change || 0)
+  const priceChangePercent = usePriceStore(state => state.prices[market]?.changePercent || 0)
   const priceScaler = createPriceScaler(market)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
 
@@ -136,12 +130,11 @@ function SMTICTAnalysis({ market = "NQ100" }: { market?: string }) {
     try {
       const mockAnalysis: SMTICTAnalysis = {
         marketStructure: {
-          trend: priceChange?.change && priceChange.change > 0 ? "bullish" : 
-                 priceChange?.change && priceChange.change < 0 ? "bearish" : "sideways",
-          higherHighs: !!(priceChange?.change && priceChange.change > 0),
-          higherLows: !!(priceChange?.change && priceChange.change > 0),
-          lowerHighs: !!(priceChange?.change && priceChange.change < 0),
-          lowerLows: !!(priceChange?.change && priceChange.change < 0),
+          trend: priceChange > 0 ? "bullish" : priceChange < 0 ? "bearish" : "sideways",
+          higherHighs: priceChange > 0,
+          higherLows: priceChange > 0,
+          lowerHighs: priceChange < 0,
+          lowerLows: priceChange < 0,
           structureBreak: false,
           currentPhase: "trending"
         },
@@ -276,14 +269,14 @@ function SMTICTAnalysis({ market = "NQ100" }: { market?: string }) {
             <span className="text-[10px] font-bold text-foreground">SMT/ICT Analysis</span>
             {currentPrice && (
               <span className={`text-[8px] px-1.5 py-0.5 rounded ${
-                priceChange?.change && priceChange.change > 0 ? "bg-emerald-500/10 text-emerald-400" :
-                priceChange?.change && priceChange.change < 0 ? "bg-red-500/10 text-red-400" :
+                priceChange > 0 ? "bg-emerald-500/10 text-emerald-400" :
+                priceChange < 0 ? "bg-red-500/10 text-red-400" :
                 "bg-gray-500/10 text-gray-400"
               }`}>
                 {currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                {priceChange && (
+                {priceChange !== 0 && (
                   <span className="ml-1">
-                    {priceChange.change >= 0 ? "+" : ""}{priceChange.change.toFixed(2)}
+                    {priceChange >= 0 ? "+" : ""}{priceChange.toFixed(2)}
                   </span>
                 )}
               </span>
