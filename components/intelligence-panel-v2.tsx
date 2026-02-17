@@ -88,7 +88,6 @@ import MarketStructureAnalysis from "./market-structure-analysis"
 import MultiTimeframeAlignment from "./multi-timeframe-alignment"
 import EconomicContext from "./economic-context"
 import AIEnsemblePredictions from "./ai-ensemble-predictions"
-import IntradayAnalysis from "./intraday-analysis"
 import { RealTimeIntelligence } from "./realtime-intelligence"
 import ActionableAlerts from "./actionable-alerts"
 import MarketMicrostructure from "./market-microstructure"
@@ -147,14 +146,6 @@ const COMPONENT_CATEGORIES = {
       { id: "orderflow", name: "Order Flow", component: OrderFlowAnalysis },
       { id: "volume", name: "Volume Profile", component: VolumeProfileAnalysis },
       { id: "structure", name: "Market Structure", component: MarketStructureAnalysis },
-    ]
-  },
-  intraday: {
-    name: "Intraday Analysis AI",
-    icon: Brain,
-    color: "purple",
-    components: [
-      { id: "intraday", name: "Intraday Analysis AI", component: IntradayAnalysis },
     ]
   },
   advanced: {
@@ -471,7 +462,7 @@ function IntelligencePanelV2() {
       {/* ── Analysis Components Grid ── */}
       <div className="space-y-8">
         {/* Top Row: Core Analysis | Intraday Analysis AI | Advanced Outlook */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Core Analysis - Left */}
           <div className="space-y-4">
             <div className="text-lg font-semibold text-foreground border-b border-border/30 pb-2">Core Analysis</div>
@@ -486,30 +477,6 @@ function IntelligencePanelV2() {
                   <div 
                   key={comp.id} 
                   className="min-h-[300px] bg-gradient-to-br from-background via-background/95 to-background border border-border/30 rounded-xl overflow-hidden"
-                >
-                  {/* Component Content */}
-                  <div className="px-4 pb-4 pt-3">
-                    <Component />
-                  </div>
-                </div>
-              )
-              })}
-          </div>
-
-          {/* Intraday Analysis AI - Center */}
-          <div className="space-y-4">
-            <div className="text-lg font-semibold text-foreground border-b border-border/30 pb-2">Intraday Analysis AI</div>
-            {COMPONENT_CATEGORIES.intraday.components
-              .filter((comp: any) => 
-                comp.name.toLowerCase().includes(searchQuery.toLowerCase())
-              )
-              .map((comp: any) => {
-                const Component = comp.component
-                
-                return (
-                  <div 
-                  key={comp.id} 
-                  className="min-h-[400px] bg-gradient-to-br from-background via-background/95 to-background border border-border/30 rounded-xl overflow-hidden"
                 >
                   {/* Component Content */}
                   <div className="px-4 pb-4 pt-3">
