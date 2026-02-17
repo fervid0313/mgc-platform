@@ -126,7 +126,7 @@ function MarketStructureAnalysis({ market }: { market?: string }) {
     try {
       // Mock data for now - will integrate with real market structure APIs
       const mockAnalysis: MarketStructureAnalysis = {
-        currentPrice: p(15830.75),
+        currentPrice: p(21805.50),
         trendAnalysis: {
           direction: "bullish",
           strength: 78,
@@ -135,15 +135,15 @@ function MarketStructureAnalysis({ market }: { market?: string }) {
           momentum: "increasing"
         },
         structurePoints: [
-          { price: p(15925.50), timestamp: "2024-01-15T10:30:00Z", type: "high", strength: "strong", significance: 92 },
-          { price: p(15675.25), timestamp: "2024-01-15T08:45:00Z", type: "low", strength: "strong", significance: 88 },
-          { price: p(15850.75), timestamp: "2024-01-15T09:15:00Z", type: "break", strength: "moderate", significance: 75 },
-          { price: p(15725.50), timestamp: "2024-01-15T11:00:00Z", type: "reversal", strength: "moderate", significance: 68 }
+          { price: p(21910.50), timestamp: "2024-01-15T10:30:00Z", type: "high", strength: "strong", significance: 92 },
+          { price: p(21650.25), timestamp: "2024-01-15T08:45:00Z", type: "low", strength: "strong", significance: 88 },
+          { price: p(21832.50), timestamp: "2024-01-15T09:15:00Z", type: "break", strength: "moderate", significance: 75 },
+          { price: p(21700.50), timestamp: "2024-01-15T11:00:00Z", type: "reversal", strength: "moderate", significance: 68 }
         ],
         structureBreaks: [
           {
             type: "break_of_structure",
-            price: p(15850.75),
+            price: p(21832.50),
             timestamp: "2024-01-15T09:15:00Z",
             direction: "bullish",
             confidence: 0.85,
@@ -169,20 +169,20 @@ function MarketStructureAnalysis({ market }: { market?: string }) {
         },
         keyLevels: {
           support: [
-            { price: p(15775.25), strength: 0.85, tested: false },
-            { price: p(15725.50), strength: 0.72, tested: true },
-            { price: p(15675.25), strength: 0.91, tested: false }
+            { price: p(21750.25), strength: 0.85, tested: false },
+            { price: p(21700.50), strength: 0.72, tested: true },
+            { price: p(21650.25), strength: 0.91, tested: false }
           ],
           resistance: [
-            { price: p(15875.50), strength: 0.78, tested: false },
-            { price: p(15925.50), strength: 0.92, tested: true },
-            { price: p(15975.75), strength: 0.68, tested: false }
+            { price: p(21855.50), strength: 0.78, tested: false },
+            { price: p(21910.50), strength: 0.92, tested: true },
+            { price: p(21960.75), strength: 0.68, tested: false }
           ]
         },
         predictions: {
           nextMove: "bullish_continuation",
-          target: p(15925.50),
-          stopLoss: p(15775.25),
+          target: p(21910.50),
+          stopLoss: p(21750.25),
           confidence: 0.78,
           timeframe: "1H",
           reasoning: `Strong bullish structure on ${selectedMarket} with multi-timeframe alignment. Targeting previous high with stop below recent support.`

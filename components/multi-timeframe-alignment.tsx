@@ -147,7 +147,7 @@ function MultiTimeframeAlignment({ market }: { market?: string }) {
     try {
       // Mock data for now - will integrate with real multi-timeframe APIs
       const mockAnalysis: MultiTimeframeAlignment = {
-        currentPrice: p(15830.75),
+        currentPrice: p(21805.50),
         timeframes: [
           {
             timeframe: "5m",
@@ -155,7 +155,7 @@ function MultiTimeframeAlignment({ market }: { market?: string }) {
             bias: "bullish",
             strength: 72,
             momentum: "increasing",
-            keyLevel: { price: p(15850.25), type: "resistance", strength: 0.78 },
+            keyLevel: { price: p(21832.50), type: "resistance", strength: 0.78 },
             volume: { current: v(1500000), average: v(1200000), ratio: 1.25 },
             volatility: { current: 18.5, average: 16.2, regime: "normal" }
           },
@@ -165,7 +165,7 @@ function MultiTimeframeAlignment({ market }: { market?: string }) {
             bias: "bullish",
             strength: 78,
             momentum: "increasing",
-            keyLevel: { price: p(15775.50), type: "support", strength: 0.85 },
+            keyLevel: { price: p(21745.50), type: "support", strength: 0.85 },
             volume: { current: v(2800000), average: v(2500000), ratio: 1.12 },
             volatility: { current: 17.8, average: 15.5, regime: "normal" }
           },
@@ -175,7 +175,7 @@ function MultiTimeframeAlignment({ market }: { market?: string }) {
             bias: "bullish",
             strength: 85,
             momentum: "stable",
-            keyLevel: { price: p(15925.75), type: "resistance", strength: 0.92 },
+            keyLevel: { price: p(21910.75), type: "resistance", strength: 0.92 },
             volume: { current: v(8500000), average: v(7800000), ratio: 1.09 },
             volatility: { current: 16.2, average: 14.8, regime: "normal" }
           },
@@ -185,7 +185,7 @@ function MultiTimeframeAlignment({ market }: { market?: string }) {
             bias: "bullish",
             strength: 88,
             momentum: "increasing",
-            keyLevel: { price: p(15675.25), type: "support", strength: 0.91 },
+            keyLevel: { price: p(21650.25), type: "support", strength: 0.91 },
             volume: { current: v(22000000), average: v(19500000), ratio: 1.13 },
             volatility: { current: 15.5, average: 13.2, regime: "normal" }
           },
@@ -195,7 +195,7 @@ function MultiTimeframeAlignment({ market }: { market?: string }) {
             bias: "bullish",
             strength: 92,
             momentum: "increasing",
-            keyLevel: { price: p(16150.50), type: "resistance", strength: 0.95 },
+            keyLevel: { price: p(22135.50), type: "resistance", strength: 0.95 },
             volume: { current: v(85000000), average: v(78000000), ratio: 1.09 },
             volatility: { current: 14.2, average: 12.8, regime: "low" }
           }
@@ -212,24 +212,24 @@ function MultiTimeframeAlignment({ market }: { market?: string }) {
           daily: {
             trend: "bullish",
             keyLevels: [
-              { price: p(16150.50), type: "resistance", strength: 0.95 },
-              { price: p(15675.25), type: "support", strength: 0.91 }
+              { price: p(22135.50), type: "resistance", strength: 0.95 },
+              { price: p(21650.25), type: "support", strength: 0.91 }
             ],
             structure: "higher_highs_higher_lows"
           },
           weekly: {
             trend: "bullish",
             keyLevels: [
-              { price: p(16500.00), type: "resistance", strength: 0.88 },
-              { price: p(15250.00), type: "support", strength: 0.85 }
+              { price: p(22485.00), type: "resistance", strength: 0.88 },
+              { price: p(21225.00), type: "support", strength: 0.85 }
             ],
             structure: "uptrend_continuation"
           },
           monthly: {
             trend: "bullish",
             keyLevels: [
-              { price: p(17250.00), type: "resistance", strength: 0.82 },
-              { price: p(14500.00), type: "support", strength: 0.78 }
+              { price: p(23235.00), type: "resistance", strength: 0.82 },
+              { price: p(20475.00), type: "support", strength: 0.78 }
             ],
             structure: "major_uptrend"
           }
@@ -237,21 +237,21 @@ function MultiTimeframeAlignment({ market }: { market?: string }) {
         confluenceZones: {
           zones: [
             {
-              price: p(15925.75),
+              price: p(21910.75),
               type: "resistance",
               timeframes: ["1H", "4H", "1D"],
               strength: 0.92,
               probability: 0.88
             },
             {
-              price: p(15775.50),
+              price: p(21745.50),
               type: "support",
               timeframes: ["15m", "1H"],
               strength: 0.85,
               probability: 0.82
             },
             {
-              price: p(15675.25),
+              price: p(21650.25),
               type: "support",
               timeframes: ["4H", "1D"],
               strength: 0.91,
@@ -259,7 +259,7 @@ function MultiTimeframeAlignment({ market }: { market?: string }) {
             }
           ],
           strongestZone: {
-            price: p(15925.75),
+            price: p(21910.75),
             type: "resistance",
             strength: 0.92
           }
@@ -267,9 +267,9 @@ function MultiTimeframeAlignment({ market }: { market?: string }) {
         recommendations: {
           direction: "bullish_continuation",
           confidence: 0.92,
-          entryZone: p(15850.25),
-          targetZone: p(15925.75),
-          stopZone: p(15775.50),
+          entryZone: p(21832.50),
+          targetZone: p(21910.75),
+          stopZone: p(21745.50),
           reasoning: `Exceptional ${selectedMarket} multi-timeframe alignment with 95% bullish consensus. All timeframes from 5m to Daily show bullish bias with increasing momentum. Strong confluence at resistance zone.`,
           riskReward: 2.1
         },

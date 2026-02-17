@@ -134,7 +134,7 @@ function SMTICTAnalysis({ market }: { market?: string }) {
         ictLevels: [
           {
             type: "BOS",
-            price: p(15850.25),
+            price: p(21832.50),
             timeframe: "1H",
             strength: "high",
             bias: "bullish",
@@ -143,7 +143,7 @@ function SMTICTAnalysis({ market }: { market?: string }) {
           },
           {
             type: "FVG",
-            price: p(15775.50),
+            price: p(21745.50),
             timeframe: "15m",
             strength: "medium",
             bias: "bullish",
@@ -152,7 +152,7 @@ function SMTICTAnalysis({ market }: { market?: string }) {
           },
           {
             type: "Liquidity",
-            price: p(15925.75),
+            price: p(21910.75),
             timeframe: "4H",
             strength: "high",
             bias: "bearish",
@@ -161,15 +161,15 @@ function SMTICTAnalysis({ market }: { market?: string }) {
           }
         ],
         volumeProfile: {
-          poc: p(15825.50),
-          vah: p(15875.25),
-          val: p(15750.75),
-          nvh: p(15950.00),
-          nvl: p(15700.25),
+          poc: p(21800.25),
+          vah: p(21855.50),
+          val: p(21725.75),
+          nvh: p(21935.00),
+          nvl: p(21670.25),
           volumeProfile: [
-            { price: p(15825.50), volume: v(1500000), percentage: 15.5 },
-            { price: p(15850.25), volume: v(1200000), percentage: 12.4 },
-            { price: p(15800.75), volume: v(1100000), percentage: 11.4 }
+            { price: p(21800.25), volume: v(1500000), percentage: 15.5 },
+            { price: p(21832.50), volume: v(1200000), percentage: 12.4 },
+            { price: p(21775.00), volume: v(1100000), percentage: 11.4 }
           ]
         },
         orderFlow: {
@@ -181,21 +181,21 @@ function SMTICTAnalysis({ market }: { market?: string }) {
           aggressiveBuyers: v(750000),
           aggressiveSellers: v(500000),
           levels: [
-            { price: p(15850.25), buyPressure: 0.65, sellPressure: 0.35, delta: v(150000) },
-            { price: p(15825.50), buyPressure: 0.58, sellPressure: 0.42, delta: v(100000) }
+            { price: p(21832.50), buyPressure: 0.65, sellPressure: 0.35, delta: v(150000) },
+            { price: p(21800.25), buyPressure: 0.58, sellPressure: 0.42, delta: v(100000) }
           ]
         },
         predictions: {
-          nextTarget: p(15925.75),
-          stopLevel: p(15775.50),
+          nextTarget: p(21910.75),
+          stopLevel: p(21745.50),
           confidence: 0.78,
           timeframe: "1H",
           reasoning: `Strong bullish structure on ${selectedMarket} with BOS confirmation and positive delta. Targeting previous liquidity level.`
         },
         sessions: {
-          asian: { high: p(15750.25), low: p(15675.50), bias: "neutral" },
-          london: { high: p(15875.75), low: p(15725.50), bias: "bullish" },
-          ny: { high: p(15925.50), low: p(15800.25), bias: "bullish" }
+          asian: { high: p(21725.25), low: p(21650.50), bias: "neutral" },
+          london: { high: p(21860.75), low: p(21700.50), bias: "bullish" },
+          ny: { high: p(21910.50), low: p(21775.25), bias: "bullish" }
         }
       }
       

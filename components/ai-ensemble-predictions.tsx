@@ -128,8 +128,8 @@ function AIEnsemblePredictions({ market }: { market?: string }) {
             prediction: {
               direction: "bullish",
               confidence: 0.88,
-              target: p(15950.00),
-              stopLoss: p(15775.50),
+              target: p(21935.00),
+              stopLoss: p(21745.50),
               timeframe: "1H",
               reasoning: `Strong ${selectedMarket} technical setup with multi-timeframe alignment. Volume profile shows buying pressure above POC. Economic context supports risk-on.`
             },
@@ -146,8 +146,8 @@ function AIEnsemblePredictions({ market }: { market?: string }) {
             prediction: {
               direction: "bullish",
               confidence: 0.85,
-              target: p(15925.75),
-              stopLoss: p(15750.25),
+              target: p(21910.75),
+              stopLoss: p(21720.25),
               timeframe: "4H",
               reasoning: "Market structure confirms bullish continuation. Order flow shows aggressive buying at key levels. Fed expectations remain dovish."
             },
@@ -164,8 +164,8 @@ function AIEnsemblePredictions({ market }: { market?: string }) {
             prediction: {
               direction: "bullish",
               confidence: 0.92,
-              target: p(16025.50),
-              stopLoss: p(15800.75),
+              target: p(22010.50),
+              stopLoss: p(21775.00),
               timeframe: "1D",
               reasoning: "Perfect multi-timeframe alignment with 95% bullish consensus. Key resistance at 15925 with strong confluence. Volume confirms breakout potential."
             },
@@ -182,8 +182,8 @@ function AIEnsemblePredictions({ market }: { market?: string }) {
             prediction: {
               direction: "neutral",
               confidence: 0.65,
-              target: p(15875.25),
-              stopLoss: p(15725.50),
+              target: p(21855.25),
+              stopLoss: p(21700.50),
               timeframe: "2H",
               reasoning: "Mixed signals from news sentiment. Some caution due to upcoming Fed meeting. Overall risk-on but with moderation."
             },
@@ -200,8 +200,8 @@ function AIEnsemblePredictions({ market }: { market?: string }) {
             prediction: {
               direction: "bullish",
               confidence: 0.78,
-              target: p(15900.00),
-              stopLoss: p(15750.00),
+              target: p(21880.00),
+              stopLoss: p(21720.00),
               timeframe: "4H",
               reasoning: "Dovish Fed expectations with strong economic data. VIX remains low supporting equities. DXY weakening helps risk assets."
             },
@@ -217,8 +217,8 @@ function AIEnsemblePredictions({ market }: { market?: string }) {
         weightedPrediction: {
           direction: "bullish_continuation",
           confidence: 0.82,
-          target: p(15935.25),
-          stopLoss: p(15775.50),
+          target: p(21920.25),
+          stopLoss: p(21745.50),
           riskReward: 2.1,
           reasoning: "Strong consensus (78%) among AI models with GPT-4o leading. Technical analysis provides highest confidence. Weighted approach balances different perspectives."
         },

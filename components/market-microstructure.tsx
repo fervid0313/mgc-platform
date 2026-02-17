@@ -149,9 +149,9 @@ function MarketMicrostructure({ market }: { market?: string }) {
     try {
       // Mock data for now - will integrate with real order book APIs
       const mockMicrostructure: MarketMicrostructure = {
-        currentPrice: p(15830.75),
+        currentPrice: p(21805.50),
         liquidity: {
-          price: p(15830.75),
+          price: p(21805.50),
           buySide: v(4500000),
           sellSide: v(3800000),
           imbalance: 0.18,
@@ -161,36 +161,36 @@ function MarketMicrostructure({ market }: { market?: string }) {
         },
         liquidityVoids: [
           {
-            price: p(15775.50),
+            price: p(21745.50),
             type: "sell",
             size: v(250000),
             probability: 0.78,
             riskLevel: "high",
-            expectedMove: p(50.25),
+            expectedMove: p(60.25),
             timeframe: "15m"
           },
           {
-            price: p(15925.75),
+            price: p(21910.75),
             type: "buy",
             size: v(180000),
             probability: 0.65,
             riskLevel: "medium",
-            expectedMove: p(35.50),
+            expectedMove: p(45.50),
             timeframe: "30m"
           },
           {
-            price: p(15650.00),
+            price: p(21620.00),
             type: "sell",
             size: v(420000),
             probability: 0.85,
             riskLevel: "critical",
-            expectedMove: p(75.25),
+            expectedMove: p(85.25),
             timeframe: "1H"
           }
         ],
         stopHuntZones: [
           {
-            price: p(15750.25),
+            price: p(21720.25),
             type: "sell_stops",
             density: 0.72,
             probability: 0.68,
@@ -199,7 +199,7 @@ function MarketMicrostructure({ market }: { market?: string }) {
             riskReward: 2.8
           },
           {
-            price: p(15950.50),
+            price: p(21935.50),
             type: "buy_stops",
             density: 0.65,
             probability: 0.58,
@@ -213,7 +213,7 @@ function MarketMicrostructure({ market }: { market?: string }) {
             timestamp: new Date(Date.now() - 300000).toISOString(),
             type: "block_trade",
             size: v(500000),
-            price: p(15828.50),
+            price: p(21803.50),
             direction: "buy",
             aggressiveness: 0.75,
             impact: 0.82,
@@ -223,7 +223,7 @@ function MarketMicrostructure({ market }: { market?: string }) {
             timestamp: new Date(Date.now() - 600000).toISOString(),
             type: "iceberg",
             size: v(250000),
-            price: p(15832.25),
+            price: p(21807.25),
             direction: "sell",
             aggressiveness: 0.35,
             impact: 0.45,
@@ -233,7 +233,7 @@ function MarketMicrostructure({ market }: { market?: string }) {
             timestamp: new Date(Date.now() - 900000).toISOString(),
             type: "sweep",
             size: v(180000),
-            price: p(15775.50),
+            price: p(21745.50),
             direction: "buy",
             aggressiveness: 0.92,
             impact: 0.68,
@@ -250,18 +250,18 @@ function MarketMicrostructure({ market }: { market?: string }) {
         },
         marketDepth: {
           bidLevels: [
-            { price: p(15830.50), size: v(125000), orders: 450 },
-            { price: p(15830.25), size: v(98000), orders: 380 },
-            { price: p(15830.00), size: v(156000), orders: 520 },
-            { price: p(15829.75), size: v(87000), orders: 310 },
-            { price: p(15829.50), size: v(134000), orders: 490 }
+            { price: p(21805.25), size: v(125000), orders: 450 },
+            { price: p(21805.00), size: v(98000), orders: 380 },
+            { price: p(21804.75), size: v(156000), orders: 520 },
+            { price: p(21804.50), size: v(87000), orders: 310 },
+            { price: p(21804.25), size: v(134000), orders: 490 }
           ],
           askLevels: [
-            { price: p(15831.00), size: v(112000), orders: 410 },
-            { price: p(15831.25), size: v(89000), orders: 360 },
-            { price: p(15831.50), size: v(143000), orders: 540 },
-            { price: p(15831.75), size: v(76000), orders: 280 },
-            { price: p(15832.00), size: v(121000), orders: 440 }
+            { price: p(21805.75), size: v(112000), orders: 410 },
+            { price: p(21806.00), size: v(89000), orders: 360 },
+            { price: p(21806.25), size: v(143000), orders: 540 },
+            { price: p(21806.50), size: v(76000), orders: 280 },
+            { price: p(21806.75), size: v(121000), orders: 440 }
           ],
           totalDepth: v(1241000),
           avgSpread: 0.25
@@ -276,9 +276,9 @@ function MarketMicrostructure({ market }: { market?: string }) {
         recommendations: {
           direction: "bullish_continuation",
           confidence: 0.75,
-          entryZone: p(15835.25),
-          targetZone: p(15925.75),
-          stopZone: p(15775.50),
+          entryZone: p(21810.25),
+          targetZone: p(21910.75),
+          stopZone: p(21745.50),
           reasoning: `Strong ${selectedMarket} buy-side imbalance with institutional buying pressure. Smart money activity supports bullish bias.`,
           riskFactors: [
             "Liquidity void below current price",
@@ -290,15 +290,15 @@ function MarketMicrostructure({ market }: { market?: string }) {
           {
             type: "liquidity_void",
             severity: "high",
-            message: `Significant liquidity void detected at ${p(15775.50)}`,
-            price: p(15775.50),
+            message: `Significant liquidity void detected at ${p(21745.50)}`,
+            price: p(21745.50),
             timeframe: "15m"
           },
           {
             type: "stop_hunt",
             severity: "medium",
-            message: `Dense sell stop cluster at ${p(15750.25)}`,
-            price: p(15750.25),
+            message: `Dense sell stop cluster at ${p(21720.25)}`,
+            price: p(21720.25),
             timeframe: "30m"
           }
         ]

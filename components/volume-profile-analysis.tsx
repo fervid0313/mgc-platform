@@ -108,32 +108,32 @@ function VolumeProfileAnalysis({ market }: { market?: string }) {
     try {
       // Mock data for now - will integrate with real volume profile APIs
       const mockAnalysis: VolumeProfileData = {
-        currentPrice: p(15830.75),
+        currentPrice: p(21805.50),
         valueArea: {
-          poc: p(15825.50),
-          vah: p(15875.25),
-          val: p(15750.75),
-          vwap: p(15828.35),
+          poc: p(21800.25),
+          vah: p(21855.50),
+          val: p(21725.75),
+          vwap: p(21803.00),
           valueAreaVolume: v(8500000),
           totalVolume: v(12000000),
           valueAreaPercentage: 70.8
         },
         nakedLevels: {
-          nvh: p(15950.00),
-          nvl: p(15700.25),
+          nvh: p(21935.00),
+          nvl: p(21670.25),
           nvhStrength: 0.85,
           nvlStrength: 0.72,
           nvhProbability: 0.78,
           nvlProbability: 0.65
         },
         levels: [
-          { price: p(15825.50), volume: v(1500000), percentage: 12.5, type: "poc", distanceFromCurrent: p(-5.25), strength: "high" },
-          { price: p(15875.25), volume: v(1200000), percentage: 10.0, type: "vah", distanceFromCurrent: p(44.5), strength: "high" },
-          { price: p(15750.75), volume: v(1100000), percentage: 9.2, type: "val", distanceFromCurrent: p(-80.0), strength: "high" },
-          { price: p(15950.00), volume: v(900000), percentage: 7.5, type: "nvh", distanceFromCurrent: p(119.25), strength: "medium" },
-          { price: p(15700.25), volume: v(850000), percentage: 7.1, type: "nvl", distanceFromCurrent: p(-130.5), strength: "medium" },
-          { price: p(15850.25), volume: v(750000), percentage: 6.3, type: "normal", distanceFromCurrent: p(19.5), strength: "medium" },
-          { price: p(15800.75), volume: v(680000), percentage: 5.7, type: "normal", distanceFromCurrent: p(-30.0), strength: "low" }
+          { price: p(21800.25), volume: v(1500000), percentage: 12.5, type: "poc", distanceFromCurrent: p(-5.25), strength: "high" },
+          { price: p(21855.50), volume: v(1200000), percentage: 10.0, type: "vah", distanceFromCurrent: p(50.0), strength: "high" },
+          { price: p(21725.75), volume: v(1100000), percentage: 9.2, type: "val", distanceFromCurrent: p(-79.75), strength: "high" },
+          { price: p(21935.00), volume: v(900000), percentage: 7.5, type: "nvh", distanceFromCurrent: p(129.50), strength: "medium" },
+          { price: p(21670.25), volume: v(850000), percentage: 7.1, type: "nvl", distanceFromCurrent: p(-135.25), strength: "medium" },
+          { price: p(21832.50), volume: v(750000), percentage: 6.3, type: "normal", distanceFromCurrent: p(27.0), strength: "medium" },
+          { price: p(21775.00), volume: v(680000), percentage: 5.7, type: "normal", distanceFromCurrent: p(-30.50), strength: "low" }
         ],
         distribution: {
           buying: 58.5,
@@ -142,14 +142,14 @@ function VolumeProfileAnalysis({ market }: { market?: string }) {
         },
         imbalance: {
           detected: true,
-          price: p(15850.25),
+          price: p(21832.50),
           strength: "moderate",
           type: "buy"
         },
         predictions: {
-          nextSupport: p(15750.75),
-          nextResistance: p(15875.25),
-          target: p(15950.00),
+          nextSupport: p(21725.75),
+          nextResistance: p(21855.50),
+          target: p(21935.00),
           confidence: 0.82,
           reasoning: `${selectedMarket} price above POC with strong buying volume. Targeting NVH if current resistance breaks.`
         }

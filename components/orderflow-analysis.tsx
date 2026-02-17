@@ -124,18 +124,18 @@ function OrderFlowAnalysis({ market }: { market?: string }) {
       const mockAnalysis: OrderFlowAnalysis = {
         heatmap: {
           levels: [
-            { price: p(15850.25), intensity: 85, type: "buy", volume: v(1500000), delta: v(250000) },
-            { price: p(15825.50), intensity: 72, type: "buy", volume: v(1200000), delta: v(180000) },
-            { price: p(15800.75), intensity: 45, type: "neutral", volume: v(900000), delta: v(50000) },
-            { price: p(15775.25), intensity: 68, type: "sell", volume: v(1100000), delta: v(-150000) },
-            { price: p(15750.50), intensity: 91, type: "sell", volume: v(1800000), delta: v(-320000) }
+            { price: p(21832.50), intensity: 85, type: "buy", volume: v(1500000), delta: v(250000) },
+            { price: p(21800.25), intensity: 72, type: "buy", volume: v(1200000), delta: v(180000) },
+            { price: p(21775.00), intensity: 45, type: "neutral", volume: v(900000), delta: v(50000) },
+            { price: p(21745.25), intensity: 68, type: "sell", volume: v(1100000), delta: v(-150000) },
+            { price: p(21720.50), intensity: 91, type: "sell", volume: v(1800000), delta: v(-320000) }
           ],
           maxIntensity: 100,
-          currentPrice: p(15830.75)
+          currentPrice: p(21805.50)
         },
         levels: [
           {
-            price: p(15850.25),
+            price: p(21832.50),
             buyVolume: v(875000),
             sellVolume: v(625000),
             delta: v(250000),
@@ -146,7 +146,7 @@ function OrderFlowAnalysis({ market }: { market?: string }) {
             stackedImbalances: 3
           },
           {
-            price: p(15825.50),
+            price: p(21800.25),
             buyVolume: v(690000),
             sellVolume: v(510000),
             delta: v(180000),
@@ -157,7 +157,7 @@ function OrderFlowAnalysis({ market }: { market?: string }) {
             stackedImbalances: 2
           },
           {
-            price: p(15775.25),
+            price: p(21745.25),
             buyVolume: v(475000),
             sellVolume: v(625000),
             delta: v(-150000),
@@ -170,7 +170,7 @@ function OrderFlowAnalysis({ market }: { market?: string }) {
         ],
         absorption: {
           detected: true,
-          price: p(15825.50),
+          price: p(21800.25),
           strength: "moderate",
           type: "buy",
           volume: v(1200000),
@@ -178,7 +178,7 @@ function OrderFlowAnalysis({ market }: { market?: string }) {
         },
         exhaustion: {
           detected: true,
-          price: p(15775.25),
+          price: p(21745.25),
           type: "sell",
           volumeSpike: 2.8,
           reversalProbability: 0.73
@@ -188,10 +188,10 @@ function OrderFlowAnalysis({ market }: { market?: string }) {
           deltaPerBar: [v(120000), v(80000), v(150000), v(95000), v(180000), v(125000)],
           deltaTrend: "increasing",
           divergence: false,
-          volumeWeightedPrice: p(15828.35)
+          volumeWeightedPrice: p(21803.00)
         },
         predictions: {
-          nextLevel: p(15875.50),
+          nextLevel: p(21855.50),
           direction: "bullish",
           confidence: 0.78,
           reasoning: `Strong buying pressure on ${selectedMarket} at current levels with absorption detected. Delta trending up suggests continuation.`

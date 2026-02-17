@@ -16,8 +16,8 @@ export const MARKET_PROFILES: Record<string, MarketProfile> = {
   NQ100: {
     symbol: "NQ100",
     name: "Nasdaq 100 Futures",
-    basePrice: 15830.75,
-    priceRange: { low: 15650, high: 16050 },
+    basePrice: 21805.50,
+    priceRange: { low: 21550, high: 22050 },
     tickSize: 0.25,
     decimals: 2,
     volatilityMultiplier: 1.0,
@@ -27,8 +27,8 @@ export const MARKET_PROFILES: Record<string, MarketProfile> = {
   ES: {
     symbol: "ES",
     name: "S&P 500 Futures",
-    basePrice: 5125.50,
-    priceRange: { low: 5050, high: 5200 },
+    basePrice: 6083.25,
+    priceRange: { low: 5980, high: 6180 },
     tickSize: 0.25,
     decimals: 2,
     volatilityMultiplier: 0.7,
@@ -38,8 +38,8 @@ export const MARKET_PROFILES: Record<string, MarketProfile> = {
   BTC: {
     symbol: "BTC",
     name: "Bitcoin",
-    basePrice: 67450.00,
-    priceRange: { low: 65000, high: 70000 },
+    basePrice: 97250.00,
+    priceRange: { low: 94000, high: 101000 },
     tickSize: 0.01,
     decimals: 2,
     volatilityMultiplier: 2.5,
@@ -49,8 +49,8 @@ export const MARKET_PROFILES: Record<string, MarketProfile> = {
   ETH: {
     symbol: "ETH",
     name: "Ethereum",
-    basePrice: 3520.80,
-    priceRange: { low: 3350, high: 3700 },
+    basePrice: 2735.40,
+    priceRange: { low: 2600, high: 2870 },
     tickSize: 0.01,
     decimals: 2,
     volatilityMultiplier: 3.0,
@@ -60,8 +60,8 @@ export const MARKET_PROFILES: Record<string, MarketProfile> = {
   US10Y: {
     symbol: "US10Y",
     name: "10-Year Treasury Yield",
-    basePrice: 4.28,
-    priceRange: { low: 4.10, high: 4.45 },
+    basePrice: 4.52,
+    priceRange: { low: 4.35, high: 4.70 },
     tickSize: 0.001,
     decimals: 3,
     volatilityMultiplier: 0.3,
@@ -95,7 +95,7 @@ export function scaleVolume(profile: MarketProfile, baseVolume: number): number 
 
 // Scale a price from NQ100 base (~15830) to the target market
 // This lets us reuse NQ100 mock data for any market
-const NQ_BASE = 15830.75
+const NQ_BASE = 21805.50
 export function scaleFromNQ(nqPrice: number, market: string): number {
   const profile = getMarketProfile(market)
   const ratio = profile.basePrice / NQ_BASE

@@ -135,21 +135,21 @@ function VisualEnhancements({ market }: { market?: string }) {
       // Mock data for now - will integrate with real price APIs
       const mockEnhancements: VisualEnhancements = {
         priceData: {
-          current: p(15830.75),
-          open: p(15750.25),
-          high: p(15845.50),
-          low: p(15725.75),
-          change: p(80.50),
+          current: p(21805.50),
+          open: p(21720.25),
+          high: p(21825.75),
+          low: p(21695.50),
+          change: p(85.25),
           changePercent: 0.51,
           volume: v(125000000),
           timestamp: new Date().toISOString(),
-          bid: p(15830.50),
-          ask: p(15831.00),
+          bid: p(21805.25),
+          ask: p(21805.75),
           spread: 0.50
         },
         priceLevels: [
           {
-            price: p(15925.75),
+            price: p(21910.75),
             type: "resistance",
             strength: 0.92,
             probability: 0.85,
@@ -157,7 +157,7 @@ function VisualEnhancements({ market }: { market?: string }) {
             timestamp: new Date(Date.now() - 3600000).toISOString()
           },
           {
-            price: p(15775.50),
+            price: p(21745.50),
             type: "support",
             strength: 0.88,
             probability: 0.82,
@@ -165,7 +165,7 @@ function VisualEnhancements({ market }: { market?: string }) {
             timestamp: new Date(Date.now() - 7200000).toISOString()
           },
           {
-            price: p(15850.25),
+            price: p(21832.50),
             type: "target",
             strength: 0.75,
             probability: 0.78,
@@ -173,7 +173,7 @@ function VisualEnhancements({ market }: { market?: string }) {
             timestamp: new Date(Date.now() - 1800000).toISOString()
           },
           {
-            price: p(15750.25),
+            price: p(21720.25),
             type: "stop",
             strength: 0.65,
             probability: 0.68,
@@ -181,7 +181,7 @@ function VisualEnhancements({ market }: { market?: string }) {
             timestamp: new Date(Date.now() - 900000).toISOString()
           },
           {
-            price: p(15815.00),
+            price: p(21784.00),
             type: "poc",
             strength: 0.95,
             probability: 0.90,
@@ -222,29 +222,29 @@ function VisualEnhancements({ market }: { market?: string }) {
         ],
         levelHistory: [
           {
-            level: p(15815.00),
+            level: p(21784.00),
             type: "poc",
             hitTime: new Date(Date.now() - 600000).toISOString(),
-            approachPrice: p(15812.50),
-            bouncePrice: p(15825.75),
+            approachPrice: p(21780.50),
+            bouncePrice: p(21800.75),
             strength: 0.95,
             accuracy: 0.88
           },
           {
-            level: p(15750.25),
+            level: p(21720.25),
             type: "support",
             hitTime: new Date(Date.now() - 3600000).toISOString(),
-            approachPrice: p(15752.75),
-            bouncePrice: p(15775.50),
+            approachPrice: p(21722.75),
+            bouncePrice: p(21745.50),
             strength: 0.88,
             accuracy: 0.92
           },
           {
-            level: p(15900.00),
+            level: p(21880.00),
             type: "resistance",
             hitTime: new Date(Date.now() - 7200000).toISOString(),
-            approachPrice: p(15895.25),
-            breakPrice: p(15905.50),
+            approachPrice: p(21875.25),
+            breakPrice: p(21885.50),
             strength: 0.78,
             accuracy: 0.75
           }
