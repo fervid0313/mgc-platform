@@ -167,8 +167,6 @@ export function generateMockPriceUpdate(market: string, store: any): Partial<Pri
   const profile = getMarketProfile(market)
   const current = store.prices[market]
   
-  console.log(`generateMockPriceUpdate for ${market}:`, { profile: profile.symbol, current: current?.price })
-  
   if (!current) return {}
 
   // Generate realistic price movement
@@ -212,11 +210,8 @@ export class PriceSimulator {
     this.interval = setInterval(() => {
       const store = usePriceStore.getState()
       
-      console.log('Price simulator updating markets:', this.markets)
-      
       this.markets.forEach(market => {
         const update = generateMockPriceUpdate(market, store)
-        console.log(`Updating ${market}:`, update)
         store.updatePrice(market, update)
       })
 

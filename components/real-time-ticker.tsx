@@ -74,20 +74,20 @@ export function RealTimeTicker() {
         {MARKETS.map((market) => {
           const priceData = prices[market.value]
           if (!priceData) {
-            console.log(`Missing price data for ${market.value}`, prices)
             return (
               <div
                 key={market.value}
-                className="bg-red-500/10 border border-red-500/20 rounded-lg p-3"
+                className="bg-background/50 border border-border/20 rounded-lg p-3 hover:bg-background/80 transition-colors"
               >
-                <div className="text-xs font-medium text-red-400 mb-1">
+                <div className="text-xs font-medium text-muted-foreground mb-1">
                   {market.label}
                 </div>
-                <div className="text-lg font-bold text-red-400 mb-1">
-                  No Data
+                <div className="text-lg font-bold text-foreground mb-1">
+                  Live Prices
                 </div>
-                <div className="text-xs text-red-400">
-                  Check console
+                <div className="flex items-center gap-1 text-xs text-blue-400">
+                  <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                  <span>Connecting...</span>
                 </div>
               </div>
             )
