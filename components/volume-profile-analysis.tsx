@@ -97,8 +97,8 @@ function VolumeProfileAnalysis({ market = "NQ100" }: { market?: string }) {
 
   const timeframes = ["15m", "1H", "4H", "1D", "1W"]
   const selectedMarket = market || "NQ100"
-  const p = (nqPrice: number) => scaleFromNQ(nqPrice, selectedMarket)
-  const v = (nqVol: number) => scaleVolumeFromNQ(nqVol, selectedMarket)
+  const p = useCallback((nqPrice: number) => scaleFromNQ(nqPrice, selectedMarket), [selectedMarket])
+  const v = useCallback((nqVol: number) => scaleVolumeFromNQ(nqVol, selectedMarket), [selectedMarket])
 
   // Toggle section collapse
   const toggleSection = useCallback((sectionId: string) => {

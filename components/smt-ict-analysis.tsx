@@ -120,8 +120,8 @@ function SMTICTAnalysis({ market = "NQ100" }: { market?: string }) {
   }, [])
 
   const selectedMarket = market || "NQ100"
-  const p = (nqPrice: number) => scaleFromNQ(nqPrice, selectedMarket)
-  const v = (nqVol: number) => scaleVolumeFromNQ(nqVol, selectedMarket)
+  const p = useCallback((nqPrice: number) => scaleFromNQ(nqPrice, selectedMarket), [selectedMarket])
+  const v = useCallback((nqVol: number) => scaleVolumeFromNQ(nqVol, selectedMarket), [selectedMarket])
 
   // Fetch SMT/ICT analysis
   const fetchAnalysis = useCallback(async (timeframe: string) => {
