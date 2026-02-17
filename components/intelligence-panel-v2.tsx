@@ -95,6 +95,7 @@ import ActionableAlerts from "./actionable-alerts"
 import VisualEnhancements from "./visual-enhancements"
 import { RealTimeTicker } from "./real-time-ticker"
 import { TradingViewChart, TradingViewTicker } from "./tradingview-chart"
+import { ErrorBoundary } from "./error-boundary"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -514,7 +515,9 @@ function IntelligencePanelV2() {
       </div>
 
       {/* ── Real-Time Price Ticker ── */}
-      <RealTimeTicker />
+      <ErrorBoundary>
+        <RealTimeTicker />
+      </ErrorBoundary>
 
       {/* ── TradingView Live Chart ── */}
       <div className="bg-gradient-to-br from-background via-background/95 to-background border border-border/30 rounded-xl overflow-hidden">
@@ -550,7 +553,9 @@ function IntelligencePanelV2() {
                   className="min-h-[350px] bg-gradient-to-br from-background via-background/95 to-background border border-border/30 rounded-xl overflow-hidden"
                 >
                   <div className="p-5">
-                    <Component market={selectedMarket} />
+                    <ErrorBoundary>
+                      <Component market={selectedMarket} />
+                    </ErrorBoundary>
                   </div>
                 </div>
               )
@@ -562,7 +567,9 @@ function IntelligencePanelV2() {
             <div className="text-xl font-bold text-foreground border-b border-border/30 pb-3">Intraday Analysis AI</div>
             <div className="min-h-[350px] bg-gradient-to-br from-background via-background/95 to-background border border-border/30 rounded-xl overflow-hidden">
               <div className="p-5">
-                <IntradayAnalysis market={selectedMarket} />
+                <ErrorBoundary>
+                  <IntradayAnalysis market={selectedMarket} />
+                </ErrorBoundary>
               </div>
             </div>
           </div>
@@ -583,7 +590,9 @@ function IntelligencePanelV2() {
                   className="min-h-[350px] bg-gradient-to-br from-background via-background/95 to-background border border-border/30 rounded-xl overflow-hidden"
                 >
                   <div className="p-5">
-                    <Component market={selectedMarket} />
+                    <ErrorBoundary>
+                      <Component market={selectedMarket} />
+                    </ErrorBoundary>
                   </div>
                 </div>
               )
@@ -608,7 +617,9 @@ function IntelligencePanelV2() {
                   className="min-h-[350px] bg-gradient-to-br from-background via-background/95 to-background border border-border/30 rounded-xl overflow-hidden"
                 >
                   <div className="p-5">
-                    <Component market={selectedMarket} />
+                    <ErrorBoundary>
+                      <Component market={selectedMarket} />
+                    </ErrorBoundary>
                   </div>
                 </div>
               )

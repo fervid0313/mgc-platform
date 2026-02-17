@@ -150,9 +150,9 @@ export const usePriceStore = create<PriceState>()(
 )
 
 // Mock price generator for demo purposes
-export function generateMockPriceUpdate(market: string): Partial<PriceData> {
+export function generateMockPriceUpdate(market: string, store: any): Partial<PriceData> {
   const profile = getMarketProfile(market)
-  const current = usePriceStore.getState().prices[market]
+  const current = store.prices[market]
   
   if (!current) return {}
 
@@ -162,13 +162,26 @@ export function generateMockPriceUpdate(market: string): Partial<PriceData> {
   const move = (Math.random() - 0.5) * 2 * maxMove
   const newPrice = current.price + move
   
+  // Calculate change and change percent
+  const change = newPrice - current.price
+  const changePercent = (change / current.price) * 100
+  
+  // Update high/low
+  const newHigh = Math.max(current.high, newPrice)
+  const newLow = Math.min(current.low, newPrice)
+  
   // Generate volume spike occasionally
   const volumeMultiplier = Math.random() > 0.9 ? 1.5 + Math.random() : 0.8 + Math.random() * 0.4
   const newVolume = Math.round(profile.typicalVolume * volumeMultiplier)
 
   return {
     price: parseFloat(newPrice.toFixed(profile.decimals)),
+    change: parseFloat(change.toFixed(profile.decimals)),
+    changePercent: parseFloat(changePercent.toFixed(2)),
     volume: newVolume,
+    high: newHigh,
+    low: newLow,
+    timestamp: Date.now(),
   }
 }
 
@@ -185,7 +198,7 @@ export class PriceSimulator {
       const store = usePriceStore.getState()
       
       this.markets.forEach(market => {
-        const update = generateMockPriceUpdate(market)
+        const update = generateMockPriceUpdate(market, store)
         store.updatePrice(market, update)
       })
 

@@ -175,8 +175,12 @@ export function getPriceChange(market: string): { change: number; changePercent:
 
 // Helper to create price-aware scaling functions
 export function createPriceScaler(market: string) {
+  if (!market) {
+    market = "NQ100"
+  }
+  
   const profile = getMarketProfile(market)
-  const currentPrice = getCurrentPrice(market)
+  const currentPrice = getCurrentPrice(market) || profile.basePrice
   const basePrice = profile.basePrice
   const ratio = currentPrice / basePrice
   
