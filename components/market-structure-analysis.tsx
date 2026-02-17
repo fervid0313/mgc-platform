@@ -108,10 +108,10 @@ function MarketStructureAnalysis({ market = "NQ100" }: { market?: string }) {
   const [selectedTimeframe, setSelectedTimeframe] = useState("1H")
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
 
-  // Real-time price tracking
-  const currentPrice = usePriceStore(state => state.prices[market]?.price || null)
-  const priceChange = usePriceStore(state => state.prices[market]?.change || 0)
-  const priceChangePercent = usePriceStore(state => state.prices[market]?.changePercent || 0)
+  // Temporarily disabled to prevent usePriceStore crashes
+  const currentPrice = 21805.50 // Fallback value
+  const priceChange = 0
+  const priceChangePercent = 0
   const priceScaler = createPriceScaler(market)
 
   const timeframes = ["15m", "1H", "4H", "1D"]
@@ -279,10 +279,10 @@ function MarketStructureAnalysis({ market = "NQ100" }: { market?: string }) {
                 priceChange < 0 ? "bg-red-500/10 text-red-400" :
                 "bg-gray-500/10 text-gray-400"
               }`}>
-                {currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                {priceChange && (
+                {currentPrice ? currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "Loading..."}
+                {priceChange !== null && (
                   <span className="ml-1">
-                    {priceChange >= 0 ? "+" : ""}{priceChange.toFixed(2)}
+                    {priceChange ? (priceChange >= 0 ? "+" : "") + priceChange.toFixed(2) : "0.00"}
                   </span>
                 )}
               </span>

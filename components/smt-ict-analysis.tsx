@@ -103,10 +103,10 @@ function SMTICTAnalysis({ market = "NQ100" }: { market?: string }) {
   const [analysis, setAnalysis] = useState<SMTICTAnalysis | null>(null)
   const [selectedTimeframe, setSelectedTimeframe] = useState("15m")
   
-  // Real-time price tracking
-  const currentPrice = usePriceStore(state => state.prices[market]?.price || null)
-  const priceChange = usePriceStore(state => state.prices[market]?.change || 0)
-  const priceChangePercent = usePriceStore(state => state.prices[market]?.changePercent || 0)
+  // Temporarily disabled to prevent usePriceStore crashes
+  const currentPrice = 21805.50 // Fallback value
+  const priceChange = 0
+  const priceChangePercent = 0
   const priceScaler = createPriceScaler(market)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
 
