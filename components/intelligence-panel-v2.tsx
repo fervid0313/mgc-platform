@@ -93,6 +93,7 @@ import { RealTimeIntelligence } from "./realtime-intelligence"
 import ActionableAlerts from "./actionable-alerts"
 import MarketMicrostructure from "./market-microstructure"
 import VisualEnhancements from "./visual-enhancements"
+import { TradingViewChart, TradingViewTicker } from "./tradingview-chart"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -495,6 +496,25 @@ function IntelligencePanelV2() {
           >
             <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
           </button>
+        </div>
+      </div>
+
+      {/* ── TradingView Ticker Tape ── */}
+      <div className="rounded-xl overflow-hidden border border-border/30">
+        <TradingViewTicker theme="dark" />
+      </div>
+
+      {/* ── TradingView Live Chart ── */}
+      <div className="bg-gradient-to-br from-background via-background/95 to-background border border-border/30 rounded-xl overflow-hidden">
+        <div className="px-5 pt-4 pb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-primary" />
+            <span className="text-lg font-bold text-foreground">Live Chart</span>
+            <span className="text-sm text-muted-foreground ml-2">{selectedMarket}</span>
+          </div>
+        </div>
+        <div className="px-2 pb-2">
+          <TradingViewChart market={selectedMarket} height={500} theme="dark" interval="15" />
         </div>
       </div>
 

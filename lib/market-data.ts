@@ -3,6 +3,7 @@
 export interface MarketProfile {
   symbol: string
   name: string
+  tvSymbol: string // TradingView symbol (e.g. "CME_MINI:NQ1!")
   basePrice: number
   priceRange: { low: number; high: number }
   tickSize: number
@@ -16,6 +17,7 @@ export const MARKET_PROFILES: Record<string, MarketProfile> = {
   NQ100: {
     symbol: "NQ100",
     name: "Nasdaq 100 Futures",
+    tvSymbol: "CME_MINI:NQ1!",
     basePrice: 21805.50,
     priceRange: { low: 21550, high: 22050 },
     tickSize: 0.25,
@@ -27,6 +29,7 @@ export const MARKET_PROFILES: Record<string, MarketProfile> = {
   ES: {
     symbol: "ES",
     name: "S&P 500 Futures",
+    tvSymbol: "CME_MINI:ES1!",
     basePrice: 6083.25,
     priceRange: { low: 5980, high: 6180 },
     tickSize: 0.25,
@@ -38,6 +41,7 @@ export const MARKET_PROFILES: Record<string, MarketProfile> = {
   BTC: {
     symbol: "BTC",
     name: "Bitcoin",
+    tvSymbol: "COINBASE:BTCUSD",
     basePrice: 97250.00,
     priceRange: { low: 94000, high: 101000 },
     tickSize: 0.01,
@@ -49,6 +53,7 @@ export const MARKET_PROFILES: Record<string, MarketProfile> = {
   ETH: {
     symbol: "ETH",
     name: "Ethereum",
+    tvSymbol: "COINBASE:ETHUSD",
     basePrice: 2735.40,
     priceRange: { low: 2600, high: 2870 },
     tickSize: 0.01,
@@ -60,6 +65,7 @@ export const MARKET_PROFILES: Record<string, MarketProfile> = {
   US10Y: {
     symbol: "US10Y",
     name: "10-Year Treasury Yield",
+    tvSymbol: "TVC:US10Y",
     basePrice: 4.52,
     priceRange: { low: 4.35, high: 4.70 },
     tickSize: 0.001,
