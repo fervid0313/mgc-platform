@@ -377,29 +377,17 @@ function IntelligencePanelV2() {
     setMounted(true)
     if (isAuthenticated) {
       setLoading(true)
-      Promise.all([
-        fetchSentiment(selectedMarket),
-        fetchBias(selectedMarket),
-        fetchEvents(),
-        fetchHodLod(selectedMarket),
-      ]).finally(() => {
-        setLoading(false)
-        setLastUpdate(new Date())
-      })
+      // API endpoints not implemented yet - skip to avoid console errors
+      setLoading(false)
+      setLastUpdate(new Date())
     }
   }, [isAuthenticated, selectedMarket])
 
   // Auto-refresh
   useEffect(() => {
     if (!isAuthenticated) return
-    const interval = setInterval(() => {
-      fetchSentiment(selectedMarket)
-      fetchBias(selectedMarket)
-      fetchEvents()
-      fetchHodLod(selectedMarket)
-      setLastUpdate(new Date())
-    }, 60000) // 1 minute
-    return () => clearInterval(interval)
+    // API endpoints not implemented yet - skip auto-refresh
+    return () => {}
   }, [isAuthenticated, selectedMarket])
 
   // Toggle component collapse
@@ -495,10 +483,7 @@ function IntelligencePanelV2() {
           </div>
           <button
             onClick={() => {
-              fetchSentiment(selectedMarket)
-              fetchBias(selectedMarket)
-              fetchEvents()
-              fetchHodLod(selectedMarket)
+              // API endpoints not implemented yet - just update timestamp
               setLastUpdate(new Date())
             }}
             disabled={loading}
