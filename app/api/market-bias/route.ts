@@ -34,7 +34,19 @@ export async function POST(req: NextRequest) {
 
     const apiKey = process.env.OPENAI_API_KEY
     if (!apiKey) {
-      return NextResponse.json({ error: "OpenAI API key not configured" }, { status: 500 })
+      // Return mock bias data when OpenAI API key is not configured
+      const mockBiases = marketData.map((m: any) => ({
+        label: m.label,
+        bias: m.changePercent > 0.5 ? "bullish" : m.changePercent < -0.5 ? "bearish" : "neutral",
+        confidence: 65 + Math.random() * 20, // 65-85
+        reason: m.changePercent > 0.5 ? "Positive price action" : m.changePercent < -0.5 ? "Negative price action" : "Neutral price action"
+      }))
+      
+      return NextResponse.json({
+        biases: mockBiases,
+        generatedAt: new Date().toISOString(),
+        mock: true
+      })
     }
 
     const marketSummary = marketData
