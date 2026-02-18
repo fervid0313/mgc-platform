@@ -18,13 +18,13 @@ interface BiasPrediction {
   reason: string
 }
 
-function formatWholePrice(price: number): string {
-  return Math.round(price).toLocaleString()
+function formatPrice(price: number): string {
+  return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 function formatChange(change: number, changePercent: number): string {
   const sign = change >= 0 ? "+" : ""
-  return `${sign}${Math.round(change)} (${sign}${changePercent.toFixed(1)}%)`
+  return `${sign}${change.toFixed(2)} (${sign}${Math.round(changePercent)}%)`
 }
 
 function getChangeColor(change: number): string {
@@ -124,8 +124,8 @@ export function SlidingTicker() {
                   </span>
                   
                   {/* Price */}
-                  <span className="text-sm font-mono text-foreground min-w-[4rem]">
-                    {formatWholePrice(market.price)}
+                  <span className="text-sm font-mono text-foreground min-w-[5rem]">
+                    {formatPrice(market.price)}
                   </span>
                   
                   {/* Change */}
