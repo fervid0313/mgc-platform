@@ -144,7 +144,7 @@ export function SlidingTicker() {
                       "bg-gray-500/10 text-gray-400"
                     }`}>
                       <span className="font-medium">{bias.bias.toUpperCase()}</span>
-                      <span className="opacity-70">{bias.confidence}%</span>
+                      <span className="opacity-70">{Math.round(bias.confidence)}%</span>
                     </div>
                   )}
                 </div>
