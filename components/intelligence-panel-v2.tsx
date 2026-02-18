@@ -95,6 +95,7 @@ import ActionableAlerts from "./actionable-alerts"
 import VisualEnhancements from "./visual-enhancements"
 import { RealTimeTicker } from "./real-time-ticker"
 import { TradingViewChart, TradingViewTicker } from "./tradingview-chart"
+import { SlidingTicker } from "./sliding-ticker"
 import { ErrorBoundary } from "./error-boundary"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -496,9 +497,9 @@ function IntelligencePanelV2() {
         </div>
       </div>
 
-      {/* ── TradingView Ticker Tape ── */}
+      {/* ── Sliding Ticker Tape ── */}
       <div className="rounded-xl overflow-hidden border border-border/30">
-        <TradingViewTicker theme="dark" />
+        <SlidingTicker />
       </div>
 
       {/* ── Real-Time Price Ticker ── */}
